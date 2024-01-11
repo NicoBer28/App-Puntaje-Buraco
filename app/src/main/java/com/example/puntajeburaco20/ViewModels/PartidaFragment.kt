@@ -38,6 +38,8 @@ class PartidaFragment : Fragment() {
     private val mutableListCopia: MutableList<String> = mutableListOf("Jugador 1", "nico", "sergio", "vero")
 
     private val mutableListJugadores: MutableList<String> = mutableListOf("2 Jugadores", "4 Jugadores")
+    private var primerNombre3: Int = 0
+    private var primerNombre4: Int = 0
 
     /*mutableList.add("Damasco")
 mutableList.removeAt(1)*/
@@ -79,12 +81,24 @@ mutableList.removeAt(1)*/
                     0 -> { // Si se selecciona la primera opción
                         spinner3.visibility = View.GONE
                         spinner4.visibility = View.GONE
+                        if(jugadorTres == mutableList[0]){
+                            jugadorTres = ""
+                        }
+                        if(jugadorCuatro == mutableList[0]){
+                            jugadorCuatro = ""
+                        }
                         spinner1.setBackgroundColor(Color.MAGENTA)
                     }
 
                     1 -> { // Si se selecciona la segunda opción
                         spinner3.visibility = View.VISIBLE
                         spinner4.visibility = View.VISIBLE
+                        if(jugadorTres == ""){
+                            jugadorTres = mutableList[0]
+                        }
+                        if(jugadorCuatro == ""){
+                            jugadorCuatro = mutableList[0]
+                        }
                         spinner1.setBackgroundColor(Color.CYAN)
                     }
 
@@ -168,7 +182,12 @@ mutableList.removeAt(1)*/
                 position: Int,
                 id: Long
             ) {
-                jugadorTres = parent.getItemAtPosition(position).toString()
+                if(primerNombre3 == 1) {
+                    jugadorTres = parent.getItemAtPosition(position).toString()
+                }
+                if(primerNombre3 == 0) {
+                    primerNombre3 = 1
+                }
 
                 if (opcionAnterior3 != mutableList[0]) {
                     mutableList.add(opcionAnterior3)
@@ -196,8 +215,12 @@ mutableList.removeAt(1)*/
                 position: Int,
                 id: Long
             ) {
-                jugadorCuatro = parent.getItemAtPosition(position).toString()
-
+                if(primerNombre4 == 1) {
+                    jugadorCuatro = parent.getItemAtPosition(position).toString()
+                }
+                if(primerNombre4 == 0) {
+                    primerNombre4 = 1
+                }
                 if (opcionAnterior4 != mutableList[0]) {
                     mutableList.add(opcionAnterior4)
                 }
@@ -216,6 +239,9 @@ mutableList.removeAt(1)*/
 
 
         botonNuevaPartida.setOnClickListener {
+            if(jugadorUno == mutableList[0] || jugadorDos == mutableList[0] || jugadorTres == mutableList[0] || jugadorCuatro == mutableList[0]){
+                Toast.makeText(requireContext(), "Elija un jugador", Toast.LENGTH_SHORT).show()
+            }
 
         }
 
