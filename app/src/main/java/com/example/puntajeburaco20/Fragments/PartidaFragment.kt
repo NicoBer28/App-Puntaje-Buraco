@@ -1,4 +1,4 @@
-package com.example.puntajeburaco20.ViewModels
+package com.example.puntajeburaco20.Fragments
 
 import android.graphics.Color
 import android.os.Bundle
@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
 
 
@@ -23,6 +24,7 @@ lateinit var jugadorUno: String
 lateinit var jugadorDos: String
 var jugadorTres: String = ""
 var jugadorCuatro: String = ""
+var cantJugadores: Int = 2
 
 
 /**
@@ -43,6 +45,17 @@ class PartidaFragment : Fragment() {
 
     /*mutableList.add("Damasco")
 mutableList.removeAt(1)*/
+
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
+                              savedInstanceState: Bundle?): View? {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_partida, container, false)
+    }
+
+    companion object {
+
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -81,6 +94,7 @@ mutableList.removeAt(1)*/
                     0 -> { // Si se selecciona la primera opción
                         spinner3.visibility = View.GONE
                         spinner4.visibility = View.GONE
+                        cantJugadores = 2
                         if(jugadorTres == mutableList[0]){
                             jugadorTres = ""
                         }
@@ -93,6 +107,7 @@ mutableList.removeAt(1)*/
                     1 -> { // Si se selecciona la segunda opción
                         spinner3.visibility = View.VISIBLE
                         spinner4.visibility = View.VISIBLE
+                        cantJugadores = 4
                         if(jugadorTres == ""){
                             jugadorTres = mutableList[0]
                         }
@@ -241,6 +256,8 @@ mutableList.removeAt(1)*/
         botonNuevaPartida.setOnClickListener {
             if(jugadorUno == mutableList[0] || jugadorDos == mutableList[0] || jugadorTres == mutableList[0] || jugadorCuatro == mutableList[0]){
                 Toast.makeText(requireContext(), "Elija un jugador", Toast.LENGTH_SHORT).show()
+            }else{
+                findNavController().navigate(R.id.puntajeFragment)
             }
 
         }
@@ -256,13 +273,4 @@ mutableList.removeAt(1)*/
     }
 
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_partida, container, false)
-    }
-
-    companion object {
-
-    }
 }

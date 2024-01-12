@@ -6,7 +6,15 @@
     app:startDestination="@id/partidaFragment">
     <fragment
         android:id="@+id/partidaFragment"
-        android:name="com.example.puntajeburaco20.ViewModels.PartidaFragment"
-        android:label="fragment_partida"
-        tools:layout="@layout/fragment_partida" />
+        android:name="com.example.puntajeburaco20.Fragments.PartidaFragment"
+        android:label="PartidaFragment" >
+        <action
+            android:id="@+id/action_partidaFragment_to_puntajeFragment"
+            app:destination="@id/puntajeFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/puntajeFragment"
+        android:name="com.example.puntajeburaco20.Fragments.PuntajeFragment"
+        android:label="fragment_puntaje"
+        tools:layout="@layout/fragment_puntaje" />
 </navigation>

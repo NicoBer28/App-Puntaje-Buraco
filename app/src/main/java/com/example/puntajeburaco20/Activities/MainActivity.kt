@@ -1,4 +1,4 @@
-package com.example.puntajeburaco20
+package com.example.puntajeburaco20.Activities
 
 import android.os.Bundle
 
@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.NavigationUI
+import com.example.puntajeburaco20.R
 
 class MainActivity : AppCompatActivity() {
 
