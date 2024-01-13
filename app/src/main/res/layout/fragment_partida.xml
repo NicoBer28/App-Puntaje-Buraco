@@ -7,15 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".Fragments.PartidaFragment">
 
-    <!-- Spinner Jugadores -->
 
-    <!-- Spinner 1 -->
-
-    <!-- Spinner 2 -->
-
-    <!-- Spinner 3 -->
-
-    <!-- Spinner 4 -->
 
 
     <Spinner
@@ -23,7 +15,7 @@
         android:layout_width="203dp"
         android:layout_height="66dp"
         android:layout_marginTop="40dp"
-        android:background="#959595"
+        android:background="@drawable/spinner_cant_jugadores"
 
         app:layout_constraintBottom_toTopOf="@+id/spinner1"
         app:layout_constraintEnd_toEndOf="parent"
@@ -36,6 +28,8 @@
         android:layout_width="127dp"
         android:layout_height="58dp"
         android:layout_marginTop="28dp"
+        android:background="@drawable/spinner_equipo_uno"
+
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/spinnerJugadores"
@@ -47,8 +41,6 @@
         android:layout_height="58dp"
         android:layout_marginTop="104dp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:background="#FF00FFFF"
-
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/spinner1"
         tools:ignore="MissingConstraints" />
@@ -60,7 +52,7 @@
         android:layout_height="58dp"
         android:layout_marginStart="20dp"
         android:layout_marginTop="212dp"
-        android:background="#FFFF00FF"
+        android:background="@drawable/spinner_equipo_dos"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="MissingConstraints" />
@@ -71,7 +63,7 @@
         android:layout_height="58dp"
         android:layout_marginTop="212dp"
         android:layout_marginEnd="20dp"
-        android:background="#FFFF00FF"
+        android:background="@drawable/spinner_equipo_dos"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="MissingConstraints" />
@@ -81,9 +73,10 @@
         android:layout_width="181dp"
         android:layout_height="76dp"
         android:layout_marginBottom="168dp"
+        android:background="@drawable/rounded_button"
         android:text="Nueva Partida"
-        android:background="#1F8A06"
 
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -96,9 +89,10 @@
         android:layout_height="79dp"
         android:layout_marginStart="40dp"
         android:layout_marginBottom="76dp"
+        android:background="@drawable/rounded_button"
         android:text="Historiales"
-        android:background="#1F8A06"
 
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -108,9 +102,10 @@
         android:layout_height="79dp"
         android:layout_marginEnd="40dp"
         android:layout_marginBottom="76dp"
+        android:background="@drawable/rounded_button"
         android:text="Nuevo Usuario"
-        android:background="#1F8A06"
 
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
