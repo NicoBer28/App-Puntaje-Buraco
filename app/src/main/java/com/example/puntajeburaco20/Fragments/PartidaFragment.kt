@@ -37,7 +37,7 @@ var cantJugadores: Int = 2
  */
 class PartidaFragment : Fragment() {
 
-    private val mutableList: MutableList<String> = mutableListOf("Nombre", "Nico", "Sergio", "Vero", "Juli", "Mati", "Bobe", "Invitado 1", "Invitado 2", "Invitado 3", "Invitado 4")
+    private val mutableList: MutableList<String> = mutableListOf("Nombre", "Nico", "Sergio", "Vero", "Juli", "Mati", "Hilda", "Mende", "Lauri", "Diego", "Agus", "Nati", "Invitado 1", "Invitado 2", "Invitado 3", "Invitado 4")
 
     private val mutableListJugadores: MutableList<String> = mutableListOf("2 Jugadores", "4 Jugadores")
     private var primerNombre3: Int = 0
@@ -82,7 +82,7 @@ mutableList.removeAt(1)*/
         mutableList.clear()
    //     Log.d("MiApp", "$mutableList")
 
-        mutableList.addAll(listOf("Nombre", "Nico", "Sergio", "Vero", "Juli", "Mati", "Bobe", "Invitado 1", "Invitado 2", "Invitado 3", "Invitado 4"))
+        mutableList.addAll(listOf("Nombre", "Nico", "Sergio", "Vero", "Juli", "Mati", "Hilda", "Mende", "Lauri", "Diego", "Agus", "Nati", "Invitado 1", "Invitado 2", "Invitado 3", "Invitado 4"))
     //    Log.d("MiApp", "$mutableList")
         jugadorUno = mutableList[0]
         jugadorDos = mutableList[0]
