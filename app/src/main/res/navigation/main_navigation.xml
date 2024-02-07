@@ -15,4 +15,13 @@
         android:id="@+id/puntajeFragment"
         android:name="com.example.puntajeburaco20.Fragments.PuntajeFragment"
         tools:layout="@layout/fragment_puntaje" />
+    <fragment
+        android:id="@+id/usuarioFragment"
+        android:name="com.example.puntajeburaco20.Fragments.UsuarioFragment"
+        android:label="fragment_usuario"
+        tools:layout="@layout/fragment_usuario" >
+        <action
+            android:id="@+id/action_usuarioFragment_to_partidaFragment"
+            app:destination="@id/partidaFragment" />
+    </fragment>
 </navigation>

@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
             }
             // Añade más casos según tus fragmentos si es necesario
             else -> {
-                // Navegar a un fragmento predeterminado o manejar de otra manera
+                navController.navigate(R.id.usuarioFragment)
             }
         }
 
