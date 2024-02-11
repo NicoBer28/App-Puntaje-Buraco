@@ -10,18 +10,24 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 
 lateinit var botonNuevaPartida: Button
 lateinit var botonHistoriales: Button
-lateinit var botonNuevoUsuario: Button
+lateinit var botonAgregarUsuario: Button
+lateinit var nombreUsuario: TextView
+
 
 lateinit var jugadorUno: String
 lateinit var jugadorDos: String
@@ -76,8 +82,10 @@ mutableList.removeAt(1)*/
             }
         })
 
+        val db = Firebase.firestore
 
-   //     Log.d("MiApp", "$mutableList")
+
+        //     Log.d("MiApp", "$mutableList")
 
         mutableList.clear()
    //     Log.d("MiApp", "$mutableList")
@@ -108,7 +116,28 @@ mutableList.removeAt(1)*/
 
         botonNuevaPartida = view.findViewById<Button>(R.id.btnNuevaPartida)
         botonHistoriales = view.findViewById<Button>(R.id.btnHistoriales)
-        botonNuevoUsuario = view.findViewById<Button>(R.id.btnUsuario)
+        botonAgregarUsuario = view.findViewById<Button>(R.id.btnUsuario)
+        nombreUsuario = view.findViewById<EditText>(R.id.nombreUsuario)
+
+        val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+        val usuarioActual = sharedPreferences.getString("usuarioActual", "aaa")
+
+        if (usuarioActual != null) {
+            db.collection("users").document(usuarioActual)
+                .get()
+                .addOnSuccessListener { documentSnapshot ->
+                    if (documentSnapshot.exists()) {
+                        // El documento existe, obtén el valor del campo específico
+                        nombreUsuario.text = documentSnapshot.get("Nombre") as String?
+
+                        // Ahora puedes usar el valor del campo según sea necesario
+                    } else {
+                    }
+                }
+                .addOnFailureListener { e ->
+                }
+        }
+
 
 
         val adapterJugadores = ArrayAdapter(
@@ -318,7 +347,8 @@ mutableList.removeAt(1)*/
 
         }
 
-        botonNuevoUsuario.setOnClickListener {
+        botonAgregarUsuario.setOnClickListener {
+            findNavController().navigate(R.id.agregarFragment)
 
         }
 

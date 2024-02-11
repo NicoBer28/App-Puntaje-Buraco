@@ -58,10 +58,39 @@ class UsuarioFragment : Fragment() {
                         .get()
                         .addOnSuccessListener { document ->
                             if (document.exists()) {
-                                Toast.makeText(requireContext(), "Este nombre ya está en uso", Toast.LENGTH_SHORT).show()
+                                if(document["Recuperar"] == "Si"){
+                                    val nuevoUsuario = hashMapOf<String, Any>(
+                                        "Recuperar" to "No"
+                                        // Agrega más campos según sea necesario
+                                    )
+                                    db.collection("users").document(usuarioIngresadoMin)
+                                        .update(nuevoUsuario)
+                                        .addOnSuccessListener {
+                                            Toast.makeText(requireContext(), "Usuario creado con éxito", Toast.LENGTH_SHORT).show()
+
+                                            val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+                                            val editor = sharedPreferences.edit()
+
+                                            // Guardar la posición del fragmento actual
+                                            editor.putString("posicionFragmentoActual", "PartidaFragment")
+                                            editor.putString("usuarioActual", usuarioIngresadoMin)
+
+                                            editor.apply()
+
+                                            findNavController().navigate(R.id.partidaFragment)
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(requireContext(), "Error al crear usuario: $e", Toast.LENGTH_SHORT).show()
+                                        }
+                                }
+                                else{
+                                    Toast.makeText(requireContext(), "Este nombre ya está en uso", Toast.LENGTH_SHORT).show()
+                                }
                             } else {
                                 val nuevoUsuario = hashMapOf(
                                     "Nombre" to usuarioIngresado,
+                                    "Recuperar" to "No",
+                                    "Amigos" to emptyList<String>()
                                     // Agrega más campos según sea necesario
                                 )
                                 db.collection("users").document(usuarioIngresadoMin)
@@ -74,6 +103,8 @@ class UsuarioFragment : Fragment() {
 
                                         // Guardar la posición del fragmento actual
                                         editor.putString("posicionFragmentoActual", "PartidaFragment")
+                                        editor.putString("usuarioActual", usuarioIngresadoMin)
+
                                         editor.apply()
 
                                         findNavController().navigate(R.id.partidaFragment)

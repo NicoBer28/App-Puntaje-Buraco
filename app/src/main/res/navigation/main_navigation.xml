@@ -10,6 +10,9 @@
         <action
             android:id="@+id/action_partidaFragment_to_puntajeFragment"
             app:destination="@id/puntajeFragment" />
+        <action
+            android:id="@+id/action_partidaFragment_to_agregarFragment"
+            app:destination="@id/agregarFragment" />
     </fragment>
     <fragment
         android:id="@+id/puntajeFragment"
@@ -24,4 +27,9 @@
             android:id="@+id/action_usuarioFragment_to_partidaFragment"
             app:destination="@id/partidaFragment" />
     </fragment>
+    <fragment
+        android:id="@+id/agregarFragment"
+        android:name="com.example.puntajeburaco20.Fragments.AgregarFragment"
+        android:label="fragment_agregar"
+        tools:layout="@layout/fragment_agregar" />
 </navigation>
