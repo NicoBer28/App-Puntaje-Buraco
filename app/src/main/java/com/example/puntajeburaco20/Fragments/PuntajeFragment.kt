@@ -17,6 +17,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.ViewModels.PuntajeViewModel
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Locale
@@ -91,6 +93,7 @@ class PuntajeFragment : Fragment() {
                         editor.putInt("puntosIngreDos", 0)
                         editor.putInt("totalSumaUno", 0)
                         editor.putInt("totalSumaDos", 0)
+                        editor.putBoolean("esconderInput", true)
 
                         editor.apply()
                         findNavController().popBackStack()
@@ -129,6 +132,13 @@ class PuntajeFragment : Fragment() {
         totalUno.text = "0"
 
         var sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+
+        btnSumar.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
+        btnFin.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
+        baseUno.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
+        puntosUno.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
+        baseDos.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
+        puntosDos.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
 
         empiezaRonda = sharedPreferences.getString("empiezaRonda", "") ?: ""
         val jugadorUnoAnt = sharedPreferences.getString("jugadorUno", "") ?: ""
@@ -190,8 +200,9 @@ class PuntajeFragment : Fragment() {
 
 
         editor.apply()
-
-        Toast.makeText(requireContext(), "Comienza $empiezaRonda", Toast.LENGTH_SHORT).show()
+        if(sharedPreferences.getBoolean("esconderInput", true)) {
+            Toast.makeText(requireContext(), "Comienza $empiezaRonda", Toast.LENGTH_SHORT).show()
+        }
 
 
 
@@ -301,6 +312,13 @@ class PuntajeFragment : Fragment() {
                     puntosUno.isEnabled = false
                     baseDos.isEnabled = false
                     puntosDos.isEnabled = false
+                    val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+                    val editor = sharedPreferences.edit()
+
+                    editor.putBoolean("esconderInput", false)
+
+                    editor.apply()
+
                     if (cantJugadores == 2) {
 
                         db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).collection("statistics")
@@ -355,6 +373,60 @@ class PuntajeFragment : Fragment() {
                                         }
                                 }
                             }
+
+                        db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                            if (documentSnapshot.exists()) {
+
+                                val partidasJugadasActualEquipo =
+                                    documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                val nuevasPartidasJugadasEquipo = partidasJugadasActualEquipo + 1
+
+                                val partidasGanadasActualEquipo =
+                                    documentSnapshot.getLong("Partidas Ganadas") ?: 0
+
+                                val nuevasPartidasGanadasEquipo = partidasGanadasActualEquipo + 1
+
+                                db.collection("users")
+                                    .document(jugadorDos.lowercase(Locale.ROOT))
+                                    .update(
+                                        "Partidas Jugadas",
+                                        nuevasPartidasJugadasEquipo,
+                                        "Partidas Ganadas",
+                                        nuevasPartidasGanadasEquipo
+                                    )
+                                    .addOnSuccessListener {
+
+                                    }
+                                    .addOnFailureListener { e ->
+                                    }
+                            }
+                        }
+
+                        db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                            if (documentSnapshot.exists()) {
+
+                                val partidasJugadasActualEquipo2 =
+                                    documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                val nuevasPartidasJugadasEquipo2 = partidasJugadasActualEquipo2 + 1
+
+
+                                db.collection("users")
+                                    .document(jugadorUno.lowercase(Locale.ROOT))
+                                    .update(
+                                        "Partidas Jugadas",
+                                        nuevasPartidasJugadasEquipo2
+                                    )
+                                    .addOnSuccessListener {
+
+                                    }
+                                    .addOnFailureListener { e ->
+                                    }
+                            }
+                        }
+
+
                 }
                     if(cantJugadores == 4){
                         val stringAlfaSuperior = if (jugadorUno.lowercase(Locale.ROOT) < jugadorDos.lowercase(Locale.ROOT)) jugadorUno else jugadorDos
@@ -419,6 +491,37 @@ class PuntajeFragment : Fragment() {
                                 }
                             }
 
+                        val dataToUpdate = hashMapOf(
+                            "Partidas Jugadas" to FieldValue.increment(1),
+                            "Partidas Ganadas" to FieldValue.increment(1)
+                        )
+
+                        db.collection("doubles")
+                            .document(equipoTwo.lowercase(Locale.ROOT))
+                            .set(dataToUpdate, SetOptions.merge())
+                            .addOnSuccessListener {
+                                // Éxito al actualizar o crear el documento
+                            }
+                            .addOnFailureListener { e ->
+                                // Manejar el fallo
+                            }
+
+
+                        val dataToUpdate2 = hashMapOf(
+                            "Partidas Jugadas" to FieldValue.increment(1),
+                        )
+
+                        db.collection("doubles")
+                            .document(equipoOne.lowercase(Locale.ROOT))
+                            .set(dataToUpdate2, SetOptions.merge())
+                            .addOnSuccessListener {
+                                // Éxito al actualizar o crear el documento
+                            }
+                            .addOnFailureListener { e ->
+                                // Manejar el fallo
+                            }
+
+
 
                     }
                 }
@@ -429,6 +532,14 @@ class PuntajeFragment : Fragment() {
                     puntosUno.isEnabled = false
                     baseDos.isEnabled = false
                     puntosDos.isEnabled = false
+
+                    val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+                    val editor = sharedPreferences.edit()
+
+                    editor.putBoolean("esconderInput", false)
+
+                    editor.apply()
+
                     if (cantJugadores == 2) {
 
                         db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).collection("statistics")
@@ -485,7 +596,57 @@ class PuntajeFragment : Fragment() {
                             }
 
 
+                        db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                            if (documentSnapshot.exists()) {
 
+                                val partidasJugadasActualEquipo =
+                                    documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                val nuevasPartidasJugadasEquipo = partidasJugadasActualEquipo + 1
+
+                                val partidasGanadasActualEquipo =
+                                    documentSnapshot.getLong("Partidas Ganadas") ?: 0
+
+                                val nuevasPartidasGanadasEquipo = partidasGanadasActualEquipo + 1
+
+                                db.collection("users")
+                                    .document(jugadorUno.lowercase(Locale.ROOT))
+                                    .update(
+                                        "Partidas Jugadas",
+                                        nuevasPartidasJugadasEquipo,
+                                        "Partidas Ganadas",
+                                        nuevasPartidasGanadasEquipo
+                                    )
+                                    .addOnSuccessListener {
+
+                                    }
+                                    .addOnFailureListener { e ->
+                                    }
+                            }
+                        }
+
+                        db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                            if (documentSnapshot.exists()) {
+
+                                val partidasJugadasActualEquipo2 =
+                                    documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                val nuevasPartidasJugadasEquipo2 = partidasJugadasActualEquipo2 + 1
+
+
+                                db.collection("users")
+                                    .document(jugadorDos.lowercase(Locale.ROOT))
+                                    .update(
+                                        "Partidas Jugadas",
+                                        nuevasPartidasJugadasEquipo2
+                                    )
+                                    .addOnSuccessListener {
+
+                                    }
+                                    .addOnFailureListener { e ->
+                                    }
+                            }
+                        }
 
 
                     }
@@ -554,6 +715,37 @@ class PuntajeFragment : Fragment() {
                             }
 
 
+                        val dataToUpdate = hashMapOf(
+                            "Partidas Jugadas" to FieldValue.increment(1),
+                            "Partidas Ganadas" to FieldValue.increment(1)
+                        )
+
+                        db.collection("doubles")
+                            .document(equipoOne.lowercase(Locale.ROOT))
+                            .set(dataToUpdate, SetOptions.merge())
+                            .addOnSuccessListener {
+                                // Éxito al actualizar o crear el documento
+                            }
+                            .addOnFailureListener { e ->
+                                // Manejar el fallo
+                            }
+
+
+                        val dataToUpdate2 = hashMapOf(
+                            "Partidas Jugadas" to FieldValue.increment(1),
+                        )
+
+                        db.collection("doubles")
+                            .document(equipoTwo.lowercase(Locale.ROOT))
+                            .set(dataToUpdate2, SetOptions.merge())
+                            .addOnSuccessListener {
+                                // Éxito al actualizar o crear el documento
+                            }
+                            .addOnFailureListener { e ->
+                                // Manejar el fallo
+                            }
+
+
                     }
                 }
                 .setNeutralButton("Cancelar",null)
@@ -583,6 +775,7 @@ class PuntajeFragment : Fragment() {
                     editor.putInt("puntosIngreDos", 0)
                     editor.putInt("totalSumaUno", 0)
                     editor.putInt("totalSumaDos", 0)
+                    editor.putBoolean("esconderInput", true)
 
                     editor.apply()
                     findNavController().popBackStack()
