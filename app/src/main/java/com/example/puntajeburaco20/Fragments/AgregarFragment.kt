@@ -1,5 +1,6 @@
 package com.example.puntajeburaco20.Fragments
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
@@ -36,6 +37,7 @@ class AgregarFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_agregar, container, false)
     }
 
+    @SuppressLint("SuspiciousIndentation")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val db = Firebase.firestore
@@ -64,24 +66,50 @@ class AgregarFragment : Fragment() {
                         .get()
                         .addOnSuccessListener { document ->
                             if (document.exists()) {
+                                var nombreAmigo = document.get("Nombre")
                                 if (usuarioActual != null) {
                                     db.collection("users")
                                         .document(usuarioActual)
                                         .get()
                                         .addOnSuccessListener { document2 ->
+                                            var nombreUsuario = document2.get("Nombre")
                                             var listAmigos: MutableList<String> = (document2.get("Amigos") as? List<String>)?.toMutableList()
                                             ?: mutableListOf()
+                                            var listAmigosNombre: MutableList<String> = (document2.get("AmigosNombre") as? List<String>)?.toMutableList()
+                                                ?: mutableListOf()
                                             if (listAmigos != null) {
                                                 if (listAmigos.contains(usuarioAmigoIngresadoMin)) {
                                                     Toast.makeText(requireContext(), "Este usuario ya es tu amigo", Toast.LENGTH_SHORT).show()
                                                 } else {
                                                     listAmigos.add(usuarioAmigoIngresadoMin)
+                                                    listAmigosNombre.add(nombreAmigo as String)
+
                                                     db.collection("users")
                                                         .document(usuarioActual)
-                                                        .update("Amigos", listAmigos)
+                                                        .update("Amigos", listAmigos, "AmigosNombre", listAmigosNombre)
                                                         .addOnSuccessListener {
-                                                            Toast.makeText(requireContext(), "Usuario Agregado", Toast.LENGTH_SHORT).show()
-                                                            usuarioAmigo.setText("")
+                                                            db.collection("users")
+                                                                .document(usuarioAmigoIngresadoMin)
+                                                                .get()
+                                                                .addOnSuccessListener { document3 ->
+                                                                    var listAmigos2: MutableList<String> = (document3.get("Amigos") as? List<String>)?.toMutableList()
+                                                                        ?: mutableListOf()
+                                                                    var listAmigosNombre2: MutableList<String> = (document3.get("AmigosNombre") as? List<String>)?.toMutableList()
+                                                                        ?: mutableListOf()
+                                                                    listAmigos2.add(usuarioActual)
+                                                                    listAmigosNombre2.add(
+                                                                        nombreUsuario as String
+                                                                    )
+
+                                                                    db.collection("users")
+                                                                                .document(usuarioAmigoIngresadoMin)
+                                                                                .update("Amigos", listAmigos2, "AmigosNombre", listAmigosNombre2)
+                                                                                .addOnSuccessListener {
+                                                                                    Toast.makeText(requireContext(), "Usuario Agregado", Toast.LENGTH_SHORT).show()
+                                                                                    usuarioAmigo.setText("")
+                                                                                }
+                                                                }
+
                                                         }
                                                 }
                                             }
