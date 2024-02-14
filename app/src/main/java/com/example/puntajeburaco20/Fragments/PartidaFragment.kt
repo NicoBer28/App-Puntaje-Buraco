@@ -29,8 +29,8 @@ lateinit var botonAgregarUsuario: Button
 lateinit var nombreUsuario: TextView
 
 
-lateinit var jugadorUno: String
-lateinit var jugadorDos: String
+var jugadorUno: String = ""
+var jugadorDos: String = ""
 var jugadorTres: String = ""
 var jugadorCuatro: String = ""
 var cantJugadores: Int = 2

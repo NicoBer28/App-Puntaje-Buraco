@@ -17,6 +17,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.ViewModels.PuntajeViewModel
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import java.util.Locale
 
 lateinit var equipoUno: TextView
 lateinit var equipoDos: TextView
@@ -33,7 +36,7 @@ lateinit var totalUno: TextView
 
 lateinit var btnSumar: Button
 lateinit var btnAtras: Button
-
+lateinit var btnFin: Button
 
 
 class PuntajeFragment : Fragment() {
@@ -98,8 +101,7 @@ class PuntajeFragment : Fragment() {
             }
         })
 
-
-
+        val db = Firebase.firestore
 
         equipoUno = view.findViewById<EditText>(R.id.equipoUno)
         equipoDos = view.findViewById<EditText>(R.id.equipoDos)
@@ -116,6 +118,7 @@ class PuntajeFragment : Fragment() {
 
         btnSumar = view.findViewById<Button>(R.id.btnSumar)
         btnAtras = view.findViewById<Button>(R.id.btnAtras)
+        btnFin = view.findViewById<Button>(R.id.btnFin)
 
 
         baseAntUno.text = "0"
@@ -285,6 +288,145 @@ class PuntajeFragment : Fragment() {
                 }
             }
 
+        }
+
+        btnFin.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Fin de la partida")
+                .setMessage("Eliga al ganador")
+                .setPositiveButton(equipoDos.text) { _, _ ->
+                    btnSumar.isEnabled = false
+                    btnFin.isEnabled = false
+                    baseUno.isEnabled = false
+                    puntosUno.isEnabled = false
+                    baseDos.isEnabled = false
+                    puntosDos.isEnabled = false
+                    if (cantJugadores == 2) {
+
+                        db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).collection("statistics")
+                            .document(jugadorUno.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                                if (documentSnapshot.exists()) {
+
+                                    val partidasJugadasActual = documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                    val nuevasPartidasJugadas = partidasJugadasActual + 1
+
+                                    val partidasGanadasActual = documentSnapshot.getLong("Partidas Ganadas") ?: 0
+
+                                    val nuevasPartidasGanadas = partidasGanadasActual + 1
+
+                                    db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorUno.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas, "Partidas Ganadas", nuevasPartidasGanadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                    db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorDos.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                } else {
+                                    val nuevoDocumento = hashMapOf(
+                                        "Partidas Jugadas" to 1,
+                                        "Partidas Ganadas" to 1
+                                    )
+
+                                    db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorUno.lowercase(Locale.ROOT)).set(nuevoDocumento)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                    val nuevoDocumento2 = hashMapOf(
+                                        "Partidas Jugadas" to 1
+                                    )
+
+                                    db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorDos.lowercase(Locale.ROOT)).set(nuevoDocumento2)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                }
+                            }
+                }
+                }
+                .setNegativeButton(equipoUno.text) { _, _ ->
+                    btnSumar.isEnabled = false
+                    btnFin.isEnabled = false
+                    baseUno.isEnabled = false
+                    puntosUno.isEnabled = false
+                    baseDos.isEnabled = false
+                    puntosDos.isEnabled = false
+                    if (cantJugadores == 2) {
+
+                        db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).collection("statistics")
+                            .document(jugadorDos.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                                if (documentSnapshot.exists()) {
+
+                                    val partidasJugadasActual = documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                    val nuevasPartidasJugadas = partidasJugadasActual + 1
+
+                                    val partidasGanadasActual = documentSnapshot.getLong("Partidas Ganadas") ?: 0
+
+                                    val nuevasPartidasGanadas = partidasGanadasActual + 1
+
+                                    db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorDos.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas, "Partidas Ganadas", nuevasPartidasGanadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                    db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorUno.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                } else {
+                                    val nuevoDocumento = hashMapOf(
+                                        "Partidas Jugadas" to 1,
+                                        "Partidas Ganadas" to 1
+                                        )
+
+                                    db.collection("users").document(jugadorUno.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorDos.lowercase(Locale.ROOT)).set(nuevoDocumento)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                    val nuevoDocumento2 = hashMapOf(
+                                        "Partidas Jugadas" to 1
+                                    )
+
+                                    db.collection("users").document(jugadorDos.lowercase(Locale.ROOT)).collection("statistics")
+                                        .document(jugadorUno.lowercase(Locale.ROOT)).set(nuevoDocumento2)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                }
+                            }
+
+
+
+
+
+                    }
+                }
+                .setNeutralButton("Cancelar",null)
+                .show()
         }
 
         btnAtras.setOnClickListener {
