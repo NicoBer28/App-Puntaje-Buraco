@@ -356,6 +356,71 @@ class PuntajeFragment : Fragment() {
                                 }
                             }
                 }
+                    if(cantJugadores == 4){
+                        val stringAlfaSuperior = if (jugadorUno.lowercase(Locale.ROOT) < jugadorDos.lowercase(Locale.ROOT)) jugadorUno else jugadorDos
+                        val stringAlfaInferior = if (jugadorUno.lowercase(Locale.ROOT) < jugadorDos.lowercase(Locale.ROOT)) jugadorDos else jugadorUno
+                        var equipoOne = "$stringAlfaSuperior$stringAlfaInferior"
+
+                        val stringAlfaSuperior2 = if (jugadorTres.lowercase(Locale.ROOT) < jugadorCuatro.lowercase(Locale.ROOT)) jugadorTres else jugadorCuatro
+                        val stringAlfaInferior2 = if (jugadorTres.lowercase(Locale.ROOT) < jugadorCuatro.lowercase(Locale.ROOT)) jugadorCuatro else jugadorTres
+                        var equipoTwo = "$stringAlfaSuperior2$stringAlfaInferior2"
+
+
+                        db.collection("doubles").document(equipoTwo.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                            .document(equipoOne.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                                if (documentSnapshot.exists()) {
+
+                                    val partidasJugadasActual = documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                    val nuevasPartidasJugadas = partidasJugadasActual + 1
+
+                                    val partidasGanadasActual = documentSnapshot.getLong("Partidas Ganadas") ?: 0
+
+                                    val nuevasPartidasGanadas = partidasGanadasActual + 1
+
+                                    db.collection("doubles").document(equipoTwo.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoOne.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas, "Partidas Ganadas", nuevasPartidasGanadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                    db.collection("doubles").document(equipoOne.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoTwo.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                } else {
+                                    val nuevoDocumento = hashMapOf(
+                                        "Partidas Jugadas" to 1,
+                                        "Partidas Ganadas" to 1
+                                    )
+
+                                    db.collection("doubles").document(equipoTwo.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoOne.lowercase(Locale.ROOT)).set(nuevoDocumento)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                    val nuevoDocumento2 = hashMapOf(
+                                        "Partidas Jugadas" to 1
+                                    )
+
+                                    db.collection("doubles").document(equipoOne.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoTwo.lowercase(Locale.ROOT)).set(nuevoDocumento2)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                }
+                            }
+
+
+                    }
                 }
                 .setNegativeButton(equipoUno.text) { _, _ ->
                     btnSumar.isEnabled = false
@@ -421,6 +486,72 @@ class PuntajeFragment : Fragment() {
 
 
 
+
+
+                    }
+
+                    if(cantJugadores == 4){
+                        val stringAlfaSuperior = if (jugadorUno.lowercase(Locale.ROOT) < jugadorDos.lowercase(Locale.ROOT)) jugadorUno else jugadorDos
+                        val stringAlfaInferior = if (jugadorUno.lowercase(Locale.ROOT) < jugadorDos.lowercase(Locale.ROOT)) jugadorDos else jugadorUno
+                        var equipoOne = "$stringAlfaSuperior$stringAlfaInferior"
+
+                        val stringAlfaSuperior2 = if (jugadorTres.lowercase(Locale.ROOT) < jugadorCuatro.lowercase(Locale.ROOT)) jugadorTres else jugadorCuatro
+                        val stringAlfaInferior2 = if (jugadorTres.lowercase(Locale.ROOT) < jugadorCuatro.lowercase(Locale.ROOT)) jugadorCuatro else jugadorTres
+                        var equipoTwo = "$stringAlfaSuperior2$stringAlfaInferior2"
+
+
+                        db.collection("doubles").document(equipoOne.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                            .document(equipoTwo.lowercase(Locale.ROOT)).get().addOnSuccessListener { documentSnapshot ->
+                                if (documentSnapshot.exists()) {
+
+                                    val partidasJugadasActual = documentSnapshot.getLong("Partidas Jugadas") ?: 0
+
+                                    val nuevasPartidasJugadas = partidasJugadasActual + 1
+
+                                    val partidasGanadasActual = documentSnapshot.getLong("Partidas Ganadas") ?: 0
+
+                                    val nuevasPartidasGanadas = partidasGanadasActual + 1
+
+                                    db.collection("doubles").document(equipoOne.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoTwo.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas, "Partidas Ganadas", nuevasPartidasGanadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                    db.collection("doubles").document(equipoTwo.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoOne.lowercase(Locale.ROOT)).update("Partidas Jugadas", nuevasPartidasJugadas)
+                                        .addOnSuccessListener {
+
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                } else {
+                                    val nuevoDocumento = hashMapOf(
+                                        "Partidas Jugadas" to 1,
+                                        "Partidas Ganadas" to 1
+                                    )
+
+                                    db.collection("doubles").document(equipoOne.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoTwo.lowercase(Locale.ROOT)).set(nuevoDocumento)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+
+                                    val nuevoDocumento2 = hashMapOf(
+                                        "Partidas Jugadas" to 1
+                                    )
+
+                                    db.collection("doubles").document(equipoTwo.lowercase(Locale.ROOT)).collection("statisticsDoubles")
+                                        .document(equipoOne.lowercase(Locale.ROOT)).set(nuevoDocumento2)
+                                        .addOnSuccessListener {
+                                        }
+                                        .addOnFailureListener { e ->
+                                        }
+                                }
+                            }
 
 
                     }
