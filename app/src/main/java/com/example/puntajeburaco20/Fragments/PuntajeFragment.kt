@@ -152,6 +152,7 @@ class PuntajeFragment : Fragment() {
         puntosDos.isEnabled = (sharedPreferences.getBoolean("esconderInput", true))
 
         empiezaRonda = sharedPreferences.getString("empiezaRonda", "") ?: ""
+        empiezaJug.text = empiezaRonda
         val jugadorUnoAnt = sharedPreferences.getString("jugadorUno", "") ?: ""
         if (jugadorUnoAnt != ""){
             jugadorUno = jugadorUnoAnt
@@ -191,8 +192,9 @@ class PuntajeFragment : Fragment() {
 
         if(empiezaRonda == ""){
             empiezaRonda = jugadorUno
+            empiezaJug.text = empiezaRonda
         }
-
+        empiezaJug.text = empiezaRonda
         val y = " y "
         if(cantJugadores == 2){
             equipoUno.text = jugadorUno
@@ -253,24 +255,30 @@ class PuntajeFragment : Fragment() {
                 if(cantJugadores == 2){
                     if(empiezaRonda == jugadorUno){
                         empiezaRonda = jugadorDos
+                        empiezaJug.text = empiezaRonda
                     }else {
                         if (empiezaRonda == jugadorDos) {
                             empiezaRonda = jugadorUno
+                            empiezaJug.text = empiezaRonda
                         }
                     }
                 }
                 if(cantJugadores == 4){
                     if(empiezaRonda == jugadorUno){
                         empiezaRonda = jugadorCuatro
+                        empiezaJug.text = empiezaRonda
                     }else {
                         if (empiezaRonda == jugadorCuatro) {
                             empiezaRonda = jugadorDos
+                            empiezaJug.text = empiezaRonda
                         } else {
                             if (empiezaRonda == jugadorDos) {
                                 empiezaRonda = jugadorTres
+                                empiezaJug.text = empiezaRonda
                             } else {
                                 if (empiezaRonda == jugadorTres) {
                                     empiezaRonda = jugadorUno
+                                    empiezaJug.text = empiezaRonda
                                 }
                             }
                         }
