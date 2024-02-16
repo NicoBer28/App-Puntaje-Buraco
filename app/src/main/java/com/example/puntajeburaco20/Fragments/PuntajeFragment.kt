@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -35,6 +36,8 @@ lateinit var totalDos: TextView
 lateinit var puntosAntUno: TextView
 lateinit var puntosAntDos: TextView
 lateinit var totalUno: TextView
+lateinit var empiezaJug: TextView
+
 
 lateinit var btnSumar: Button
 lateinit var btnAtras: Button
@@ -56,7 +59,13 @@ class PuntajeFragment : Fragment() {
     var totalSumaUno: Int = 0
     var totalSumaDos: Int = 0
 
-    var empiezaRonda: String = jugadorUno
+    var empiezaRonda: String = ""
+
+    var jugadorUno: String = ""
+    var jugadorDos: String = ""
+    var jugadorTres: String = ""
+    var jugadorCuatro: String = ""
+    var cantJugadores: Int = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -118,6 +127,8 @@ class PuntajeFragment : Fragment() {
         puntosAntUno = view.findViewById<EditText>(R.id.puntosAntUno)
         puntosAntDos = view.findViewById<EditText>(R.id.puntosAntDos)
         totalUno = view.findViewById<EditText>(R.id.totalUno)
+        empiezaJug = view.findViewById<EditText>(R.id.empiezaJug)
+
 
         btnSumar = view.findViewById<Button>(R.id.btnSumar)
         btnAtras = view.findViewById<Button>(R.id.btnAtras)
@@ -145,6 +156,8 @@ class PuntajeFragment : Fragment() {
         if (jugadorUnoAnt != ""){
             jugadorUno = jugadorUnoAnt
         }
+        Log.d("MiApp", jugadorUno)
+        Log.d("MiApp", jugadorUnoAnt)
         val jugadorDosAnt = sharedPreferences.getString("jugadorDos", "") ?: ""
         if (jugadorDosAnt != ""){
             jugadorDos = jugadorDosAnt
@@ -190,7 +203,7 @@ class PuntajeFragment : Fragment() {
             equipoDos.text = "$jugadorTres $y $jugadorCuatro"
         }
 
-        val editor = sharedPreferences.edit()
+      /*  val editor = sharedPreferences.edit()
 
         editor.putString("jugadorUno", jugadorUno)
         editor.putString("jugadorDos", jugadorDos)
@@ -199,7 +212,7 @@ class PuntajeFragment : Fragment() {
         editor.putInt("cantJugadores", cantJugadores)
 
 
-        editor.apply()
+        editor.apply()*/
         if(sharedPreferences.getBoolean("esconderInput", true)) {
             Toast.makeText(requireContext(), "Comienza $empiezaRonda", Toast.LENGTH_SHORT).show()
         }
@@ -234,6 +247,8 @@ class PuntajeFragment : Fragment() {
                 baseDos.text.clear()
                 puntosUno.text.clear()
                 puntosDos.text.clear()
+                Log.d("MiApp", jugadorUno)
+                Log.d("MiApp", jugadorUnoAnt)
 
                 if(cantJugadores == 2){
                     if(empiezaRonda == jugadorUno){
@@ -261,18 +276,21 @@ class PuntajeFragment : Fragment() {
                         }
                     }
                 }
+
+
+
                 Toast.makeText(requireContext(), "Comienza $empiezaRonda", Toast.LENGTH_SHORT).show()
 
 
                 val editor = sharedPreferences.edit()
 
                 editor.putString("empiezaRonda", empiezaRonda)
-                editor.putString("jugadorUno", jugadorUno)
+             /*   editor.putString("jugadorUno", jugadorUno)
                 editor.putString("jugadorDos", jugadorDos)
                 editor.putString("jugadorTres", jugadorTres)
                 editor.putString("jugadorCuatro", jugadorCuatro)
                 editor.putInt("cantJugadores", cantJugadores)
-
+*/
                 editor.putInt("baseIngreUno", baseIngreUno)
                 editor.putInt("baseIngreDos", baseIngreDos)
                 editor.putInt("puntosIngreUno", puntosIngreUno)

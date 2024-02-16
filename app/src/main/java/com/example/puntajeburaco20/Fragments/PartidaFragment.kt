@@ -29,11 +29,11 @@ lateinit var botonAgregarUsuario: Button
 lateinit var nombreUsuario: TextView
 
 
-var jugadorUno: String = ""
-var jugadorDos: String = ""
-var jugadorTres: String = ""
-var jugadorCuatro: String = ""
-var cantJugadores: Int = 2
+var jugadorUno2: String = ""
+var jugadorDos2: String = ""
+var jugadorTres2: String = ""
+var jugadorCuatro2: String = ""
+var cantJugadores2: Int = 2
 
 
 /**
@@ -135,15 +135,15 @@ mutableList.removeAt(1)*/
 
 
 
-                    Log.d("MiApp", "$mutableList")
+              //      Log.d("MiApp", "$mutableList")
 
 
                     mutableList.add(0, "Nombre")
 
-                    Log.d("MiApp", "$mutableList")
-                    jugadorUno = mutableList[0]
-                    jugadorDos = mutableList[0]
-                    cantJugadores = 2
+                 //   Log.d("MiApp", "$mutableList")
+                    jugadorUno2 = mutableList[0]
+                    jugadorDos2 = mutableList[0]
+                    cantJugadores2 = 2
                     var primeraSeleccionUno = 1
                     var primeraSeleccionDos = 1
                     var primeraSeleccionTres = 1
@@ -184,12 +184,18 @@ mutableList.removeAt(1)*/
                                     0 -> { // Si se selecciona la primera opción
                                         spinner3.visibility = View.GONE
                                         spinner4.visibility = View.GONE
-                                        cantJugadores = 2
-                                        if (jugadorTres == mutableList[0]) {
-                                            jugadorTres = ""
+                                        cantJugadores2 = 2
+                                        val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+                                        val editor = sharedPreferences.edit()
+
+                                        editor.putInt("cantJugadores", cantJugadores2)
+
+                                        editor.apply()
+                                        if (jugadorTres2 == mutableList[0]) {
+                                            jugadorTres2 = ""
                                         }
-                                        if (jugadorCuatro == mutableList[0]) {
-                                            jugadorCuatro = ""
+                                        if (jugadorCuatro2 == mutableList[0]) {
+                                            jugadorCuatro2 = ""
                                         }
                                         spinner2.setBackgroundResource(R.drawable.spinner_equipo_dos)
 
@@ -199,12 +205,18 @@ mutableList.removeAt(1)*/
                                     1 -> { // Si se selecciona la segunda opción
                                         spinner3.visibility = View.VISIBLE
                                         spinner4.visibility = View.VISIBLE
-                                        cantJugadores = 4
-                                        if (jugadorTres == "") {
-                                            jugadorTres = mutableList[0]
+                                        cantJugadores2 = 4
+                                        val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
+                                        val editor = sharedPreferences.edit()
+
+                                        editor.putInt("cantJugadores", cantJugadores2)
+
+                                        editor.apply()
+                                        if (jugadorTres2 == "") {
+                                            jugadorTres2 = mutableList[0]
                                         }
-                                        if (jugadorCuatro == "") {
-                                            jugadorCuatro = mutableList[0]
+                                        if (jugadorCuatro2 == "") {
+                                            jugadorCuatro2 = mutableList[0]
                                         }
                                         spinner2.setBackgroundResource(R.drawable.spinner_equipo_uno)
                                     }
@@ -241,7 +253,19 @@ mutableList.removeAt(1)*/
                                 spinner1.setSelection(0)
                                 primeraSeleccionUno = 0
                             } else {
-                                jugadorUno = parent.getItemAtPosition(position).toString()
+                                jugadorUno2 = parent.getItemAtPosition(position).toString()
+                                if(jugadorUno2 != "Nombre") {
+                                    val sharedPreferences = requireActivity().getSharedPreferences(
+                                        "PuntajeBuracoPreferences",
+                                        Context.MODE_PRIVATE
+                                    )
+                                    val editor = sharedPreferences.edit()
+
+                                    editor.putString("jugadorUno", jugadorUno2)
+                                    Log.d("nombres", jugadorUno2)
+
+                                    editor.apply()
+                                }
                                 if (opcionAnterior1 != mutableList[0]) {
                                     mutableList.add(opcionAnterior1)
                                 }
@@ -279,8 +303,18 @@ mutableList.removeAt(1)*/
                                 spinner2.setSelection(0)
                                 primeraSeleccionDos = 0
                             } else {
-                                jugadorDos = parent.getItemAtPosition(position).toString()
+                                jugadorDos2 = parent.getItemAtPosition(position).toString()
+                                if(jugadorDos2 != "Nombre") {
+                                    val sharedPreferences = requireActivity().getSharedPreferences(
+                                        "PuntajeBuracoPreferences",
+                                        Context.MODE_PRIVATE
+                                    )
+                                    val editor = sharedPreferences.edit()
 
+                                    editor.putString("jugadorDos", jugadorDos2)
+
+                                    editor.apply()
+                                }
                                 if (opcionAnterior2 != mutableList[0]) {
                                     mutableList.add(opcionAnterior2)
                                 }
@@ -316,8 +350,18 @@ mutableList.removeAt(1)*/
                                 spinner3.setSelection(0)
                                 primeraSeleccionTres = 0
                             } else {
-                                jugadorTres = parent.getItemAtPosition(position).toString()
+                                jugadorTres2 = parent.getItemAtPosition(position).toString()
+                                if(jugadorTres2 != "Nombre") {
+                                    val sharedPreferences = requireActivity().getSharedPreferences(
+                                        "PuntajeBuracoPreferences",
+                                        Context.MODE_PRIVATE
+                                    )
+                                    val editor = sharedPreferences.edit()
 
+                                    editor.putString("jugadorTres", jugadorTres2)
+
+                                    editor.apply()
+                                }
                                 if (opcionAnterior3 != mutableList[0]) {
                                     mutableList.add(opcionAnterior3)
                                 }
@@ -353,8 +397,18 @@ mutableList.removeAt(1)*/
                                 spinner4.setSelection(0)
                                 primeraSeleccionCuatro = 0
                             } else {
-                                jugadorCuatro = parent.getItemAtPosition(position).toString()
+                                jugadorCuatro2 = parent.getItemAtPosition(position).toString()
+                                if(jugadorCuatro2 != "Nombre") {
+                                    val sharedPreferences = requireActivity().getSharedPreferences(
+                                        "PuntajeBuracoPreferences",
+                                        Context.MODE_PRIVATE
+                                    )
+                                    val editor = sharedPreferences.edit()
 
+                                    editor.putString("jugadorCuatro", jugadorCuatro2)
+
+                                    editor.apply()
+                                }
                                 if (opcionAnterior4 != mutableList[0]) {
                                     mutableList.add(opcionAnterior4)
                                 }
@@ -375,7 +429,7 @@ mutableList.removeAt(1)*/
 
 
             botonNuevaPartida.setOnClickListener {
-                if (jugadorUno == mutableList[0] || jugadorDos == mutableList[0] || jugadorTres == mutableList[0] || jugadorCuatro == mutableList[0]) {
+                if (jugadorUno2 == mutableList[0] || jugadorDos2 == mutableList[0] || jugadorTres2 == mutableList[0] || jugadorCuatro2 == mutableList[0]) {
                     Toast.makeText(requireContext(), "Elija un jugador", Toast.LENGTH_SHORT).show()
                 } else {
                     val sharedPreferences = requireActivity().getSharedPreferences(
@@ -399,6 +453,7 @@ mutableList.removeAt(1)*/
             }
 
             botonHistoriales.setOnClickListener {
+                findNavController().navigate(R.id.historialFragment)
 
             }
 

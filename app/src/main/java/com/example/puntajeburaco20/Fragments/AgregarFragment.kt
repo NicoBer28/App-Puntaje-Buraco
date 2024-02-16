@@ -22,6 +22,7 @@ import java.util.Locale
 lateinit var usuarioAmigo: EditText
 lateinit var btnAgregar: Button
 lateinit var btnVolver: Button
+lateinit var btnCrearUsuario: Button
 lateinit var usuarioAmigoIngresado : String
 lateinit var usuarioAmigoIngresadoMin: String
 
@@ -49,6 +50,7 @@ class AgregarFragment : Fragment() {
         usuarioAmigo = view.findViewById<EditText>(R.id.usuarioAmigo)
         btnAgregar = view.findViewById<Button>(R.id.btnAgregar)
         btnVolver = view.findViewById<Button>(R.id.btnVolver)
+        btnCrearUsuario = view.findViewById<Button>(R.id.btnCrearUsuario)
 
 
         btnAgregar.setOnClickListener {
@@ -57,6 +59,7 @@ class AgregarFragment : Fragment() {
             if (usuarioAmigoIngresado == "") {
                 Toast.makeText(requireContext(), "Complete el campo", Toast.LENGTH_SHORT).show()
             } else {
+
                 if(usuarioAmigoIngresadoMin == usuarioActual) {
                     Toast.makeText(requireContext(), "El usuario es el tuyo :)", Toast.LENGTH_SHORT).show()
                 }else {
@@ -144,6 +147,136 @@ class AgregarFragment : Fragment() {
                 }
                 }
             }
+
+        btnCrearUsuario.setOnClickListener {
+            usuarioAmigoIngresado = usuarioAmigo.text.toString()
+            usuarioAmigoIngresadoMin = usuarioAmigoIngresado.lowercase(Locale.ROOT)
+            if (usuarioAmigoIngresado == "") {
+                Toast.makeText(requireContext(), "Complete el campo", Toast.LENGTH_SHORT).show()
+            } else {
+                if (usuarioAmigoIngresado.length < 3) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Debe contener al menos 3 caracteres",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    if (usuarioAmigoIngresado.length > 8) {
+                        Toast.makeText(
+                            requireContext(),
+                            "Debe contener máximo 8 caracteres",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        if (Regex("[^a-zA-Z0-9]").containsMatchIn(
+                                usuarioAmigoIngresado
+                            )
+                        ) {
+                            Toast.makeText(
+                                requireContext(),
+                                "No se permiten caracteres especiales",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            if (usuarioAmigoIngresadoMin == usuarioActual) {
+                                Toast.makeText(
+                                    requireContext(),
+                                    "El usuario es el tuyo :)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+
+                                db.collection("users")
+                                    .document(usuarioAmigoIngresadoMin)
+                                    .get()
+                                    .addOnSuccessListener { document ->
+                                        if (document.exists()) {
+                                            Toast.makeText(
+                                                requireContext(),
+                                                "Este nombre ya está en uso",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+
+                                        } else {
+
+                                            if (usuarioActual != null) {
+                                                db.collection("users")
+                                                    .document(usuarioActual)
+                                                    .get()
+                                                    .addOnSuccessListener { document2 ->
+                                                        var nombreUsuario = document2.get("Nombre")
+                                                        var listAmigos: MutableList<String> =
+                                                            (document2.get("Amigos") as? List<String>)?.toMutableList()
+                                                                ?: mutableListOf()
+                                                        var listAmigosNombre: MutableList<String> =
+                                                            (document2.get("AmigosNombre") as? List<String>)?.toMutableList()
+                                                                ?: mutableListOf()
+                                                        if (listAmigos != null) {
+
+                                                            listAmigos.add(usuarioAmigoIngresadoMin)
+                                                            listAmigosNombre.add(
+                                                                usuarioAmigoIngresado
+                                                            )
+
+                                                            db.collection("users")
+                                                                .document(usuarioActual)
+                                                                .update(
+                                                                    "Amigos",
+                                                                    listAmigos,
+                                                                    "AmigosNombre",
+                                                                    listAmigosNombre
+                                                                )
+                                                                .addOnSuccessListener {
+                                                                    val nuevoUsuario = hashMapOf(
+                                                                        "Nombre" to usuarioAmigoIngresado,
+                                                                        "Recuperar" to "Si",
+                                                                        "Amigos" to mutableListOf(
+                                                                            usuarioActual
+                                                                        ),
+                                                                        "AmigosNombre" to mutableListOf(
+                                                                            nombreUsuario
+                                                                        )
+
+                                                                        // Agrega más campos según sea necesario
+                                                                    )
+                                                                    db.collection("users").document(
+                                                                        usuarioAmigoIngresadoMin
+                                                                    )
+                                                                        .set(nuevoUsuario)
+                                                                        .addOnSuccessListener {
+                                                                            Toast.makeText(requireContext(), "Usuario Creado", Toast.LENGTH_SHORT).show()
+                                                                            usuarioAmigo.setText("")
+                                                                        }
+                                                                }
+
+                                                        }
+
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        Toast.makeText(
+                                                            requireContext(),
+                                                            "Error al verificar usuario: $e",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                            }
+
+
+                                        }
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Error al verificar usuario: $e",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         btnVolver.setOnClickListener {
             findNavController().navigate(R.id.partidaFragment)
         }
