@@ -65,7 +65,7 @@ class UsuarioFragment : Fragment() {
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
-                        if (Regex("[/\\\\#\\$\\[\\] ,.\\-!#\$%&/()=?¡'¿/|]}*\\-+_:.;,]").containsMatchIn(usuarioIngresado)) {
+                        if (Regex("[^a-zA-Z0-9]").containsMatchIn(usuarioIngresado)) {
                             Toast.makeText(
                                 requireContext(),
                                 "No se permiten caracteres especiales",
