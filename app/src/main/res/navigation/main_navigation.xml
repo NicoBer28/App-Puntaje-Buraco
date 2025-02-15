@@ -10,9 +10,34 @@
         <action
             android:id="@+id/action_partidaFragment_to_puntajeFragment"
             app:destination="@id/puntajeFragment" />
+        <action
+            android:id="@+id/action_partidaFragment_to_agregarFragment"
+            app:destination="@id/agregarFragment" />
+        <action
+            android:id="@+id/action_partidaFragment_to_historialFragment"
+            app:destination="@id/historialFragment" />
     </fragment>
     <fragment
         android:id="@+id/puntajeFragment"
         android:name="com.example.puntajeburaco20.Fragments.PuntajeFragment"
         tools:layout="@layout/fragment_puntaje" />
+    <fragment
+        android:id="@+id/usuarioFragment"
+        android:name="com.example.puntajeburaco20.Fragments.UsuarioFragment"
+        android:label="fragment_usuario"
+        tools:layout="@layout/fragment_usuario" >
+        <action
+            android:id="@+id/action_usuarioFragment_to_partidaFragment"
+            app:destination="@id/partidaFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/agregarFragment"
+        android:name="com.example.puntajeburaco20.Fragments.AgregarFragment"
+        android:label="fragment_agregar"
+        tools:layout="@layout/fragment_agregar" />
+    <fragment
+        android:id="@+id/historialFragment"
+        android:name="com.example.puntajeburaco20.Fragments.HistorialFragment"
+        android:label="fragment_historial"
+        tools:layout="@layout/fragment_historial" />
 </navigation>
