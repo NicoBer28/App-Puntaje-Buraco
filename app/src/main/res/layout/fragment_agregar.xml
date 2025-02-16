@@ -7,64 +7,85 @@
     android:layout_height="match_parent"
     tools:context=".Fragments.AgregarFragment" >
 
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="296dp"
-        android:layout_height="67dp"
-        android:layout_marginTop="72dp"
-        android:gravity="center"
-        android:text="Agrega a tus amigos!"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.591"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <EditText
         android:id="@+id/usuarioAmigo"
-        android:layout_width="260dp"
-        android:layout_height="71dp"
-        android:layout_marginTop="68dp"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="50dp"
         android:ems="10"
         android:gravity="center"
         android:hint="Ingrese el usuario"
         android:inputType="text"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/btnAgregar"
-        android:layout_width="115dp"
-        android:layout_height="68dp"
-        android:layout_marginStart="50dp"
-        android:layout_marginTop="60dp"
+        android:layout_width="125dp"
+        android:layout_height="70dp"
+        android:layout_marginTop="50dp"
+        android:layout_marginEnd="40dp"
         android:background="@drawable/rounded_button"
-        android:text="Agregar"
-        app:layout_constraintStart_toStartOf="parent"
+        android:text=" agregar amigo"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/usuarioAmigo" />
 
     <Button
         android:id="@+id/btnVolver"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="60dp"
-        android:layout_marginBottom="70dp"
-        android:text="Volver"
+        android:layout_marginStart="45dp"
+        android:layout_marginBottom="55dp"
         android:background="@drawable/rounded_button"
+        android:text="Volver"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/btnCrearUsuario"
-        android:layout_width="115dp"
-        android:layout_height="68dp"
-        android:layout_marginTop="60dp"
+        android:layout_width="125dp"
+        android:layout_height="70dp"
+        android:layout_marginTop="50dp"
         android:layout_marginEnd="50dp"
         android:background="@drawable/rounded_button"
         android:text="Crear Usuario"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/passwordCrear" />
+
+    <EditText
+        android:id="@+id/usuarioCrear"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="200dp"
+        android:ems="10"
+        android:hint="Nombre de usuario"
+        android:inputType="text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/usuarioAmigo" />
+
+    <EditText
+        android:id="@+id/passwordCrear"
+        android:layout_width="250dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="60dp"
+        android:ems="10"
+        android:hint="Contraseña"
+        android:inputType="textPassword"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/usuarioCrear" />
+
+    <Button
+        android:id="@+id/btnEliminar"
+        android:layout_width="125dp"
+        android:layout_height="70dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="50dp"
+        android:background="@drawable/rounded_button"
+        android:text="Eliminar Amigo"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/usuarioAmigo" />
 </androidx.constraintlayout.widget.ConstraintLayout>

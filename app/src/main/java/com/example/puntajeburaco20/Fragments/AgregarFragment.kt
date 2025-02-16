@@ -20,11 +20,18 @@ import java.util.Locale
 
 
 lateinit var usuarioAmigo: EditText
+lateinit var usuarioCrear: EditText
+lateinit var passwordCrear: EditText
 lateinit var btnAgregar: Button
+lateinit var btnEliminar: Button
 lateinit var btnVolver: Button
 lateinit var btnCrearUsuario: Button
 lateinit var usuarioAmigoIngresado : String
 lateinit var usuarioAmigoIngresadoMin: String
+lateinit var usuarioCrearIngresado: String
+lateinit var usuarioCrearIngresadoMin: String
+lateinit var passwordCrearIngresado: String
+
 
 class AgregarFragment : Fragment() {
 
@@ -48,7 +55,11 @@ class AgregarFragment : Fragment() {
 
 
         usuarioAmigo = view.findViewById<EditText>(R.id.usuarioAmigo)
+        usuarioCrear = view.findViewById<EditText>(R.id.usuarioCrear)
+        passwordCrear = view.findViewById<EditText>(R.id.passwordCrear)
+
         btnAgregar = view.findViewById<Button>(R.id.btnAgregar)
+        btnEliminar = view.findViewById<Button>(R.id.btnEliminar)
         btnVolver = view.findViewById<Button>(R.id.btnVolver)
         btnCrearUsuario = view.findViewById<Button>(R.id.btnCrearUsuario)
 
@@ -148,37 +159,143 @@ class AgregarFragment : Fragment() {
                 }
             }
 
-        btnCrearUsuario.setOnClickListener {
+
+        btnEliminar.setOnClickListener {
             usuarioAmigoIngresado = usuarioAmigo.text.toString()
             usuarioAmigoIngresadoMin = usuarioAmigoIngresado.lowercase(Locale.ROOT)
             if (usuarioAmigoIngresado == "") {
                 Toast.makeText(requireContext(), "Complete el campo", Toast.LENGTH_SHORT).show()
             } else {
-                if (usuarioAmigoIngresado.length < 3) {
+
+                if(usuarioAmigoIngresadoMin == usuarioActual) {
+                    Toast.makeText(requireContext(), "El usuario es el tuyo :)", Toast.LENGTH_SHORT).show()
+                }else {
+
+                    db.collection("users")
+                        .document(usuarioAmigoIngresadoMin)
+                        .get()
+                        .addOnSuccessListener { document ->
+                            if (document.exists()) {
+                                var listAmigos2: MutableList<String> = (document.get("Amigos") as? List<String>)?.toMutableList()
+                                    ?: mutableListOf()
+
+                                if (listAmigos2.contains(usuarioActual)){
+
+                                    var nombreAmigo = document.get("Nombre")
+                                    if (usuarioActual != null) {
+                                        db.collection("users")
+                                            .document(usuarioActual)
+                                            .get()
+                                            .addOnSuccessListener { document2 ->
+                                                var nombreUsuario = document2.get("Nombre")
+                                                var listAmigos: MutableList<String> = (document2.get("Amigos") as? List<String>)?.toMutableList()
+                                                    ?: mutableListOf()
+                                                var listAmigosNombre: MutableList<String> = (document2.get("AmigosNombre") as? List<String>)?.toMutableList()
+                                                    ?: mutableListOf()
+
+                                                listAmigos.remove(usuarioAmigoIngresadoMin)
+                                                listAmigosNombre.remove(nombreAmigo)
+
+                                                db.collection("users")
+                                                    .document(usuarioActual)
+                                                    .update("Amigos", listAmigos, "AmigosNombre", listAmigosNombre)
+                                                    .addOnSuccessListener {
+                                                        db.collection("users")
+                                                            .document(usuarioAmigoIngresadoMin)
+                                                            .get()
+                                                            .addOnSuccessListener { document3 ->
+                                                                var listAmigos2: MutableList<String> = (document3.get("Amigos") as? List<String>)?.toMutableList()
+                                                                    ?: mutableListOf()
+                                                                var listAmigosNombre2: MutableList<String> = (document3.get("AmigosNombre") as? List<String>)?.toMutableList()
+                                                                    ?: mutableListOf()
+                                                                listAmigos2.remove(usuarioActual)
+                                                                listAmigosNombre2.remove(nombreUsuario)
+
+                                                                db.collection("users")
+                                                                    .document(usuarioAmigoIngresadoMin)
+                                                                    .update("Amigos", listAmigos2, "AmigosNombre", listAmigosNombre2)
+                                                                    .addOnSuccessListener {
+                                                                        Toast.makeText(requireContext(), "Usuario Eliminado", Toast.LENGTH_SHORT).show()
+                                                                        usuarioAmigo.setText("")
+                                                                    }
+                                                            }
+
+                                                    }
+
+
+
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Error al verificar usuario: $e",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                    }
+                                }
+                                else{
+                                    Toast.makeText(
+                                        requireContext(),
+                                        "El usuario no es tu amigo",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
+
+                            } else {
+                                Toast.makeText(
+                                    requireContext(),
+                                    "El usuario no existe",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(
+                                requireContext(),
+                                "Error al verificar usuario: $e",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                }
+            }
+        }
+
+
+        btnCrearUsuario.setOnClickListener {
+            usuarioCrearIngresado = usuarioCrear.text.toString()
+            usuarioCrearIngresadoMin = usuarioCrearIngresado.lowercase(Locale.ROOT)
+            passwordCrearIngresado = passwordCrear.text.toString()
+
+            if (usuarioCrearIngresado == "" || passwordCrearIngresado == "") {
+                Toast.makeText(requireContext(), "Complete los dos campos", Toast.LENGTH_SHORT).show()
+            } else {
+                if (usuarioCrearIngresado.length < 3 || passwordCrearIngresado.length < 3) {
                     Toast.makeText(
                         requireContext(),
-                        "Debe contener al menos 3 caracteres",
+                        "El usuario y la contraseña deben contener al menos 3 caracteres",
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
-                    if (usuarioAmigoIngresado.length > 8) {
+                    if (usuarioCrearIngresado.length > 8 || passwordCrearIngresado.length > 8) {
                         Toast.makeText(
                             requireContext(),
-                            "Debe contener máximo 8 caracteres",
+                            "El usuario y la contraseña deben contener máximo 8 caracteres",
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
-                        if (Regex("[^a-zA-Z0-9]").containsMatchIn(
-                                usuarioAmigoIngresado
-                            )
-                        ) {
+                        if (Regex("[^a-zA-Z0-9]").containsMatchIn(usuarioCrearIngresado) ||
+                            Regex("[^a-zA-Z0-9]").containsMatchIn(passwordCrearIngresado))
+                        {
                             Toast.makeText(
                                 requireContext(),
                                 "No se permiten caracteres especiales",
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
-                            if (usuarioAmigoIngresadoMin == usuarioActual) {
+                            if (usuarioCrearIngresadoMin == usuarioActual) {
                                 Toast.makeText(
                                     requireContext(),
                                     "El usuario es el tuyo :)",
@@ -187,7 +304,7 @@ class AgregarFragment : Fragment() {
                             } else {
 
                                 db.collection("users")
-                                    .document(usuarioAmigoIngresadoMin)
+                                    .document(usuarioCrearIngresadoMin)
                                     .get()
                                     .addOnSuccessListener { document ->
                                         if (document.exists()) {
@@ -213,9 +330,9 @@ class AgregarFragment : Fragment() {
                                                                 ?: mutableListOf()
                                                         if (listAmigos != null) {
 
-                                                            listAmigos.add(usuarioAmigoIngresadoMin)
+                                                            listAmigos.add(usuarioCrearIngresadoMin)
                                                             listAmigosNombre.add(
-                                                                usuarioAmigoIngresado
+                                                                usuarioCrearIngresado
                                                             )
 
                                                             db.collection("users")
@@ -228,8 +345,8 @@ class AgregarFragment : Fragment() {
                                                                 )
                                                                 .addOnSuccessListener {
                                                                     val nuevoUsuario = hashMapOf(
-                                                                        "Nombre" to usuarioAmigoIngresado,
-                                                                        "Recuperar" to "Si",
+                                                                        "Nombre" to usuarioCrearIngresado,
+                                                                        "Password" to passwordCrearIngresado,
                                                                         "Amigos" to mutableListOf(
                                                                             usuarioActual
                                                                         ),
@@ -240,12 +357,14 @@ class AgregarFragment : Fragment() {
                                                                         // Agrega más campos según sea necesario
                                                                     )
                                                                     db.collection("users").document(
-                                                                        usuarioAmigoIngresadoMin
+                                                                        usuarioCrearIngresadoMin
                                                                     )
                                                                         .set(nuevoUsuario)
                                                                         .addOnSuccessListener {
                                                                             Toast.makeText(requireContext(), "Usuario Creado", Toast.LENGTH_SHORT).show()
-                                                                            usuarioAmigo.setText("")
+                                                                            usuarioCrear.setText("")
+                                                                            passwordCrear.setText("")
+
                                                                         }
                                                                 }
 
