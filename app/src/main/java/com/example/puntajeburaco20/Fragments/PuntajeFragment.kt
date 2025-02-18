@@ -1,9 +1,13 @@
 package com.example.puntajeburaco20.Fragments
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -15,6 +19,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.ViewModels.PuntajeViewModel
@@ -23,6 +29,8 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Locale
+import org.opencv.android.OpenCVLoader
+
 
 lateinit var equipoUno: TextView
 lateinit var equipoDos: TextView
@@ -42,6 +50,7 @@ lateinit var empiezaJug: TextView
 lateinit var btnSumar: Button
 lateinit var btnAtras: Button
 lateinit var btnFin: Button
+lateinit var btnCamara1: Button
 
 var partidaTerminada: Boolean = false
 
@@ -50,6 +59,8 @@ class PuntajeFragment : Fragment() {
 
     companion object {
         fun newInstance() = PuntajeFragment()
+        private const val CAMERA_REQUEST_CODE = 1001
+        private const val CAMERA_PERMISSION_REQUEST_CODE = 1002
     }
 
     private lateinit var viewModel: PuntajeViewModel
@@ -73,12 +84,19 @@ class PuntajeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+
         return inflater.inflate(R.layout.fragment_puntaje, container, false)
     }
 
     @SuppressLint("SetTextI18n")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        if (!OpenCVLoader.initDebug()) {
+            Log.e("OpenCV", "Error al cargar OpenCV")
+        } else {
+            Log.d("OpenCV", "OpenCV cargado correctamente")
+        }
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -135,7 +153,7 @@ class PuntajeFragment : Fragment() {
         btnSumar = view.findViewById<Button>(R.id.btnSumar)
         btnAtras = view.findViewById<Button>(R.id.btnAtras)
         btnFin = view.findViewById<Button>(R.id.btnFin)
-
+        btnCamara1 = view.findViewById<Button>(R.id.btnCamara1)
 
         baseAntUno.text = "0"
         baseAntDos.text = "0"
@@ -823,6 +841,39 @@ class PuntajeFragment : Fragment() {
                 .show()
         }
 
+        btnCamara1.setOnClickListener {
+            openCamera()
         }
+
+    }
+    private fun openCamera() {
+        // Verificar si se tienen los permisos necesarios antes de abrir la cámara
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
+        } else {
+            // Si no se tienen los permisos, solicitarlos
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.CAMERA),
+                CAMERA_PERMISSION_REQUEST_CODE
+            )
+        }
+    }
+    // Este método se llama cuando el usuario responde a la solicitud de permiso
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openCamera()
+            } else {
+                Toast.makeText(requireContext(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
 }
