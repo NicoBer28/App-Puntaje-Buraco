@@ -24,6 +24,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
+import com.example.puntajeburaco20.OverlayView
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.ViewModels.PuntajeViewModel
 import com.example.puntajeburaco20.YOLODetector
@@ -73,6 +74,10 @@ lateinit var btnSumar: Button
 lateinit var btnAtras: Button
 lateinit var btnFin: Button
 lateinit var btnCamara1: Button
+private lateinit var btnSumarEq1: Button
+private lateinit var btnSumarEq2: Button
+private lateinit var btnCerrarCamara: Button
+
 
 var partidaTerminada: Boolean = false
 
@@ -84,7 +89,18 @@ class PuntajeFragment : Fragment() {
         private const val CAMERA_REQUEST_CODE = 100
         private const val CAMERA_PERMISSION_REQUEST_CODE = 101
         private lateinit var yoloDetector: YOLODetector
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
     }
+
+    // 1. Agregá esta variable global en la clase
+    private lateinit var viewFinder: androidx.camera.view.PreviewView
+    // Executor para correr el análisis en segundo plano (para que no se trabe la UI)
+    private lateinit var cameraExecutor: java.util.concurrent.ExecutorService
+    private lateinit var overlay: OverlayView
+    // Variable volátil para guardar lo que está viendo la cámara en este instante
+    private var ultimasDetecciones: List<YOLODetector.BoundingBox> = emptyList()
+    private lateinit var cameraContainer: androidx.constraintlayout.widget.ConstraintLayout
 
     private lateinit var viewModel: PuntajeViewModel
     var baseIngreUno: Int = 0
@@ -179,6 +195,11 @@ class PuntajeFragment : Fragment() {
         btnAtras = view.findViewById<Button>(R.id.btnAtras)
         btnFin = view.findViewById<Button>(R.id.btnFin)
         btnCamara1 = view.findViewById<Button>(R.id.btnCamara1)
+        btnSumarEq1 = view.findViewById(R.id.btnSumarEq1)
+        btnSumarEq2 = view.findViewById(R.id.btnSumarEq2)
+        btnCerrarCamara = view.findViewById(R.id.btnCerrarCamara)
+
+        cameraContainer = view.findViewById(R.id.cameraContainer)
 
         baseAntUno.text = "0"
         baseAntDos.text = "0"
@@ -249,6 +270,8 @@ class PuntajeFragment : Fragment() {
             equipoUno.text = "$jugadorUno $y $jugadorDos"
             equipoDos.text = "$jugadorTres $y $jugadorCuatro"
         }
+        btnSumarEq1.text = "Sumar a ${equipoUno.text}"
+        btnSumarEq2.text = "Sumar a ${equipoDos.text}"
 
       /*  val editor = sharedPreferences.edit()
 
@@ -865,243 +888,197 @@ class PuntajeFragment : Fragment() {
                 .setNegativeButton("No", null)
                 .show()
         }
-
+        viewFinder = view.findViewById(R.id.viewFinder)
+        cameraExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+        overlay = view.findViewById(R.id.overlay)
         btnCamara1.setOnClickListener {
-            openCamera()
-
-        }
-
-    }
-    private fun openCamera() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
-        } else {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.CAMERA),
-                CAMERA_PERMISSION_REQUEST_CODE
-            )
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as? Bitmap
-            if (imageBitmap != null) {
-                // Ejecutar detección en segundo plano para no congelar la UI
-                Thread {
-                    val detections = yoloDetector.detectObjects(imageBitmap)
-                    activity?.runOnUiThread {
-                        Toast.makeText(requireContext(), "Detectados: $detections", Toast.LENGTH_LONG).show()
-                    }
-                }.start()
+            if (allPermissionsGranted()) {
+                startCamera()
             } else {
-                Toast.makeText(requireContext(), "Error al capturar imagen", Toast.LENGTH_SHORT).show()
+                ActivityCompat.requestPermissions(
+                    requireActivity(), REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
+                )
             }
         }
-    }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openCamera()
-            } else {
-                Toast.makeText(requireContext(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
-            }
+        btnSumarEq1.setOnClickListener {
+            sumarDeteccionesYSalir(puntosUno)
         }
+
+        btnSumarEq2.setOnClickListener {
+            sumarDeteccionesYSalir(puntosDos)
+        }
+
+        btnCerrarCamara.setOnClickListener {
+            detenerCamara()
+            Toast.makeText(requireContext(), "Cancelado", Toast.LENGTH_SHORT).show()
+        }
+
     }
-    /*
-    fun preprocessImage(imageBitmap: Bitmap): Bitmap {
-        // Convertir Bitmap a Mat
-        val mat = Mat()
-        Utils.bitmapToMat(imageBitmap, mat)
 
-        // Convertir a escala de grises
-        val grayMat = Mat()
-        Imgproc.cvtColor(mat, grayMat, Imgproc.COLOR_RGBA2GRAY)
+    // 3. La función que inicia la cámara
+    private fun startCamera() {
+        val cameraProviderFuture = androidx.camera.lifecycle.ProcessCameraProvider.getInstance(requireContext())
 
-        // Aplicar desenfoque gaussiano para reducir ruido
-        Imgproc.GaussianBlur(grayMat, grayMat, Size(5.0, 5.0), 0.0)
+        cameraProviderFuture.addListener({
+            // Vinculamos el ciclo de vida
+            val cameraProvider = cameraProviderFuture.get()
 
-        // Aplicar binarización (umbral adaptativo)
-        val thresholdMat = Mat()
-        Imgproc.adaptiveThreshold(
-            grayMat, thresholdMat, 255.0, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
-            Imgproc.THRESH_BINARY, 11, 2.0
-        )
+            // Preview: Lo que ves en pantalla
+            val preview = androidx.camera.core.Preview.Builder()
+                .build()
+                .also {
+                    it.setSurfaceProvider(viewFinder.surfaceProvider)
+                }
 
-        // Convertir Mat de nuevo a Bitmap
-        val processedBitmap = Bitmap.createBitmap(thresholdMat.cols(), thresholdMat.rows(), Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(thresholdMat, processedBitmap)
-
-        return processedBitmap
-    }
-    */
-
-/*
-    private fun recognizeTextWithMLKit(imageBitmap: Bitmap) {
-        val image = InputImage.fromBitmap(imageBitmap, 0)
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-        recognizer.process(image)
-            .addOnSuccessListener { visionText ->
-                val recognizedNumbers = mutableListOf<String>()
-
-                for (block in visionText.textBlocks) {
-                    for (line in block.lines) {
-                        val text = line.text
-                        val onlyNumbers = text.filter { it.isDigit() } // Filtrar solo números
-                        if (onlyNumbers.isNotEmpty()) {
-                            recognizedNumbers.add(onlyNumbers)
-                        }
+            // ImageAnalysis: Acá es donde YOLO trabaja
+            val imageAnalyzer = androidx.camera.core.ImageAnalysis.Builder()
+                // ESTRATEGIA: Si el modelo es lento, descarta frames viejos. Solo analiza lo último.
+                .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setOutputImageFormat(androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888) // Pide formato Bitmap friendly
+                .build()
+                .also {
+                    it.setAnalyzer(cameraExecutor) { imageProxy ->
+                        procesarImagen(imageProxy)
                     }
                 }
 
-                if (recognizedNumbers.isEmpty()) {
-                    Toast.makeText(requireContext(), "No se detectaron números", Toast.LENGTH_SHORT).show()
-                } else {
-                    val numberCounts = recognizedNumbers.groupingBy { it }.eachCount()
-                    println("Cantidad de veces que aparece cada número: $numberCounts")
-                    Toast.makeText(requireContext(), "Números detectados: $numberCounts", Toast.LENGTH_LONG).show()
-                }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error en reconocimiento: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-    }
-    */
-    /*
-    private fun openCamera() {
-        // Verificar si se tienen los permisos necesarios antes de abrir la cámara
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
-        } else {
-            // Si no se tienen los permisos, solicitarlos
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.CAMERA),
-                CAMERA_PERMISSION_REQUEST_CODE
-            )
-        }
-    }
-    // Método para recibir la imagen después de tomar la foto
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
+            // Seleccionar cámara trasera
+            val cameraSelector = androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
 
-        if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as? Bitmap
-            if (imageBitmap != null) {
-                processImage(imageBitmap) // Pasa la imagen a la función para procesarla
-            } else {
-                Toast.makeText(requireContext(), "Error al capturar imagen", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-    // Este método se llama cuando el usuario responde a la solicitud de permiso
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openCamera()
-            } else {
-                Toast.makeText(requireContext(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
-    // Función para convertir la imagen a escala de grises
-    fun convertToGray(imageBitmap: Bitmap): Mat {
-        val mat = Mat()
-        Utils.bitmapToMat(imageBitmap, mat)
-        val grayMat = Mat()
-        Imgproc.cvtColor(mat, grayMat, Imgproc.COLOR_RGB2GRAY)
-        return grayMat
-    }
-
-    // Función para aplicar un filtro GaussianBlur
-    fun applyGaussianBlur(grayMat: Mat): Mat {
-        val blurredMat = Mat()
-        Imgproc.GaussianBlur(grayMat, blurredMat, Size(5.0, 5.0), 0.0)
-        return blurredMat
-    }
-
-    // Función para detectar contornos
-    fun detectContours(blurredMat: Mat): List<MatOfPoint> {
-        val edges = Mat()
-        Imgproc.Canny(blurredMat, edges, 100.0, 200.0)
-        val contours = mutableListOf<MatOfPoint>()
-        val hierarchy = Mat()
-        Imgproc.findContours(edges, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE)
-        return contours
-    }
-
-    // Función para reconocer texto usando Tesseract
-    fun recognizeText(imageMat: Mat): String {
-        val tessBaseApi = TessBaseAPI()
-        val tessDataPath = requireContext().getExternalFilesDir(null)?.absolutePath ?: ""
-        tessBaseApi.init(tessDataPath, "eng") // Asegura que la ruta es correcta
-        tessBaseApi.setVariable("tessedit_char_whitelist", "0123456789")
-        val bitmap = Bitmap.createBitmap(imageMat.cols(), imageMat.rows(), Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(imageMat, bitmap)
-        tessBaseApi.setImage(bitmap)
-        val recognizedText = tessBaseApi.utF8Text
-        tessBaseApi.end()
-        return recognizedText
-    }
-
-    // Función para mostrar resultados y contar números
-    fun processImage(imageBitmap: Bitmap) {
-        val grayMat = convertToGray(imageBitmap)
-        val blurredMat = applyGaussianBlur(grayMat)
-        val contours = detectContours(blurredMat)
-        val recognizedNumbers = mutableListOf<String>()
-
-        for (contour in contours) {
-            val boundingRect = Imgproc.boundingRect(contour)
-            val numberMat = grayMat.submat(boundingRect)
-            val text = recognizeText(numberMat)
-            recognizedNumbers.add(text)
-        }
-        println("Cantidad de veces: $recognizedNumbers")
-        val numberCounts = recognizedNumbers.groupingBy { it }.eachCount()
-        println("Cantidad de veces que aparece cada número: $numberCounts")
-    }
-
-
-
-    fun copyTessDataIfNeeded(context: Context) {
-        val tessDataDir = File(context.getExternalFilesDir(null), "tessdata")
-        if (!tessDataDir.exists()) {
-            tessDataDir.mkdirs()
-        }
-
-        val tessDataFile = File(tessDataDir, "eng.traineddata")
-        if (!tessDataFile.exists()) {
             try {
-                context.assets.open("tessdata/eng.traineddata").use { inputStream ->
-                    FileOutputStream(tessDataFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
+                cameraProvider.unbindAll() // Desconectar todo antes de reconectar
+                cameraProvider.bindToLifecycle(
+                    this, cameraSelector, preview, imageAnalyzer
+                )
+
+                // Hacemos visible el visor
+                activity?.runOnUiThread {
+                    cameraContainer.visibility = View.VISIBLE
                 }
-            } catch (e: IOException) {
-                e.printStackTrace()
+
+            } catch (exc: Exception) {
+                Log.e("CameraX", "Error al iniciar cámara", exc)
             }
+
+        }, androidx.core.content.ContextCompat.getMainExecutor(requireContext()))
+    }
+
+    // 4. El puente entre CameraX y tu YOLO
+    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+    private fun procesarImagen(imageProxy: androidx.camera.core.ImageProxy) {
+        val mediaImage = imageProxy.image
+        if (mediaImage != null) {
+            // 1. Obtener la rotación necesaria (suele ser 90° o 270° en portrait)
+            val rotationDegrees = imageProxy.imageInfo.rotationDegrees.toFloat()
+
+            // 2. Convertir a Bitmap
+            val rawBitmap = imageProxy.toBitmap()
+
+            // 3. Corregir la rotación usando una Matrix
+            val matrix = android.graphics.Matrix()
+            matrix.postRotate(rotationDegrees)
+
+            // 4. Crear el Bitmap rotado (y aquí es donde entra YOLO cómodo)
+            val rotatedBitmap = Bitmap.createBitmap(
+                rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true
+            )
+
+            // 5. Pasar el bitmap DERECHO al detector
+            val detections = yoloDetector.detectObjects(rotatedBitmap)
+
+            if (!detections.isNullOrEmpty()) {
+                ultimasDetecciones = detections
+                val maxConf = detections.maxOf { it.cnf }
+                val detectedClasses = detections.joinToString { "${it.clsName} (${String.format("%.2f", it.cnf)})" }
+
+                Log.d("YOLO_LIVE", "--> Confianza: $maxConf | Objetos: $detectedClasses")
+
+                // Opcional: Para saber si estamos viendo bien, imprimir el tamaño del bitmap
+                // Log.d("YOLO_DEBUG", "Bitmap size: ${rotatedBitmap.width}x${rotatedBitmap.height}")
+                // IMPORTANTE: Como vamos a tocar la UI (dibujar), hay que salir del hilo secundario
+                activity?.runOnUiThread {
+                    overlay.visibility = View.VISIBLE // Asegurarnos que se vea
+                    overlay.setResults(detections)
+                }
+            }else {
+                // Si no detecta nada, limpiamos el dibujo
+                activity?.runOnUiThread {
+                    overlay.setResults(emptyList())
+                }
+            }
+
+            // IMPORTANTE: Cerrar siempre
+            imageProxy.close()
         }
     }
-*/
+
+    // 5. Helpers de permisos (copiá esto tal cual)
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        androidx.core.content.ContextCompat.checkSelfPermission(
+            requireContext(), it
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun sumarDeteccionesYSalir(campoDestino: EditText) {
+        // 1. Apagar cámara y ocultar cosas
+        detenerCamara()
+
+        // 2. Calcular Puntos
+        var sumaTotal = 0
+        val detalle = StringBuilder()
+
+        if (ultimasDetecciones.isNotEmpty()) {
+            for (box in ultimasDetecciones) {
+                // LÓGICA DE PUNTAJE BURAKO (Ajustala a tus reglas)
+                val puntos = when (box.clsName) {
+                    "3", "4", "5", "6", "7" -> 5
+                    "8", "9", "10", "11", "12", "13" -> 10 // Acepta numeros o letras por las dudas
+                    "1" -> 15 // As de burako suele valer 15
+                    "2" -> 20 // El 2 (Pinelle) vale 20
+                    "C" -> 50
+                    else -> 0
+                }
+                sumaTotal += puntos
+                detalle.append("${box.clsName}($puntos) + ")
+            }
+
+            // Log para debug
+            Log.d("SUMA_FINAL", "Cálculo: $detalle = $sumaTotal")
+
+            // 3. Poner el resultado en el EditText correspondiente
+            val puntosActuales = campoDestino.text.toString().toIntOrNull() ?: 0
+
+            // Escribimos en el objeto referenciado
+            campoDestino.setText((puntosActuales + sumaTotal).toString())
+
+            Toast.makeText(requireContext(), "Se sumaron $sumaTotal puntos", Toast.LENGTH_SHORT).show()
+
+        } else {
+            Toast.makeText(requireContext(), "No se detectó nada para sumar", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun detenerCamara() {
+        try {
+            val cameraProvider = androidx.camera.lifecycle.ProcessCameraProvider.getInstance(requireContext()).get()
+            cameraProvider.unbindAll() // Libera la cámara
+        } catch (e: Exception) {
+            Log.e("Camera", "Error al detener cámara", e)
+        }
+
+        // Ocultamos el contenedor completo
+        activity?.runOnUiThread {
+            cameraContainer.visibility = View.GONE
+            // Opcional: Limpiar el overlay para que no quede dibujado lo viejo la proxima vez
+            overlay.setResults(emptyList())
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+    }
+
 
 }
