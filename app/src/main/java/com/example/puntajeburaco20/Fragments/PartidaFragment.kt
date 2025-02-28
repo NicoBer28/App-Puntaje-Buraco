@@ -1,7 +1,6 @@
 package com.example.puntajeburaco20.Fragments
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -166,7 +165,7 @@ mutableList.removeAt(1)*/
 
                     val adapterJugadores = ArrayAdapter(
                         requireContext(),
-                        android.R.layout.simple_spinner_item,
+                        R.layout.spinner_selected,
                         mutableListJugadores
                     )
                     adapterJugadores.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -235,7 +234,7 @@ mutableList.removeAt(1)*/
                     val adapter1 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList
                         )
                     adapter1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -286,7 +285,7 @@ mutableList.removeAt(1)*/
                     val adapter2 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList
                         )
                     adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -333,7 +332,7 @@ mutableList.removeAt(1)*/
                     val adapter3 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList
                         )
                     adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -380,7 +379,7 @@ mutableList.removeAt(1)*/
                     val adapter4 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList
                         )
                     adapter4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)

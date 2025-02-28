@@ -146,7 +146,7 @@ class HistorialFragment : Fragment() {
 
                     val adapterJugadores = ArrayAdapter(
                         requireContext(),
-                        android.R.layout.simple_spinner_item,
+                        R.layout.spinner_selected,
                         mutableListJugadores2
                     )
                     adapterJugadores.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -213,7 +213,7 @@ class HistorialFragment : Fragment() {
                     val adapter1 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList2
                         )
                     adapter1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -258,7 +258,7 @@ class HistorialFragment : Fragment() {
                     val adapter2 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList2
                         )
                     adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -300,7 +300,7 @@ class HistorialFragment : Fragment() {
                     val adapter3 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList2
                         )
                     adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -342,7 +342,7 @@ class HistorialFragment : Fragment() {
                     val adapter4 =
                         ArrayAdapter(
                             requireContext(),
-                            android.R.layout.simple_spinner_item,
+                            R.layout.spinner_selected,
                             mutableList2
                         )
                     adapter4.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)

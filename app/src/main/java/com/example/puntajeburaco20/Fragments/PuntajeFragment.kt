@@ -2,9 +2,11 @@ package com.example.puntajeburaco20.Fragments
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.provider.MediaStore
@@ -24,12 +26,32 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.ViewModels.PuntajeViewModel
+import com.example.puntajeburaco20.YOLODetector
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Locale
 import org.opencv.android.OpenCVLoader
+import org.opencv.core.Mat
+import org.opencv.core.CvType
+import org.opencv.android.Utils
+import org.opencv.core.MatOfPoint
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
+import com.googlecode.tesseract.android.TessBaseAPI
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.support.image.TensorImage
+import org.tensorflow.lite.support.model.Model
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
+import java.io.FileInputStream
 
 
 lateinit var equipoUno: TextView
@@ -59,8 +81,9 @@ class PuntajeFragment : Fragment() {
 
     companion object {
         fun newInstance() = PuntajeFragment()
-        private const val CAMERA_REQUEST_CODE = 1001
-        private const val CAMERA_PERMISSION_REQUEST_CODE = 1002
+        private const val CAMERA_REQUEST_CODE = 100
+        private const val CAMERA_PERMISSION_REQUEST_CODE = 101
+        private lateinit var yoloDetector: YOLODetector
     }
 
     private lateinit var viewModel: PuntajeViewModel
@@ -97,6 +120,8 @@ class PuntajeFragment : Fragment() {
         } else {
             Log.d("OpenCV", "OpenCV cargado correctamente")
         }
+        yoloDetector = YOLODetector(requireContext())
+
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -239,7 +264,7 @@ class PuntajeFragment : Fragment() {
             Toast.makeText(requireContext(), "Comienza $empiezaRonda", Toast.LENGTH_SHORT).show()
         }
 
-
+        //copyTessDataIfNeeded(requireContext())
 
         // btnSumar = view.findViewById<Button>(R.id.btnSumar)
 
@@ -843,9 +868,117 @@ class PuntajeFragment : Fragment() {
 
         btnCamara1.setOnClickListener {
             openCamera()
+
         }
 
     }
+    private fun openCamera() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
+        } else {
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.CAMERA),
+                CAMERA_PERMISSION_REQUEST_CODE
+            )
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val imageBitmap = data?.extras?.get("data") as? Bitmap
+            if (imageBitmap != null) {
+                // Ejecutar detección en segundo plano para no congelar la UI
+                Thread {
+                    val detections = yoloDetector.detectObjects(imageBitmap)
+                    activity?.runOnUiThread {
+                        Toast.makeText(requireContext(), "Detectados: $detections", Toast.LENGTH_LONG).show()
+                    }
+                }.start()
+            } else {
+                Toast.makeText(requireContext(), "Error al capturar imagen", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openCamera()
+            } else {
+                Toast.makeText(requireContext(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    /*
+    fun preprocessImage(imageBitmap: Bitmap): Bitmap {
+        // Convertir Bitmap a Mat
+        val mat = Mat()
+        Utils.bitmapToMat(imageBitmap, mat)
+
+        // Convertir a escala de grises
+        val grayMat = Mat()
+        Imgproc.cvtColor(mat, grayMat, Imgproc.COLOR_RGBA2GRAY)
+
+        // Aplicar desenfoque gaussiano para reducir ruido
+        Imgproc.GaussianBlur(grayMat, grayMat, Size(5.0, 5.0), 0.0)
+
+        // Aplicar binarización (umbral adaptativo)
+        val thresholdMat = Mat()
+        Imgproc.adaptiveThreshold(
+            grayMat, thresholdMat, 255.0, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+            Imgproc.THRESH_BINARY, 11, 2.0
+        )
+
+        // Convertir Mat de nuevo a Bitmap
+        val processedBitmap = Bitmap.createBitmap(thresholdMat.cols(), thresholdMat.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(thresholdMat, processedBitmap)
+
+        return processedBitmap
+    }
+    */
+
+/*
+    private fun recognizeTextWithMLKit(imageBitmap: Bitmap) {
+        val image = InputImage.fromBitmap(imageBitmap, 0)
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+        recognizer.process(image)
+            .addOnSuccessListener { visionText ->
+                val recognizedNumbers = mutableListOf<String>()
+
+                for (block in visionText.textBlocks) {
+                    for (line in block.lines) {
+                        val text = line.text
+                        val onlyNumbers = text.filter { it.isDigit() } // Filtrar solo números
+                        if (onlyNumbers.isNotEmpty()) {
+                            recognizedNumbers.add(onlyNumbers)
+                        }
+                    }
+                }
+
+                if (recognizedNumbers.isEmpty()) {
+                    Toast.makeText(requireContext(), "No se detectaron números", Toast.LENGTH_SHORT).show()
+                } else {
+                    val numberCounts = recognizedNumbers.groupingBy { it }.eachCount()
+                    println("Cantidad de veces que aparece cada número: $numberCounts")
+                    Toast.makeText(requireContext(), "Números detectados: $numberCounts", Toast.LENGTH_LONG).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error en reconocimiento: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+    */
+    /*
     private fun openCamera() {
         // Verificar si se tienen los permisos necesarios antes de abrir la cámara
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -858,6 +991,19 @@ class PuntajeFragment : Fragment() {
                 arrayOf(Manifest.permission.CAMERA),
                 CAMERA_PERMISSION_REQUEST_CODE
             )
+        }
+    }
+    // Método para recibir la imagen después de tomar la foto
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val imageBitmap = data?.extras?.get("data") as? Bitmap
+            if (imageBitmap != null) {
+                processImage(imageBitmap) // Pasa la imagen a la función para procesarla
+            } else {
+                Toast.makeText(requireContext(), "Error al capturar imagen", Toast.LENGTH_SHORT).show()
+            }
         }
     }
     // Este método se llama cuando el usuario responde a la solicitud de permiso
@@ -875,5 +1021,87 @@ class PuntajeFragment : Fragment() {
             }
         }
     }
+
+
+    // Función para convertir la imagen a escala de grises
+    fun convertToGray(imageBitmap: Bitmap): Mat {
+        val mat = Mat()
+        Utils.bitmapToMat(imageBitmap, mat)
+        val grayMat = Mat()
+        Imgproc.cvtColor(mat, grayMat, Imgproc.COLOR_RGB2GRAY)
+        return grayMat
+    }
+
+    // Función para aplicar un filtro GaussianBlur
+    fun applyGaussianBlur(grayMat: Mat): Mat {
+        val blurredMat = Mat()
+        Imgproc.GaussianBlur(grayMat, blurredMat, Size(5.0, 5.0), 0.0)
+        return blurredMat
+    }
+
+    // Función para detectar contornos
+    fun detectContours(blurredMat: Mat): List<MatOfPoint> {
+        val edges = Mat()
+        Imgproc.Canny(blurredMat, edges, 100.0, 200.0)
+        val contours = mutableListOf<MatOfPoint>()
+        val hierarchy = Mat()
+        Imgproc.findContours(edges, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE)
+        return contours
+    }
+
+    // Función para reconocer texto usando Tesseract
+    fun recognizeText(imageMat: Mat): String {
+        val tessBaseApi = TessBaseAPI()
+        val tessDataPath = requireContext().getExternalFilesDir(null)?.absolutePath ?: ""
+        tessBaseApi.init(tessDataPath, "eng") // Asegura que la ruta es correcta
+        tessBaseApi.setVariable("tessedit_char_whitelist", "0123456789")
+        val bitmap = Bitmap.createBitmap(imageMat.cols(), imageMat.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(imageMat, bitmap)
+        tessBaseApi.setImage(bitmap)
+        val recognizedText = tessBaseApi.utF8Text
+        tessBaseApi.end()
+        return recognizedText
+    }
+
+    // Función para mostrar resultados y contar números
+    fun processImage(imageBitmap: Bitmap) {
+        val grayMat = convertToGray(imageBitmap)
+        val blurredMat = applyGaussianBlur(grayMat)
+        val contours = detectContours(blurredMat)
+        val recognizedNumbers = mutableListOf<String>()
+
+        for (contour in contours) {
+            val boundingRect = Imgproc.boundingRect(contour)
+            val numberMat = grayMat.submat(boundingRect)
+            val text = recognizeText(numberMat)
+            recognizedNumbers.add(text)
+        }
+        println("Cantidad de veces: $recognizedNumbers")
+        val numberCounts = recognizedNumbers.groupingBy { it }.eachCount()
+        println("Cantidad de veces que aparece cada número: $numberCounts")
+    }
+
+
+
+    fun copyTessDataIfNeeded(context: Context) {
+        val tessDataDir = File(context.getExternalFilesDir(null), "tessdata")
+        if (!tessDataDir.exists()) {
+            tessDataDir.mkdirs()
+        }
+
+        val tessDataFile = File(tessDataDir, "eng.traineddata")
+        if (!tessDataFile.exists()) {
+            try {
+                context.assets.open("tessdata/eng.traineddata").use { inputStream ->
+                    FileOutputStream(tessDataFile).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+*/
 
 }

@@ -3,9 +3,9 @@
     <!-- Fondo redondeado del Spinner -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#B66E14"/>
+            <solid android:color="#0A0424"/>
             <corners android:radius="8dp"/>
-            <stroke android:width="1dp" android:color="#B66E14"/>
+            <stroke android:width="1dp" android:color="#0A0424"/>
         </shape>
     </item>
     <!-- Flecha negra del Spinner -->
