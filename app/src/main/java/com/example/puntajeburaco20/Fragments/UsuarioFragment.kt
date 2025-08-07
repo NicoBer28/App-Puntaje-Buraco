@@ -9,7 +9,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import androidx.compose.ui.text.toLowerCase
 import androidx.navigation.fragment.findNavController
 import com.example.puntajeburaco20.R
 import com.google.firebase.firestore.ktx.firestore
@@ -17,10 +16,12 @@ import com.google.firebase.ktx.Firebase
 import java.util.Locale
 
 lateinit var usuario: EditText
+lateinit var password: EditText
+lateinit var btnCrear: Button
 lateinit var btnLogin: Button
-lateinit var btnEntrar: Button
 
 lateinit var usuarioIngresado : String
+lateinit var passwordIngresado : String
 var usuarioIngresadoMin: String = ""
 
 class UsuarioFragment : Fragment() {
@@ -42,33 +43,36 @@ class UsuarioFragment : Fragment() {
         val db = Firebase.firestore
 
         usuario = view.findViewById<EditText>(R.id.usuario)
-        btnLogin = view.findViewById<Button>(R.id.btnLogIn)
-        btnEntrar = view.findViewById<Button>(R.id.btnEntrar)
+        password = view.findViewById<EditText>(R.id.password)
+        btnCrear = view.findViewById<Button>(R.id.btnCrear)
+        btnLogin = view.findViewById<Button>(R.id.btnLogin)
 
-        btnLogin.setOnClickListener {
+        btnCrear.setOnClickListener {
             usuarioIngresado = usuario.text.toString()
             usuarioIngresadoMin = usuarioIngresado.lowercase(Locale.ROOT)
-            if (usuarioIngresado == "") {
-                Toast.makeText(requireContext(), "Complete el campo", Toast.LENGTH_SHORT).show()
+            passwordIngresado = password.text.toString()
+            if (usuarioIngresado == "" || passwordIngresado == "") {
+                Toast.makeText(requireContext(), "Complete todos los campos", Toast.LENGTH_SHORT).show()
             } else {
-                if (usuarioIngresado.length < 3) {
+                if (usuarioIngresado.length < 3 || passwordIngresado.length < 3) {
                     Toast.makeText(
                         requireContext(),
-                        "Debe contener al menos 3 caracteres",
+                        "El usuario y la contraseña deben contener al menos 3 caracteres",
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
-                    if (usuarioIngresado.length > 8) {
+                    if (usuarioIngresado.length > 8 || passwordIngresado.length > 8) {
                         Toast.makeText(
                             requireContext(),
-                            "Debe contener máximo 8 caracteres",
+                            "El usuario y la contraseña deben contener máximo 8 caracteres",
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
-                        if (Regex("[^a-zA-Z0-9]").containsMatchIn(usuarioIngresado)) {
+                        if (Regex("[^a-zA-Z0-9]").containsMatchIn(usuarioIngresado) ||
+                            Regex("[^a-zA-Z0-9]").containsMatchIn(passwordIngresado)) {
                             Toast.makeText(
                                 requireContext(),
-                                "No se permiten caracteres especiales",
+                                "No se permiten caracteres especiales, solo letras y números",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -78,23 +82,16 @@ class UsuarioFragment : Fragment() {
                                 .get()
                                 .addOnSuccessListener { document ->
                                     if (document.exists()) {
-                                        if (document["Recuperar"] == "Si") {
-                                            Toast.makeText(
-                                                requireContext(),
-                                                "Este usuario ya existe, pero todavía no ingresaron. Si no fue usted quien lo creó en otro dispositivo, busque otro nombre.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        } else {
-                                            Toast.makeText(
-                                                requireContext(),
-                                                "Este nombre ya está en uso",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Este nombre ya está en uso",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
                                     } else {
                                         val nuevoUsuario = hashMapOf(
                                             "Nombre" to usuarioIngresado,
-                                            "Recuperar" to "No",
+                                            "Password" to passwordIngresado,
                                             "Amigos" to mutableListOf<String>(),
                                             "AmigosNombre" to mutableListOf<String>(),
                                         )
@@ -150,11 +147,12 @@ class UsuarioFragment : Fragment() {
             }
         }
 
-        btnEntrar.setOnClickListener {
+        btnLogin.setOnClickListener {
             usuarioIngresado = usuario.text.toString()
             usuarioIngresadoMin = usuarioIngresado.lowercase(Locale.ROOT)
-            if (usuarioIngresado == "") {
-                Toast.makeText(requireContext(), "Complete el campo", Toast.LENGTH_SHORT).show()
+            passwordIngresado = password.text.toString()
+            if (usuarioIngresado == "" || passwordIngresado == "") {
+                Toast.makeText(requireContext(), "Complete todos los campos", Toast.LENGTH_SHORT).show()
             }
             else {
                             db.collection("users")
@@ -162,47 +160,32 @@ class UsuarioFragment : Fragment() {
                                 .get()
                                 .addOnSuccessListener { document ->
                                     if (document.exists()) {
-                                        if (document["Recuperar"] == "Si") {
-                                            val nuevoUsuario = hashMapOf<String, Any>(
-                                                "Recuperar" to "No"
-                                                // Agrega más campos según sea necesario
+                                        if (document["Password"] == passwordIngresado) {
+                                            val sharedPreferences =
+                                                requireActivity().getSharedPreferences(
+                                                    "PuntajeBuracoPreferences",
+                                                    Context.MODE_PRIVATE
+                                                )
+                                            val editor = sharedPreferences.edit()
+
+                                            // Guardar la posición del fragmento actual
+                                            editor.putString(
+                                                "posicionFragmentoActual",
+                                                "PartidaFragment"
                                             )
-                                            db.collection("users").document(usuarioIngresadoMin)
-                                                .update(nuevoUsuario)
-                                                .addOnSuccessListener {
+                                            editor.putString(
+                                                "usuarioActual",
+                                                usuarioIngresadoMin
+                                            )
 
-                                                    val sharedPreferences =
-                                                        requireActivity().getSharedPreferences(
-                                                            "PuntajeBuracoPreferences",
-                                                            Context.MODE_PRIVATE
-                                                        )
-                                                    val editor = sharedPreferences.edit()
+                                            editor.apply()
 
-                                                    // Guardar la posición del fragmento actual
-                                                    editor.putString(
-                                                        "posicionFragmentoActual",
-                                                        "PartidaFragment"
-                                                    )
-                                                    editor.putString(
-                                                        "usuarioActual",
-                                                        usuarioIngresadoMin
-                                                    )
+                                            findNavController().navigate(R.id.partidaFragment)
 
-                                                    editor.apply()
-
-                                                    findNavController().navigate(R.id.partidaFragment)
-                                                }
-                                                .addOnFailureListener { e ->
-                                                    Toast.makeText(
-                                                        requireContext(),
-                                                        "Error al crear usuario: $e",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
                                         } else {
                                             Toast.makeText(
                                                 requireContext(),
-                                                "Alguien ya está usando este usuario",
+                                                "Contraseña incorrecta",
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }

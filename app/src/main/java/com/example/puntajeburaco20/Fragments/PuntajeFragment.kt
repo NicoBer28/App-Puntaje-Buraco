@@ -43,6 +43,8 @@ lateinit var btnSumar: Button
 lateinit var btnAtras: Button
 lateinit var btnFin: Button
 
+var partidaTerminada: Boolean = false
+
 
 class PuntajeFragment : Fragment() {
 
@@ -332,6 +334,8 @@ class PuntajeFragment : Fragment() {
                 .setTitle("Fin de la partida")
                 .setMessage("Eliga al ganador")
                 .setPositiveButton(equipoDos.text) { _, _ ->
+                    partidaTerminada = true
+
                     btnSumar.isEnabled = false
                     btnFin.isEnabled = false
                     baseUno.isEnabled = false
@@ -552,6 +556,8 @@ class PuntajeFragment : Fragment() {
                     }
                 }
                 .setNegativeButton(equipoUno.text) { _, _ ->
+                    partidaTerminada = true
+
                     btnSumar.isEnabled = false
                     btnFin.isEnabled = false
                     baseUno.isEnabled = false
@@ -779,9 +785,15 @@ class PuntajeFragment : Fragment() {
         }
 
         btnAtras.setOnClickListener {
+            val mensaje = if (partidaTerminada) {
+                "Los puntos ya fueron guardados. ¿Estás seguro de que quieres salir?"
+            } else {
+                "¿Estás seguro de que quieres salir? Se perderán todos los puntos"
+            }
+
             AlertDialog.Builder(requireContext())
                 .setTitle("Confirmación")
-                .setMessage("¿Estás seguro de que quieres salir? Se perderán todos los puntos")
+                .setMessage(mensaje)
                 .setPositiveButton("Sí") { _, _ ->
                     val sharedPreferences = requireActivity().getSharedPreferences("PuntajeBuracoPreferences", Context.MODE_PRIVATE)
                     val editor = sharedPreferences.edit()
