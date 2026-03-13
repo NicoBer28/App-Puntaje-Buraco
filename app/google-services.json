@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "281201741996",
+    "project_id": "app-puntaje-burako",
+    "storage_bucket": "app-puntaje-burako.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:281201741996:android:80f91b309c21684cef4f09",
+        "android_client_info": {
+          "package_name": "com.example.puntajeburaco20"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZleq9XGPHxfKxHuRZroc5LynxCWtSRhM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
