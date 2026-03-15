@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -7,7 +8,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.puntaje_buraco_3"
+        applicationId = "com.example.puntajeburaco20"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -47,6 +48,12 @@ dependencies {
     // Navigation Component para Java
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
+
+    // Firebase Authentication
+    implementation("com.google.firebase:firebase-auth:23.0.0")
+
+    // Herramientas de Google para el botón de "Sign in with Google"
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 
 
 }

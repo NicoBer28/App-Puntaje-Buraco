@@ -3,7 +3,21 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main_navigation"
-    app:startDestination="@id/partidaFragment">
+    app:startDestination="@id/loginFragment">
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.example.puntaje_buraco_3.ui.LoginFragment"
+        android:label="Login"
+        tools:layout="@layout/fragment_login">
+
+        <action
+            android:id="@+id/action_login_to_usuarioFragment"
+            app:destination="@id/usuarioFragment" />
+
+        <action
+            android:id="@+id/action_login_to_partidas"
+            app:destination="@id/partidaFragment" />
+    </fragment>
     <fragment
         android:id="@+id/partidaFragment"
         android:name="com.example.puntaje_buraco_3.ui.PartidaFragment">
