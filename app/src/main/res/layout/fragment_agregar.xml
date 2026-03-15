@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">  <!-- Esto permite que el contenido se expanda -->
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/frameLayout4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:context=".Fragments.AgregarFragment">
+
+        <EditText
+            android:id="@+id/usuarioAmigo"
+            android:layout_width="250dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="50dp"
+            android:ems="10"
+            android:gravity="center"
+            android:hint="Ingrese el usuario"
+            android:inputType="text"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/btnAgregar"
+            android:layout_width="125dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="50dp"
+            android:layout_marginEnd="40dp"
+            android:background="@drawable/rounded_button"
+            android:text="Agregar amigo"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/usuarioAmigo" />
+
+        <Button
+            android:id="@+id/btnVolver"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="45dp"
+            android:layout_marginBottom="55dp"
+            android:background="@drawable/rounded_button_2"
+            android:textColor="#FFFFFF"
+            android:text="Volver"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:id="@+id/btnCrearUsuario"
+            android:layout_width="125dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="50dp"
+            android:layout_marginEnd="50dp"
+            android:background="@drawable/rounded_button"
+            android:text="Crear Usuario"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/passwordCrear" />
+
+        <EditText
+            android:id="@+id/usuarioCrear"
+            android:layout_width="250dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="200dp"
+            android:ems="10"
+            android:hint="Nombre de usuario"
+            android:inputType="text"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/usuarioAmigo" />
+
+        <EditText
+            android:id="@+id/passwordCrear"
+            android:layout_width="250dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="60dp"
+            android:ems="10"
+            android:hint="Contraseña"
+            android:inputType="textPassword"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/usuarioCrear" />
+
+        <Button
+            android:id="@+id/btnEliminar"
+            android:layout_width="125dp"
+            android:layout_height="70dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="50dp"
+            android:background="@drawable/rounded_button"
+            android:text="Eliminar Amigo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/usuarioAmigo" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>

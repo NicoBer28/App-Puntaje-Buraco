@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_navigation"
+    app:startDestination="@id/partidaFragment">
+    <fragment
+        android:id="@+id/partidaFragment"
+        android:name="com.example.puntaje_buraco_3.ui.PartidaFragment">
+        <action
+            android:id="@+id/action_partidaFragment_to_puntajeFragment"
+            app:destination="@id/puntajeFragment" />
+        <action
+            android:id="@+id/action_partidaFragment_to_agregarFragment"
+            app:destination="@id/agregarFragment" />
+        <action
+            android:id="@+id/action_partidaFragment_to_historialFragment"
+            app:destination="@id/historialFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/puntajeFragment"
+        android:name="com.example.puntaje_buraco_3.ui.PuntajeFragment"
+        tools:layout="@layout/fragment_puntaje" />
+    <fragment
+        android:id="@+id/usuarioFragment"
+        android:name="com.example.puntaje_buraco_3.ui.UsuarioFragment"
+        android:label="fragment_usuario"
+        tools:layout="@layout/fragment_usuario" >
+        <action
+            android:id="@+id/action_usuarioFragment_to_partidaFragment"
+            app:destination="@id/partidaFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/agregarFragment"
+        android:name="com.example.puntaje_buraco_3.ui.AgregarFragment"
+        android:label="fragment_agregar"
+        tools:layout="@layout/fragment_agregar" />
+    <fragment
+        android:id="@+id/historialFragment"
+        android:name="com.example.puntaje_buraco_3.ui.HistorialFragment"
+        android:label="fragment_historial"
+        tools:layout="@layout/fragment_historial" />
+</navigation>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/frameLayout5"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Fragments.HistorialFragment" >
+
+    <Spinner
+        android:id="@+id/spnCantJug"
+        android:layout_width="209dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/spinner_cant_jugadores"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Spinner
+        android:id="@+id/spnJugUno"
+        android:layout_width="126dp"
+        android:layout_height="61dp"
+        android:layout_marginStart="35dp"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/spinner_equipo_uno"
+
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spnCantJug" />
+
+    <Spinner
+        android:id="@+id/spnJugTres"
+        android:layout_width="126dp"
+        android:layout_height="61dp"
+        android:layout_marginStart="35dp"
+        android:layout_marginTop="28dp"
+
+        android:background="@drawable/spinner_equipo_uno"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spnJugUno" />
+
+    <Spinner
+        android:id="@+id/spnJugDos"
+        android:layout_width="126dp"
+        android:layout_height="61dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="35dp"
+        android:background="@drawable/spinner_equipo_dos"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spnCantJug" />
+
+    <Spinner
+        android:id="@+id/spnJugCuatro"
+        android:layout_width="126dp"
+        android:layout_height="61dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="35dp"
+        android:background="@drawable/spinner_equipo_dos"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spnJugDos" />
+
+    <Button
+        android:id="@+id/btnBuscar"
+        android:layout_width="108dp"
+        android:layout_height="64dp"
+        android:layout_marginBottom="50dp"
+        android:text="Buscar"
+        android:background="@drawable/rounded_button"
+        app:layout_constraintBottom_toTopOf="@+id/partJugadas"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/partJugadas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:text="Partidas Jugadas"
+        android:textStyle="bold|italic"
+        app:layout_constraintBottom_toTopOf="@+id/partGanadas"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/partGanadas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="50dp"
+        android:text="Partidas Ganadas"
+        android:textStyle="bold|italic"
+        app:layout_constraintBottom_toTopOf="@+id/partPerdidas"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/partPerdidas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="150dp"
+        android:text="Partidas Perdidas"
+        android:textStyle="bold|italic"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/jugUno"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
+        android:layout_marginBottom="50dp"
+        android:text="0"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/ganUno"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/ganUno"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
+        android:layout_marginBottom="50dp"
+        android:text="0"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/perdUno"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/perdUno"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
+        android:layout_marginBottom="150dp"
+        android:text="0"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/jugDos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="50dp"
+        android:layout_marginBottom="50dp"
+        android:text="0"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/ganDos"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/ganDos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="50dp"
+        android:layout_marginBottom="50dp"
+        android:text="0"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/perdDos"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/perdDos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="50dp"
+        android:layout_marginBottom="150dp"
+        android:text="0"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/btnVolver2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:layout_marginBottom="40dp"
+        android:text="Volver"
+        android:background="@drawable/rounded_button"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

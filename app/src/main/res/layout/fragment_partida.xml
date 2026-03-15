@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/frameLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Fragments.PartidaFragment">
+
+
+
+
+    <Spinner
+        android:id="@+id/spinnerJugadores"
+        android:layout_width="203dp"
+        android:layout_height="66dp"
+        android:layout_marginTop="40dp"
+        android:background="@drawable/spinner_cant_jugadores"
+
+        app:layout_constraintBottom_toTopOf="@+id/spinner1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints" />
+
+    <Spinner
+        android:id="@+id/spinner1"
+        android:layout_width="127dp"
+        android:layout_height="58dp"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/spinner_equipo_uno"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerJugadores"
+        tools:ignore="MissingConstraints" />
+
+    <Spinner
+        android:id="@+id/spinner2"
+        android:layout_width="127dp"
+        android:layout_height="58dp"
+        android:layout_marginTop="104dp"
+        android:background="@drawable/spinner_equipo_uno"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinner1"
+        tools:ignore="MissingConstraints" />
+
+    <Spinner
+        android:id="@+id/spinner3"
+
+        android:layout_width="127dp"
+        android:layout_height="58dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="212dp"
+        android:background="@drawable/spinner_equipo_dos"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints" />
+
+    <Spinner
+        android:id="@+id/spinner4"
+        android:layout_width="127dp"
+        android:layout_height="58dp"
+        android:layout_marginTop="212dp"
+        android:layout_marginEnd="20dp"
+        android:background="@drawable/spinner_equipo_dos"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/btnNuevaPartida"
+        android:layout_width="181dp"
+        android:layout_height="76dp"
+        android:layout_marginBottom="168dp"
+        android:background="@drawable/rounded_button"
+        android:text="Nueva Partida"
+
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerJugadores"
+        app:layout_constraintVertical_bias="0.877" />
+
+    <Button
+        android:id="@+id/btnHistoriales"
+        android:layout_width="138dp"
+        android:layout_height="79dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginBottom="90dp"
+        android:background="@drawable/rounded_button"
+        android:text="Historiales"
+
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnUsuario"
+        android:layout_width="138dp"
+        android:layout_height="79dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginBottom="90dp"
+        android:background="@drawable/rounded_button"
+        android:text="Agregar Usuario"
+
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/nombreUsuario"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
