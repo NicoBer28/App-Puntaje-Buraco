@@ -68,9 +68,9 @@ data class Partida(
             ModoJuego.INDIVIDUAL -> listOf(equipoUno.jugadores[0], equipoDos.jugadores[0])
             ModoJuego.PAREJAS -> listOf(
                 equipoUno.jugadores[0],
-                equipoDos.jugadores[1],
-                equipoUno.jugadores[1],
                 equipoDos.jugadores[0],
+                equipoUno.jugadores[1],
+                equipoDos.jugadores[1],
             )
         }
 

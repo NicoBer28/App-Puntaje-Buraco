@@ -70,8 +70,8 @@ class PartidaTest {
             partida = partida.registrarRonda(PuntajeRonda.CERO, PuntajeRonda.CERO)
             partida.empieza
         }
-        // Mismo orden que la versión anterior: 1 -> 4 -> 2 -> 3 -> 1
-        assertEquals(listOf(dani, beto, caro, ana), quienesEmpiezan)
+        // 1 -> 3 -> 2 -> 4 -> 1
+        assertEquals(listOf(caro, beto, dani, ana), quienesEmpiezan)
     }
 
     @Test
@@ -96,7 +96,7 @@ class PartidaTest {
 
         assertEquals(antes, deshecha)
         assertEquals(130, deshecha.totalUno)
-        assertEquals(dani, deshecha.empieza)
+        assertEquals(caro, deshecha.empieza)
     }
 
     @Test
