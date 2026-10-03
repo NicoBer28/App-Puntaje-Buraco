@@ -10,6 +10,7 @@ import com.example.puntajeburaco20.domain.usecase.RegistrarResultadoPartidaUseCa
 import com.example.puntajeburaco20.fakes.FakeDetectorFichas
 import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
+import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.puntaje.PuntajeViewModel.Evento
@@ -37,11 +38,12 @@ class PuntajeViewModelTest {
     private val beto = Jugador("Beto")
     private val repositorio = FakePartidaEnCursoRepository(Partida.nueva(listOf(ana, beto)))
     private val estadisticas = FakeEstadisticasRepository()
+    private val partidasJugadas = FakePartidasJugadasRepository()
     private val detector = FakeDetectorFichas()
 
     private fun crearViewModel() = PuntajeViewModel(
         partidaEnCurso = repositorio,
-        registrarResultado = RegistrarResultadoPartidaUseCase(estadisticas),
+        registrarResultado = RegistrarResultadoPartidaUseCase(estadisticas, partidasJugadas),
         calculadora = CalculadoraPuntosFichas(),
         detector = detector,
         io = mainDispatcherRule.dispatcher,
@@ -82,7 +84,7 @@ class PuntajeViewModelTest {
         val partida = viewModel.partida.value!!
         assertEquals(130, partida.totalUno)
         assertEquals(-30, partida.totalDos)
-        assertEquals(PuntajeRonda(-50, 20), partida.ultimaRondaDos)
+        assertEquals(PuntajeRonda(-50, 20), partida.ultimaRonda.equipoDos)
         assertEquals(partida, repositorio.partida)
         assertEquals(listOf(comienza(ana), Evento.LimpiarRonda, comienza(beto)), eventos)
     }
@@ -111,6 +113,34 @@ class PuntajeViewModelTest {
     }
 
     @Test
+    fun `deshacer la ultima ronda la quita, guarda y avisa quien empieza`() = runTest {
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+        viewModel.sumarRonda(RondaIngresada("100", "30", "0", "0"))
+
+        viewModel.deshacerRonda()
+
+        val partida = viewModel.partida.value!!
+        assertEquals(0, partida.totalUno)
+        assertTrue(partida.rondas.isEmpty())
+        assertEquals(partida, repositorio.partida)
+        assertEquals(
+            listOf(Evento.Mensaje(UiText.de(R.string.mensaje_ronda_deshecha)), comienza(ana)),
+            eventos.takeLast(2),
+        )
+    }
+
+    @Test
+    fun `sin rondas no hay nada que deshacer`() = runTest {
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+
+        viewModel.deshacerRonda()
+
+        assertEquals(listOf(comienza(ana)), eventos)
+    }
+
+    @Test
     fun `finalizar guarda la partida terminada y registra el resultado`() = runTest {
         val viewModel = crearViewModel()
 
@@ -119,6 +149,7 @@ class PuntajeViewModelTest {
         assertTrue(viewModel.partida.value!!.terminada)
         assertTrue(repositorio.partida!!.terminada)
         assertEquals(ana, estadisticas.resultados.single().first.jugadores.single())
+        assertEquals(viewModel.partida.value, partidasJugadas.guardadas.single().partida)
     }
 
     @Test

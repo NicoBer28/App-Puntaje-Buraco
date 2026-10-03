@@ -38,6 +38,9 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
 
         binding.btnBuscar.setOnClickListener { viewModel.buscar() }
         binding.btnVolver2.setOnClickListener { findNavController().popBackStack() }
+        binding.btnMisPartidas.setOnClickListener {
+            findNavController().navigate(R.id.action_historial_to_partidasJugadas)
+        }
 
         recolectar(viewModel.estado) { estado ->
             val seleccion = estado.seleccion

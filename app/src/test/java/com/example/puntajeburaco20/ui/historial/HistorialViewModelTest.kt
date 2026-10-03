@@ -102,7 +102,7 @@ class HistorialViewModelTest {
 
     @Test
     fun `en parejas el equipo de la izquierda son las posiciones 0 y 2`() = runTest {
-        estadisticas.enfrentamientos["anacaro" to "betodani"] = Estadisticas(jugadas = 3, ganadas = 3)
+        estadisticas.enfrentamientos["ana|caro" to "beto|dani"] = Estadisticas(jugadas = 3, ganadas = 3)
         val viewModel = crearViewModel()
 
         viewModel.cambiarModo(ModoJuego.PAREJAS)

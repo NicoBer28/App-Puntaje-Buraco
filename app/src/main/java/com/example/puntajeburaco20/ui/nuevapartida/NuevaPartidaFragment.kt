@@ -52,6 +52,9 @@ class NuevaPartidaFragment : Fragment(R.layout.fragment_nueva_partida) {
         binding.btnHistoriales.setOnClickListener {
             findNavController().navigate(R.id.action_nuevaPartida_to_historial)
         }
+        binding.btnCerrarSesion.setOnClickListener {
+            confirmar(R.string.dialogo_cerrar_sesion) { viewModel.cerrarSesion() }
+        }
 
         recolectar(viewModel.estado) { estado ->
             if (estado.sinSesion) {
@@ -73,6 +76,7 @@ class NuevaPartidaFragment : Fragment(R.layout.fragment_nueva_partida) {
                 selector.mostrar(seleccion.opcionesPara(posicion), seleccion.elegido(posicion))
             }
             binding.btnNuevaPartida.isEnabled = !estado.iniciando
+            binding.txtSincronizacion.isVisible = estado.cambiosPendientes
         }
         recolectar(viewModel.eventos) { evento ->
             when (evento) {

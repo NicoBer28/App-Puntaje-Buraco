@@ -9,6 +9,7 @@
 
     <Spinner
         android:id="@+id/spnCantJug"
+        android:contentDescription="@string/cd_cantidad_jugadores"
         android:layout_width="209dp"
         android:layout_height="55dp"
         android:layout_marginTop="24dp"
@@ -20,6 +21,7 @@
 
     <Spinner
         android:id="@+id/spnJugUno"
+        android:contentDescription="@string/cd_jugador_1"
         android:layout_width="126dp"
         android:layout_height="61dp"
         android:layout_marginStart="35dp"
@@ -31,6 +33,7 @@
 
     <Spinner
         android:id="@+id/spnJugTres"
+        android:contentDescription="@string/cd_jugador_3"
         android:layout_width="126dp"
         android:layout_height="61dp"
         android:layout_marginStart="35dp"
@@ -42,6 +45,7 @@
 
     <Spinner
         android:id="@+id/spnJugDos"
+        android:contentDescription="@string/cd_jugador_2"
         android:layout_width="126dp"
         android:layout_height="61dp"
         android:layout_marginTop="28dp"
@@ -53,6 +57,7 @@
 
     <Spinner
         android:id="@+id/spnJugCuatro"
+        android:contentDescription="@string/cd_jugador_4"
         android:layout_width="126dp"
         android:layout_height="61dp"
         android:layout_marginTop="28dp"
@@ -183,4 +188,16 @@
         android:background="@drawable/rounded_button"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnMisPartidas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="40dp"
+        android:layout_marginBottom="40dp"
+        android:paddingHorizontal="16dp"
+        android:text="@string/accion_mis_partidas"
+        android:background="@drawable/rounded_button"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

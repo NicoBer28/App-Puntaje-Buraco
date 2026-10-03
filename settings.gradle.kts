@@ -21,4 +21,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Puntaje Buraco 2.0"
-include(":app")
+// Un módulo por capa: el compilador impide que una capa use otra que no debe.
+// :app (ui + di) -> :data -> :domain, y :app -> :domain.
+include(":app", ":data", ":domain")

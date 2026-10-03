@@ -2,13 +2,14 @@ package com.example.puntajeburaco20.ui.puntaje.camara
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.lifecycle.awaitInstance
 import androidx.camera.view.PreviewView
+import androidx.core.graphics.createBitmap
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -18,19 +19,23 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Encapsula CameraX: muestra la vista previa y entrega cada cuadro (ya rotado) a [alAnalizar]
- * en un hilo secundario. Se libera sola cuando se destruye el [lifecycleOwner].
+ * Encapsula CameraX: muestra la vista previa y entrega cada cuadro a [alAnalizar] en un hilo
+ * secundario, junto con los grados que hay que girarlo para verlo derecho. Se libera sola cuando
+ * se destruye el [lifecycleOwner].
  */
 class CamaraFichas(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val vistaPrevia: PreviewView,
-    private val alAnalizar: (Bitmap) -> Unit,
+    private val alAnalizar: (imagen: Bitmap, rotacion: Int) -> Unit,
 ) : DefaultLifecycleObserver {
 
     private val ejecutorAnalisis: ExecutorService = Executors.newSingleThreadExecutor()
     private var proveedor: ProcessCameraProvider? = null
     private var activa = false
+
+    /** Se reutiliza en cada cuadro (solo desde el hilo de análisis) para no crear un bitmap por cuadro. */
+    private var cuadroReutilizable: Bitmap? = null
 
     init {
         lifecycleOwner.lifecycle.addObserver(this)
@@ -79,13 +84,23 @@ class CamaraFichas(
         .build()
         .apply {
             setAnalyzer(ejecutorAnalisis) { cuadro ->
-                cuadro.use { alAnalizar(it.toBitmap().rotar(it.imageInfo.rotationDegrees)) }
+                cuadro.use { alAnalizar(aBitmap(it), it.imageInfo.rotationDegrees) }
             }
         }
 
-    private fun Bitmap.rotar(grados: Int): Bitmap {
-        if (grados == 0) return this
-        val matriz = Matrix().apply { postRotate(grados.toFloat()) }
-        return Bitmap.createBitmap(this, 0, 0, width, height, matriz, true)
+    /**
+     * Copia los píxeles del cuadro a un bitmap reutilizado. Si las filas traen relleno (algunos
+     * dispositivos alinean la memoria), se usa la conversión de CameraX, que crea un bitmap nuevo.
+     */
+    private fun aBitmap(cuadro: ImageProxy): Bitmap {
+        val plano = cuadro.planes[0]
+        if (plano.rowStride != cuadro.width * plano.pixelStride) return cuadro.toBitmap()
+
+        val reutilizable = cuadroReutilizable
+            ?.takeIf { it.width == cuadro.width && it.height == cuadro.height }
+            ?: createBitmap(cuadro.width, cuadro.height).also { cuadroReutilizable = it }
+        plano.buffer.rewind()
+        reutilizable.copyPixelsFromBuffer(plano.buffer)
+        return reutilizable
     }
 }

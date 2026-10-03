@@ -41,5 +41,14 @@
     <fragment
         android:id="@+id/historialFragment"
         android:name="com.example.puntajeburaco20.ui.historial.HistorialFragment"
-        tools:layout="@layout/fragment_historial" />
+        tools:layout="@layout/fragment_historial">
+        <action
+            android:id="@+id/action_historial_to_partidasJugadas"
+            app:destination="@id/partidasJugadasFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/partidasJugadasFragment"
+        android:name="com.example.puntajeburaco20.ui.partidas.PartidasJugadasFragment"
+        tools:layout="@layout/fragment_partidas_jugadas" />
 </navigation>

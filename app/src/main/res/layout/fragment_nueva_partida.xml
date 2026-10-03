@@ -12,6 +12,7 @@
 
     <Spinner
         android:id="@+id/spinnerJugadores"
+        android:contentDescription="@string/cd_cantidad_jugadores"
         android:layout_width="203dp"
         android:layout_height="66dp"
         android:layout_marginTop="40dp"
@@ -25,6 +26,7 @@
 
     <Spinner
         android:id="@+id/spinner1"
+        android:contentDescription="@string/cd_jugador_1"
         android:layout_width="127dp"
         android:layout_height="58dp"
         android:layout_marginTop="28dp"
@@ -37,6 +39,7 @@
 
     <Spinner
         android:id="@+id/spinner2"
+        android:contentDescription="@string/cd_jugador_2"
         android:layout_width="127dp"
         android:layout_height="58dp"
         android:layout_marginTop="104dp"
@@ -48,6 +51,7 @@
 
     <Spinner
         android:id="@+id/spinner3"
+        android:contentDescription="@string/cd_jugador_3"
 
         android:layout_width="127dp"
         android:layout_height="58dp"
@@ -60,6 +64,7 @@
 
     <Spinner
         android:id="@+id/spinner4"
+        android:contentDescription="@string/cd_jugador_4"
         android:layout_width="127dp"
         android:layout_height="58dp"
         android:layout_marginTop="212dp"
@@ -112,11 +117,43 @@
 
     <TextView
         android:id="@+id/nombreUsuario"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintBottom_toBottomOf="@+id/btnCerrarSesion"
+        app:layout_constraintEnd_toStartOf="@+id/btnCerrarSesion"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/btnCerrarSesion" />
+
+    <Button
+        android:id="@+id/btnCerrarSesion"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="8dp"
+        android:minHeight="48dp"
+        android:text="@string/accion_cerrar_sesion"
+        android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Aviso de datos que todavía no se subieron (por ejemplo, sin conexión). -->
+    <TextView
+        android:id="@+id/txtSincronizacion"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:accessibilityLiveRegion="polite"
+        android:gravity="center"
+        android:text="@string/mensaje_cambios_pendientes"
+        android:textSize="13sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

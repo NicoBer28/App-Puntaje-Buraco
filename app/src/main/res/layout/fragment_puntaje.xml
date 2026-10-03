@@ -68,6 +68,7 @@
 
         <TextView
             android:id="@+id/totalDos"
+            android:accessibilityLiveRegion="polite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             tools:text="0"
@@ -162,6 +163,7 @@
 
         <TextView
             android:id="@+id/totalUno"
+            android:accessibilityLiveRegion="polite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             tools:text="0"
@@ -306,6 +308,7 @@
 
         <TextView
             android:id="@+id/empiezaJug"
+            android:accessibilityLiveRegion="polite"
             android:layout_width="114dp"
             android:layout_height="50dp"
             android:layout_marginStart="3dp"
@@ -313,6 +316,19 @@
             android:textSize="20sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="@+id/guideline3" />
+
+        <Button
+            android:id="@+id/btnDeshacer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/rounded_button"
+            android:enabled="false"
+            android:paddingHorizontal="16dp"
+            android:text="@string/accion_deshacer"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <Button
             android:id="@+id/btnCamara1"
@@ -340,6 +356,7 @@
 
         <androidx.camera.view.PreviewView
             android:id="@+id/viewFinder"
+            android:contentDescription="@string/cd_vista_camara"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:layout_constraintDimensionRatio="1:1"
@@ -350,6 +367,7 @@
 
         <com.example.puntajeburaco20.ui.puntaje.camara.OverlayFichasView
             android:id="@+id/overlay"
+            android:importantForAccessibility="no"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:elevation="21dp"
@@ -393,6 +411,7 @@
 
         <Button
             android:id="@+id/btnCerrarCamara"
+            android:contentDescription="@string/cd_cerrar_camara"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:text="@string/accion_cerrar_camara"

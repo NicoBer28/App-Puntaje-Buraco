@@ -5,6 +5,7 @@
     <string name="si">Sí</string>
     <string name="no">No</string>
     <string name="cancelar">Cancelar</string>
+    <string name="aceptar">Aceptar</string>
     <string name="accion_volver">Volver</string>
     <string name="dialogo_confirmacion_titulo">Confirmación</string>
     <string-array name="modos_juego">
@@ -27,6 +28,9 @@
     <string name="accion_agregar_usuario">Agregar Usuario</string>
     <string name="error_elija_jugador">Elija un jugador</string>
     <string name="dialogo_salir_app">¿Estás seguro de que quieres salir?</string>
+    <string name="accion_cerrar_sesion">Cerrar sesión</string>
+    <string name="dialogo_cerrar_sesion">¿Estás seguro de que quieres cerrar la sesión? Si hay una partida en curso, se perderá.</string>
+    <string name="mensaje_cambios_pendientes">Hay datos sin sincronizar: se subirán cuando vuelva la conexión</string>
 
     <!-- Puntaje -->
     <string name="equipo_pareja">%1$s y %2$s</string>
@@ -40,6 +44,9 @@
     <string name="accion_camara">Cámara</string>
     <string name="accion_cerrar_camara">X</string>
     <string name="accion_sumar_a_equipo">Sumar a %1$s</string>
+    <string name="accion_deshacer">Deshacer</string>
+    <string name="dialogo_deshacer_ronda">¿Deshacer la última ronda? Se restarán los puntos que se cargaron en ella.</string>
+    <string name="mensaje_ronda_deshecha">Se deshizo la última ronda</string>
     <string name="mensaje_comienza">Comienza %1$s</string>
     <string name="dialogo_fin_titulo">Fin de la partida</string>
     <string name="dialogo_fin_mensaje">Elija al ganador</string>
@@ -76,6 +83,32 @@
     <string name="mensaje_nunca_jugaron_entre_ellos">Nunca jugaron entre ellos</string>
     <string name="mensaje_nunca_jugaron_juntos">Nunca jugaron juntos</string>
     <string name="error_consultar_estadisticas">No se pudieron obtener las estadísticas: %1$s</string>
+    <string name="accion_mis_partidas">Mis partidas</string>
+
+    <!-- Mis partidas -->
+    <string name="titulo_mis_partidas">Mis partidas</string>
+    <string name="resumen_partidas">Ganadas: %1$d de %2$d\nRacha actual: %3$d\nPuntaje promedio: %4$d</string>
+    <string name="resumen_sin_partidas">Todavía no terminaste ninguna partida</string>
+    <string name="partida_ganada">Ganada</string>
+    <string name="partida_perdida">Perdida</string>
+    <string name="partida_equipos">%1$s vs %2$s</string>
+    <plurals name="partida_puntajes">
+        <item quantity="one">%1$d a %2$d · %3$d ronda</item>
+        <item quantity="other">%1$d a %2$d · %3$d rondas</item>
+    </plurals>
+    <string name="detalle_ronda">Ronda %1$d: %2$d + %3$d  |  %4$d + %5$d</string>
+    <string name="detalle_total">Total: %1$d  |  %2$d</string>
+    <string name="detalle_sin_rondas">No se anotaron rondas</string>
+    <string name="error_cargar_partidas">No se pudieron cargar las partidas: %1$s</string>
+
+    <!-- Accesibilidad (descripciones para lectores de pantalla) -->
+    <string name="cd_cantidad_jugadores">Cantidad de jugadores</string>
+    <string name="cd_jugador_1">Jugador 1</string>
+    <string name="cd_jugador_2">Jugador 2</string>
+    <string name="cd_jugador_3">Jugador 3</string>
+    <string name="cd_jugador_4">Jugador 4</string>
+    <string name="cd_cerrar_camara">Cerrar cámara</string>
+    <string name="cd_vista_camara">Vista de la cámara con las fichas detectadas</string>
 
     <!-- Errores de usuarios -->
     <string name="error_campo_vacio">Complete el campo</string>

@@ -8,35 +8,45 @@ import com.example.puntajeburaco20.domain.model.ModoJuego
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.SesionRepository
+import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
+import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarUsuarioActualUseCase
 import com.example.puntajeburaco20.ui.common.SeleccionJugadores
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.common.aMensaje
 import com.example.puntajeburaco20.ui.common.intentar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Pantalla principal: elegir jugadores y empezar una partida. */
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class NuevaPartidaViewModel @Inject constructor(
     private val sesion: SesionRepository,
     private val partidaEnCurso: PartidaEnCursoRepository,
+    private val cerrarSesionUseCase: CerrarSesionUseCase,
     observarUsuarioActual: ObservarUsuarioActualUseCase,
+    sincronizacion: SincronizacionRepository,
 ) : ViewModel() {
 
     data class Estado(
-        val sinSesion: Boolean,
+        val sinSesion: Boolean = false,
         val nombreUsuario: String = "",
         val seleccion: SeleccionJugadores = SeleccionJugadores(),
         val iniciando: Boolean = false,
+        /** Hay datos guardados en el dispositivo que todavía no se subieron (ej. sin conexión). */
+        val cambiosPendientes: Boolean = false,
     )
 
     sealed interface Evento {
@@ -44,7 +54,7 @@ class NuevaPartidaViewModel @Inject constructor(
         data object IrAPartida : Evento
     }
 
-    private val _estado = MutableStateFlow(Estado(sinSesion = sesion.usuarioActualId.value == null))
+    private val _estado = MutableStateFlow(Estado())
     val estado: StateFlow<Estado> = _estado.asStateFlow()
 
     private val _eventos = Channel<Evento>(Channel.BUFFERED)
@@ -66,6 +76,12 @@ class NuevaPartidaViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+        viewModelScope.launch {
+            sincronizacion.hayCambiosPendientes
+                // Con conexión, una escritura se confirma enseguida: no vale la pena avisar.
+                .debounce { pendientes -> if (pendientes) DEMORA_AVISO_PENDIENTES_MS else 0L }
+                .collect { pendientes -> _estado.update { it.copy(cambiosPendientes = pendientes) } }
         }
         retomarPartidaEnCurso()
     }
@@ -95,11 +111,25 @@ class NuevaPartidaViewModel @Inject constructor(
         }
     }
 
+    /** Al quedar sin sesión, el estado lo refleja y la pantalla lleva al login. */
+    fun cerrarSesion() {
+        viewModelScope.launch {
+            intentar { cerrarSesionUseCase() }.onFailure {
+                _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_inesperado)))
+            }
+        }
+    }
+
     /** Si la app se cerró en medio de una partida, se vuelve directo a ella. */
     private fun retomarPartidaEnCurso() {
-        if (sesion.usuarioActualId.value == null) return
         viewModelScope.launch {
-            if (partidaEnCurso.obtener() != null) _eventos.send(Evento.IrAPartida)
+            if (sesion.usuarioActualId.first() != null && partidaEnCurso.obtener() != null) {
+                _eventos.send(Evento.IrAPartida)
+            }
         }
+    }
+
+    private companion object {
+        const val DEMORA_AVISO_PENDIENTES_MS = 1_500L
     }
 }

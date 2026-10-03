@@ -112,6 +112,17 @@ class PuntajeViewModel @Inject constructor(
         guardar(nueva)
     }
 
+    /** Corrige un puntaje mal cargado: quita la última ronda como si no se hubiera jugado. */
+    fun deshacerRonda() {
+        val actual = _partida.value ?: return
+        if (!actual.sePuedeDeshacer) return
+        val corregida = actual.deshacerUltimaRonda()
+        _partida.value = corregida
+        _eventos.trySend(Evento.Mensaje(UiText.de(R.string.mensaje_ronda_deshecha)))
+        avisarQuienEmpieza(corregida)
+        guardar(corregida)
+    }
+
     fun finalizar(ganador: LadoEquipo) {
         val actual = _partida.value ?: return
         if (actual.terminada) return
@@ -162,9 +173,9 @@ class PuntajeViewModel @Inject constructor(
     }
 
     /** Se llama por cada cuadro de la cámara, desde su hilo de análisis. */
-    fun analizarImagen(imagen: Bitmap) {
+    fun analizarImagen(imagen: Bitmap, rotacion: Int) {
         if (!_camaraActiva.value) return
-        val fichas = detector.detectar(imagen)
+        val fichas = detector.detectar(imagen, rotacion)
         _fichasEnPantalla.value = fichas
         if (fichas.isNotEmpty()) ultimaDeteccion = fichas
     }

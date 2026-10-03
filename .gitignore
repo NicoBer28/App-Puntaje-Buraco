@@ -16,3 +16,8 @@ local.properties
 
 # Configuración de Firebase (contiene claves del proyecto)
 app/google-services.json
+
+# Datos de firma del build de release
+keystore.properties
+*.jks
+*.keystore
