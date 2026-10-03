@@ -41,6 +41,7 @@
     <string name="quitar_jugador">Dejar vacío</string>
     <string name="accion_nueva_partida">Empezar partida</string>
     <string name="aviso_empieza_primero">Empieza la primera ronda el jugador 1.</string>
+    <string name="aviso_empieza_primero_parejas">Empieza la primera ronda el jugador 1 y le sigue el jugador 4.</string>
     <string name="atajo_estadisticas">Estadísticas</string>
     <string name="atajo_estadisticas_detalle">Historial y mis partidas</string>
     <string name="atajo_amigos">Amigos</string>
