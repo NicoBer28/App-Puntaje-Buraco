@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="boton_primario">#8BBEB2</color>
+    <color name="boton_secundario">#384E77</color>
+    <color name="equipo_uno">#384E77</color>
+    <color name="equipo_dos">#18314F</color>
+    <color name="selector_modo">#0A0424</color>
+    <color name="texto_campo">#2B2929</color>
+
+    <color name="camara_equipo_uno">#2196F3</color>
+    <color name="camara_equipo_dos">#FF9800</color>
+    <color name="camara_cerrar">#D32F2F</color>
 </resources>

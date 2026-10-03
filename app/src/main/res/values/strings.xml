@@ -1,5 +1,101 @@
 <resources>
     <string name="app_name">Puntaje Buraco 2.0</string>
-<!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Comunes -->
+    <string name="si">Sí</string>
+    <string name="no">No</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="accion_volver">Volver</string>
+    <string name="dialogo_confirmacion_titulo">Confirmación</string>
+    <string-array name="modos_juego">
+        <item>2 Jugadores</item>
+        <item>4 Jugadores</item>
+    </string-array>
+
+    <!-- Login -->
+    <string name="login_titulo">Creá tu usuario, o ingresá si ya tenés uno</string>
+    <string name="hint_usuario">Usuario</string>
+    <string name="hint_password">Contraseña</string>
+    <string name="accion_crear_usuario">Crear usuario</string>
+    <string name="accion_login">Log in</string>
+    <string name="mensaje_usuario_creado">Usuario creado con éxito</string>
+
+    <!-- Nueva partida -->
+    <string name="placeholder_jugador">Nombre</string>
+    <string name="accion_nueva_partida">Nueva Partida</string>
+    <string name="accion_historiales">Historiales</string>
+    <string name="accion_agregar_usuario">Agregar Usuario</string>
+    <string name="error_elija_jugador">Elija un jugador</string>
+    <string name="dialogo_salir_app">¿Estás seguro de que quieres salir?</string>
+
+    <!-- Puntaje -->
+    <string name="equipo_pareja">%1$s y %2$s</string>
+    <string name="hint_base">Base</string>
+    <string name="hint_puntos">Puntos</string>
+    <string name="etiqueta_anterior">Anterior:</string>
+    <string name="etiqueta_total">Total:</string>
+    <string name="accion_sumar">SUMAR</string>
+    <string name="accion_salir">SALIR</string>
+    <string name="accion_fin">Fin</string>
+    <string name="accion_camara">Cámara</string>
+    <string name="accion_cerrar_camara">X</string>
+    <string name="accion_sumar_a_equipo">Sumar a %1$s</string>
+    <string name="mensaje_comienza">Comienza %1$s</string>
+    <string name="dialogo_fin_titulo">Fin de la partida</string>
+    <string name="dialogo_fin_mensaje">Elija al ganador</string>
+    <string name="dialogo_salir_partida">¿Estás seguro de que quieres salir? Se perderán todos los puntos</string>
+    <string name="dialogo_salir_partida_terminada">Los puntos ya fueron guardados. ¿Estás seguro de que quieres salir?</string>
+    <plurals name="mensaje_puntos_detectados">
+        <item quantity="one">Se sumó %1$d punto</item>
+        <item quantity="other">Se sumaron %1$d puntos</item>
+    </plurals>
+    <string name="mensaje_sin_detecciones">No se detectó nada para sumar</string>
+    <string name="mensaje_camara_cancelada">Cancelado</string>
+    <string name="error_permiso_camara">Se necesita permiso de cámara para detectar las fichas</string>
+    <string name="error_detector_no_disponible">No se pudo cargar el detector de fichas: %1$s</string>
+    <string name="error_camara">No se pudo iniciar la cámara: %1$s</string>
+    <string name="error_guardar_resultado">No se pudo guardar el resultado: %1$s</string>
+
+    <!-- Amigos -->
+    <string name="hint_usuario_amigo">Ingrese el usuario</string>
+    <string name="hint_nombre_usuario">Nombre de usuario</string>
+    <string name="accion_agregar_amigo">Agregar amigo</string>
+    <string name="accion_eliminar_amigo">Eliminar Amigo</string>
+    <string name="mensaje_amigo_agregado">Usuario Agregado</string>
+    <string name="mensaje_amigo_eliminado">Usuario Eliminado</string>
+    <string name="mensaje_usuario_amigo_creado">Usuario Creado</string>
+
+    <!-- Historial -->
+    <string name="placeholder_historial">General</string>
+    <string name="accion_buscar">Buscar</string>
+    <string name="etiqueta_partidas_jugadas">Partidas Jugadas</string>
+    <string name="etiqueta_partidas_ganadas">Partidas Ganadas</string>
+    <string name="etiqueta_partidas_perdidas">Partidas Perdidas</string>
+    <string name="error_complete_primer_campo">Complete el primer campo</string>
+    <string name="error_complete_segundo_campo">Complete el segundo campo</string>
+    <string name="mensaje_nunca_jugaron_entre_ellos">Nunca jugaron entre ellos</string>
+    <string name="mensaje_nunca_jugaron_juntos">Nunca jugaron juntos</string>
+    <string name="error_consultar_estadisticas">No se pudieron obtener las estadísticas: %1$s</string>
+
+    <!-- Errores de usuarios -->
+    <string name="error_campo_vacio">Complete el campo</string>
+    <string name="error_complete_campos">Complete todos los campos</string>
+    <plurals name="error_longitud_minima">
+        <item quantity="one">El usuario y la contraseña deben contener al menos %1$d caracter</item>
+        <item quantity="other">El usuario y la contraseña deben contener al menos %1$d caracteres</item>
+    </plurals>
+    <plurals name="error_longitud_maxima">
+        <item quantity="one">El usuario y la contraseña deben contener máximo %1$d caracter</item>
+        <item quantity="other">El usuario y la contraseña deben contener máximo %1$d caracteres</item>
+    </plurals>
+    <string name="error_caracteres_invalidos">No se permiten caracteres especiales, solo letras y números</string>
+    <string name="error_nombre_en_uso">Este nombre ya está en uso</string>
+    <string name="error_usuario_inexistente">Este usuario no existe</string>
+    <string name="error_contrasena_incorrecta">Contraseña incorrecta</string>
+    <string name="error_sin_sesion">No hay una sesión iniciada</string>
+    <string name="error_es_usuario_actual">El usuario es el tuyo :)</string>
+    <string name="error_ya_es_amigo">Este usuario ya es tu amigo</string>
+    <string name="error_no_es_amigo">El usuario no es tu amigo</string>
+    <string name="error_verificar_usuario">Error al verificar usuario: %1$s</string>
+    <string name="error_inesperado">Ocurrió un error: %1$s</string>
 </resources>

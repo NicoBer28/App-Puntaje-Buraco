@@ -1,4 +1,4 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#384E77"/>
+    <solid android:color="@color/boton_secundario"/>
     <corners android:radius="20dp"/>
 </shape>

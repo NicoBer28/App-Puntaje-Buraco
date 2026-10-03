@@ -10,13 +10,13 @@
         android:id="@+id/frameLayout2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:context=".Fragments.PuntajeFragment">
+        tools:context=".ui.puntaje.PuntajeFragment">
 
         <TextView
             android:id="@+id/equipoUno"
             android:layout_width="122dp"
             android:layout_height="83dp"
-            android:textColor="#000000"
+            android:textColor="@color/black"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
 
-            android:textColor="#000000"
+            android:textColor="@color/black"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
@@ -41,7 +41,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
-            android:text="Anterior:"
+            android:text="@string/etiqueta_anterior"
             android:textSize="16sp"
             app:layout_constraintStart_toStartOf="@+id/guideline3"
             app:layout_constraintTop_toTopOf="@+id/guideline2" />
@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="11dp"
             android:layout_marginTop="15dp"
-            android:text="TextView"
+            tools:text="0"
             app:layout_constraintStart_toStartOf="@+id/guideline3"
             app:layout_constraintTop_toTopOf="@+id/guideline4" />
 
@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="11dp"
             android:layout_marginTop="15dp"
-            android:text="TextView"
+            tools:text="0"
             app:layout_constraintStart_toStartOf="@+id/guideline3"
             app:layout_constraintTop_toTopOf="@+id/guideline6" />
 
@@ -70,8 +70,8 @@
             android:id="@+id/totalDos"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="TextView"
-            android:textColor="#000000"
+            tools:text="0"
+            android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="@+id/guideline12"
@@ -81,8 +81,8 @@
             android:id="@+id/totalTextoDos"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Total:"
-            android:textColor="#000000"
+            android:text="@string/etiqueta_total"
+            android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
@@ -93,10 +93,11 @@
             android:layout_width="155dp"
             android:layout_height="47dp"
             android:ems="10"
-            android:hint="Base"
+            android:importantForAutofill="no"
+            android:hint="@string/hint_base"
             android:inputType="number|numberSigned"
-            android:textColor="#2B2929"
-            android:textColorHint="#2B2929"
+            android:textColor="@color/texto_campo"
+            android:textColorHint="@color/texto_campo"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
             app:layout_constraintTop_toTopOf="@+id/guideline4" />
 
@@ -105,10 +106,11 @@
             android:layout_width="155dp"
             android:layout_height="47dp"
             android:ems="10"
-            android:hint="Puntos"
+            android:importantForAutofill="no"
+            android:hint="@string/hint_puntos"
             android:inputType="number|numberSigned"
-            android:textColor="#2B2929"
-            android:textColorHint="#2B2929"
+            android:textColor="@color/texto_campo"
+            android:textColorHint="@color/texto_campo"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
             app:layout_constraintTop_toTopOf="@+id/guideline9" />
 
@@ -117,10 +119,11 @@
             android:layout_width="155dp"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:hint="Base"
+            android:importantForAutofill="no"
+            android:hint="@string/hint_base"
             android:inputType="number|numberSigned"
-            android:textColor="#2B2929"
-            android:textColorHint="#2B2929"
+            android:textColor="@color/texto_campo"
+            android:textColorHint="@color/texto_campo"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
             app:layout_constraintTop_toTopOf="@+id/guideline6" />
 
@@ -129,10 +132,11 @@
             android:layout_width="155dp"
             android:layout_height="47dp"
             android:ems="10"
-            android:hint="Puntos"
+            android:importantForAutofill="no"
+            android:hint="@string/hint_puntos"
             android:inputType="number|numberSigned"
-            android:textColor="#2B2929"
-            android:textColorHint="#2B2929"
+            android:textColor="@color/texto_campo"
+            android:textColorHint="@color/texto_campo"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
             app:layout_constraintTop_toTopOf="@+id/guideline5" />
 
@@ -142,7 +146,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="11dp"
             android:layout_marginTop="12dp"
-            android:text="TextView"
+            tools:text="0"
             app:layout_constraintStart_toStartOf="@+id/guideline3"
             app:layout_constraintTop_toTopOf="@+id/guideline9" />
 
@@ -152,7 +156,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="11dp"
             android:layout_marginTop="12dp"
-            android:text="TextView"
+            tools:text="0"
             app:layout_constraintStart_toStartOf="@+id/guideline3"
             app:layout_constraintTop_toTopOf="@+id/guideline5" />
 
@@ -160,8 +164,8 @@
             android:id="@+id/totalUno"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="TextView"
-            android:textColor="#000000"
+            tools:text="0"
+            android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="@+id/guideline12"
@@ -171,8 +175,8 @@
             android:id="@+id/totalTextoUno"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Total:"
-            android:textColor="#000000"
+            android:text="@string/etiqueta_total"
+            android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="@+id/guideline13"
@@ -186,8 +190,8 @@
             android:layout_marginTop="25dp"
             android:layout_marginEnd="10dp"
             android:background="@drawable/rounded_button_2"
-            android:textColor="#FFFFFF"
-            android:text="SUMAR"
+            android:textColor="@color/white"
+            android:text="@string/accion_sumar"
             android:textSize="25sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.492"
@@ -201,7 +205,7 @@
             android:layout_marginTop="5dp"
             android:layout_marginEnd="14dp"
             android:background="@drawable/rounded_button"
-            android:text="SALIR"
+            android:text="@string/accion_salir"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@+id/guideline2" />
 
@@ -294,7 +298,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/rounded_button"
-            android:text="Fin"
+            android:text="@string/accion_fin"
             android:textSize="20sp"
             app:layout_constraintBottom_toTopOf="@+id/guideline6"
             app:layout_constraintStart_toStartOf="@+id/guideline3"
@@ -315,7 +319,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/rounded_button"
-            android:text="Cámara"
+            android:text="@string/accion_camara"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -324,7 +328,7 @@
         android:id="@+id/cameraContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#000000"
+        android:background="@color/black"
         android:clickable="true"
         android:focusable="true"
         android:elevation="20dp"
@@ -344,7 +348,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.example.puntajeburaco20.OverlayView
+        <com.example.puntajeburaco20.ui.puntaje.camara.OverlayFichasView
             android:id="@+id/overlay"
             android:layout_width="0dp"
             android:layout_height="0dp"
@@ -371,9 +375,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginHorizontal="10dp"
-                android:text="SUMAR AL EQ. 1"
-                android:backgroundTint="#2196F3"
-                android:textColor="#FFFFFF" />
+                tools:text="Sumar a Equipo 1"
+                android:backgroundTint="@color/camara_equipo_uno"
+                android:textColor="@color/white" />
 
             <Button
                 android:id="@+id/btnSumarEq2"
@@ -381,9 +385,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginHorizontal="10dp"
-                android:text="SUMAR AL EQ. 2"
-                android:backgroundTint="#FF9800"
-                android:textColor="#FFFFFF" />
+                tools:text="Sumar a Equipo 2"
+                android:backgroundTint="@color/camara_equipo_dos"
+                android:textColor="@color/white" />
 
         </LinearLayout>
 
@@ -391,12 +395,12 @@
             android:id="@+id/btnCerrarCamara"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            android:text="X"
+            android:text="@string/accion_cerrar_camara"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:background="@android:drawable/btn_default"
-            android:backgroundTint="#D32F2F"
+            android:backgroundTint="@color/camara_cerrar"
             android:elevation="25dp"
             android:layout_margin="16dp"
             app:layout_constraintStart_toStartOf="parent"

@@ -5,7 +5,7 @@
     android:id="@+id/frameLayout5"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Fragments.HistorialFragment" >
+    tools:context=".ui.historial.HistorialFragment" >
 
     <Spinner
         android:id="@+id/spnCantJug"
@@ -67,7 +67,7 @@
         android:layout_width="108dp"
         android:layout_height="64dp"
         android:layout_marginBottom="50dp"
-        android:text="Buscar"
+        android:text="@string/accion_buscar"
         android:background="@drawable/rounded_button"
         app:layout_constraintBottom_toTopOf="@+id/partJugadas"
         app:layout_constraintEnd_toEndOf="parent"
@@ -78,7 +78,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="50dp"
-        android:text="Partidas Jugadas"
+        android:text="@string/etiqueta_partidas_jugadas"
         android:textStyle="bold|italic"
         app:layout_constraintBottom_toTopOf="@+id/partGanadas"
         app:layout_constraintEnd_toEndOf="parent"
@@ -89,7 +89,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="50dp"
-        android:text="Partidas Ganadas"
+        android:text="@string/etiqueta_partidas_ganadas"
         android:textStyle="bold|italic"
         app:layout_constraintBottom_toTopOf="@+id/partPerdidas"
         app:layout_constraintEnd_toEndOf="parent"
@@ -100,7 +100,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="150dp"
-        android:text="Partidas Perdidas"
+        android:text="@string/etiqueta_partidas_perdidas"
         android:textStyle="bold|italic"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -113,7 +113,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
         android:layout_marginBottom="50dp"
-        android:text="0"
+        tools:text="0"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/ganUno"
         app:layout_constraintStart_toStartOf="parent" />
@@ -124,7 +124,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
         android:layout_marginBottom="50dp"
-        android:text="0"
+        tools:text="0"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/perdUno"
         app:layout_constraintStart_toStartOf="parent" />
@@ -135,7 +135,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
         android:layout_marginBottom="150dp"
-        android:text="0"
+        tools:text="0"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -146,7 +146,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="50dp"
         android:layout_marginBottom="50dp"
-        android:text="0"
+        tools:text="0"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/ganDos"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -157,7 +157,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="50dp"
         android:layout_marginBottom="50dp"
-        android:text="0"
+        tools:text="0"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/perdDos"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -168,7 +168,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="50dp"
         android:layout_marginBottom="150dp"
-        android:text="0"
+        tools:text="0"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -179,7 +179,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="40dp"
         android:layout_marginBottom="40dp"
-        android:text="Volver"
+        android:text="@string/accion_volver"
         android:background="@drawable/rounded_button"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
