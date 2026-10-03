@@ -9,7 +9,6 @@ import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.SesionRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
-import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarUsuarioActualUseCase
 import com.example.puntajeburaco20.ui.common.SeleccionJugadores
 import com.example.puntajeburaco20.ui.common.UiText
@@ -35,7 +34,6 @@ import javax.inject.Inject
 class NuevaPartidaViewModel @Inject constructor(
     private val sesion: SesionRepository,
     private val partidaEnCurso: PartidaEnCursoRepository,
-    private val cerrarSesionUseCase: CerrarSesionUseCase,
     observarUsuarioActual: ObservarUsuarioActualUseCase,
     sincronizacion: SincronizacionRepository,
 ) : ViewModel() {
@@ -108,15 +106,6 @@ class NuevaPartidaViewModel @Inject constructor(
                 .onSuccess { _eventos.send(Evento.IrAPartida) }
                 .onFailure { _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_inesperado))) }
             _estado.update { it.copy(iniciando = false) }
-        }
-    }
-
-    /** Al quedar sin sesión, el estado lo refleja y la pantalla lleva al login. */
-    fun cerrarSesion() {
-        viewModelScope.launch {
-            intentar { cerrarSesionUseCase() }.onFailure {
-                _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_inesperado)))
-            }
         }
     }
 

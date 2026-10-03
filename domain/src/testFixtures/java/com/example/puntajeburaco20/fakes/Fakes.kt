@@ -4,12 +4,14 @@ import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Estadisticas
 import com.example.puntajeburaco20.domain.model.Jugador
+import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
+import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
 import com.example.puntajeburaco20.domain.repository.SesionRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
@@ -134,4 +136,12 @@ class FakePartidasJugadasRepository : PartidasJugadasRepository {
 
 class FakeSincronizacionRepository(pendientes: Boolean = false) : SincronizacionRepository {
     override val hayCambiosPendientes = MutableStateFlow(pendientes)
+}
+
+class FakePreferenciasRepository(modoInicial: ModoTema = ModoTema.SISTEMA) : PreferenciasRepository {
+    override val modoTema = MutableStateFlow(modoInicial)
+
+    override suspend fun cambiarModoTema(modo: ModoTema) {
+        modoTema.value = modo
+    }
 }

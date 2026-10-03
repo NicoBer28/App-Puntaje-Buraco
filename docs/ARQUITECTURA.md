@@ -30,11 +30,12 @@ interfaz. Los SDKs que solo usa la capa de datos (Firestore, DataStore) los prov
 ```
 domain/   (módulo :domain, paquete com.example.puntajeburaco20.domain)
 ├── model/                    Jugador, Usuario, Equipo, Partida (con sus rondas), Estadisticas,
-│                             PartidaJugada, HistorialJugador, FichaDetectada…
+│                             PartidaJugada, HistorialJugador, FichaDetectada, ModoTema…
 ├── error/ErrorUsuario.kt     Errores de negocio (nombre en uso, ya es amigo, …)
 ├── repository/               Interfaces: UsuarioRepository, EstadisticasRepository,
 │                             PartidasJugadasRepository, SesionRepository,
-│                             PartidaEnCursoRepository, SincronizacionRepository
+│                             PartidaEnCursoRepository, SincronizacionRepository,
+│                             PreferenciasRepository
 ├── service/                  ValidadorCredenciales, CalculadoraPuntosFichas
 └── usecase/                  Una clase por operación de negocio
     (src/testFixtures: repositorios en memoria que usan los tests de todas las capas)
@@ -43,7 +44,7 @@ data/     (módulo :data, paquete com.example.puntajeburaco20.data)
 ├── di/                       Firestore, DataStore, Json
 ├── firestore/                Usuarios, estadísticas, partidas jugadas, sincronización
 │                             + EsquemaFirestore
-├── local/                    Sesión y partida en curso (DataStore)
+├── local/                    Sesión, partida en curso y preferencias (DataStore)
 └── vision/                   DetectorFichas (interfaz) y TfliteDetectorFichas (YOLO sobre LiteRT)
 
 app/      (módulo :app, paquete com.example.puntajeburaco20)
@@ -52,13 +53,14 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
 │   ├── AppModule.kt          Dispatchers
 │   └── DataModule.kt         Interfaz → implementación de cada repositorio
 └── ui/
-    ├── MainActivity.kt       Activa edge-to-edge y aloja la navegación
+    ├── MainActivity.kt       Activa edge-to-edge, aplica el tema elegido y aloja la navegación
     ├── navegacion/           Rutas y grafo de navegación (Navigation Compose)
-    ├── tema/                 Colores, tipografía (Barlow) y formas: TemaBuraco
+    ├── tema/                 Colores, tipografía (Barlow) y formas: TemaBuraco; tema elegido
     ├── common/               Componentes compartidos (encabezado, tarjetas, selector de
     │                         jugador, tabla de rondas), UiText, mensajes de error
     ├── login/                Iniciar sesión / registrarse
-    ├── nuevapartida/         Pantalla principal: elegir jugadores, cerrar sesión
+    ├── nuevapartida/         Pantalla principal: elegir jugadores
+    ├── perfil/               Datos de la cuenta, tema claro u oscuro, cerrar sesión
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
     ├── amigos/               Agregar / eliminar amigos, crear cuentas
     ├── historial/            Estadísticas por jugador o pareja
@@ -89,9 +91,12 @@ eventos solo mientras están visibles (`RecolectarEventos`).
 Todas las pantallas comparten la misma estructura (`PantallaBuraco`): un encabezado azul oscuro
 con esquinas redondeadas, contenido desplazable en tarjetas y, si hace falta, un pie fijo con la
 acción principal. Los colores están en `ui/tema/Colores.kt`: el esquema de Material 3 (claro y
-oscuro, según el sistema) más `ColoresBuraco`, con el color de cada equipo (cobalto y petróleo) y
+oscuro) más `ColoresBuraco`, con el color de cada equipo (cobalto y petróleo) y
 el dorado del ganador. La tipografía es Barlow, y Barlow Condensed para títulos y puntajes
 (`res/font`, licencia OFL en `docs/licencias/OFL-Barlow.txt`).
+
+El tema sigue al sistema salvo que el usuario elija claro u oscuro en su perfil. La elección se
+guarda en el dispositivo (`PreferenciasRepository`) y `MainActivity` la aplica a toda la app.
 
 ## Cambiar de base de datos
 
@@ -121,7 +126,8 @@ condicional, como recomienda Google). Esa pantalla redirige:
 - al **login** si no hay sesión (al iniciar sesión, el login se cierra y se vuelve);
 - a la **partida en curso** si la app se cerró en medio de una.
 
-Al cerrar sesión, el estado de esa pantalla pasa a "sin sesión" y vuelve a redirigir al login.
+La sesión se cierra desde el **perfil**, que navega al login dejando debajo solo la pantalla
+principal.
 
 ## Compilar
 

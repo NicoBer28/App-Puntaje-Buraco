@@ -47,9 +47,35 @@
     <string name="atajo_amigos_detalle">Agregar o crear cuentas</string>
     <string name="error_elija_jugador">Faltan elegir jugadores</string>
     <string name="dialogo_salir_app">¿Querés salir de la app?</string>
+    <string name="accion_ver_perfil">ver tu perfil</string>
+    <string name="mensaje_cambios_pendientes">Hay datos sin sincronizar. Se suben cuando vuelva la conexión.</string>
+
+    <!-- Perfil -->
+    <string name="titulo_perfil">Perfil</string>
+    <string name="subtitulo_perfil">Tu cuenta y las preferencias de la app.</string>
+    <plurals name="perfil_amigos">
+        <item quantity="one">%1$d amigo</item>
+        <item quantity="other">%1$d amigos</item>
+    </plurals>
+    <string name="seccion_apariencia">Apariencia</string>
+    <string name="seccion_apariencia_detalle">«Sistema» usa el modo claro u oscuro que tenga tu teléfono.</string>
+    <string-array name="modos_tema">
+        <item>Sistema</item>
+        <item>Claro</item>
+        <item>Oscuro</item>
+    </string-array>
+    <string name="seccion_cuenta">Cuenta</string>
+    <string name="opcion_cambiar_contrasena">Cambiar contraseña</string>
+    <string name="opcion_cambiar_contrasena_detalle">Elegí una clave nueva</string>
+    <string name="seccion_aplicacion">Aplicación</string>
+    <string name="opcion_configuracion">Configuración</string>
+    <string name="opcion_configuracion_detalle">Ajustes de la app y de las partidas</string>
+    <string name="opcion_ayuda">Ayuda</string>
+    <string name="opcion_ayuda_detalle">Cómo usar el anotador</string>
+    <string name="etiqueta_proximamente">Pronto</string>
+    <string name="mensaje_proximamente">«%1$s» va a estar disponible pronto</string>
     <string name="accion_cerrar_sesion">Cerrar sesión</string>
     <string name="dialogo_cerrar_sesion">Se va a cerrar tu sesión. Si hay una partida en curso, se pierde.</string>
-    <string name="mensaje_cambios_pendientes">Hay datos sin sincronizar. Se suben cuando vuelva la conexión.</string>
 
     <!-- Puntaje -->
     <string name="equipo_pareja">%1$s y %2$s</string>
