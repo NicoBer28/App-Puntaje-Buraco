@@ -55,7 +55,7 @@ class PuntajeViewModelTest {
         return eventos
     }
 
-    private fun comienza(jugador: Jugador) = Evento.Mensaje(UiText.de(R.string.mensaje_comienza, jugador.nombre))
+    private fun comienza(jugador: Jugador) = Evento.AvisarQuienEmpieza(jugador)
 
     @Test
     fun `al entrar se carga la partida guardada y se avisa quien empieza`() = runTest {

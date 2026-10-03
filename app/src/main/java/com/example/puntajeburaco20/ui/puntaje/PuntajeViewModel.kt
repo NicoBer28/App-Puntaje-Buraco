@@ -7,6 +7,7 @@ import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.data.vision.DetectorFichas
 import com.example.puntajeburaco20.di.IoDispatcher
 import com.example.puntajeburaco20.domain.model.FichaDetectada
+import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
@@ -57,6 +58,9 @@ class PuntajeViewModel @Inject constructor(
 
     sealed interface Evento {
         data class Mensaje(val texto: UiText) : Evento
+
+        /** Recordar quién empieza la próxima ronda (la pantalla lo destaca en el marcador). */
+        data class AvisarQuienEmpieza(val jugador: Jugador) : Evento
         data object LimpiarRonda : Evento
         data class SumarPuntosDetectados(val lado: LadoEquipo, val puntos: Int) : Evento
         data object Salir : Evento
@@ -198,7 +202,7 @@ class PuntajeViewModel @Inject constructor(
     }
 
     private fun avisarQuienEmpieza(partida: Partida) {
-        _eventos.trySend(Evento.Mensaje(UiText.de(R.string.mensaje_comienza, partida.empieza.nombre)))
+        _eventos.trySend(Evento.AvisarQuienEmpieza(partida.empieza))
     }
 
     private fun guardar(partida: Partida) {

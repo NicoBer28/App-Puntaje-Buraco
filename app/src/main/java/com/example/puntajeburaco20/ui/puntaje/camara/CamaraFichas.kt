@@ -26,7 +26,6 @@ import kotlin.coroutines.cancellation.CancellationException
 class CamaraFichas(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
-    private val vistaPrevia: PreviewView,
     private val alAnalizar: (imagen: Bitmap, rotacion: Int) -> Unit,
 ) : DefaultLifecycleObserver {
 
@@ -41,7 +40,8 @@ class CamaraFichas(
         lifecycleOwner.lifecycle.addObserver(this)
     }
 
-    fun iniciar(alFallar: (Throwable) -> Unit) {
+    /** La [vistaPrevia] se recibe acá porque solo existe mientras la cámara está abierta. */
+    fun iniciar(vistaPrevia: PreviewView, alFallar: (Throwable) -> Unit) {
         activa = true
         lifecycleOwner.lifecycleScope.launch {
             try {
@@ -51,7 +51,7 @@ class CamaraFichas(
                 proveedor.bindToLifecycle(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
-                    crearVistaPrevia(),
+                    crearVistaPrevia(vistaPrevia),
                     crearAnalisis(),
                 )
             } catch (e: CancellationException) {
@@ -73,7 +73,7 @@ class CamaraFichas(
         ejecutorAnalisis.shutdown()
     }
 
-    private fun crearVistaPrevia() = Preview.Builder().build().apply {
+    private fun crearVistaPrevia(vistaPrevia: PreviewView) = Preview.Builder().build().apply {
         setSurfaceProvider(vistaPrevia.surfaceProvider)
     }
 

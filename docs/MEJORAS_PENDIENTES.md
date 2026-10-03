@@ -24,23 +24,18 @@ Están ordenados por prioridad.
 
 ## Plataforma y UI
 
-3. **Migrar la UI a Jetpack Compose + Material 3.** Los layouts usan márgenes fijos en `dp` y
-   guías absolutas: en pantallas chicas o grandes se desacomodan. Los ViewModels ya exponen
-   `StateFlow`, así que se pueden reutilizar tal cual con Compose, y los tests de UI de
-   `app/src/androidTest` sirven para verificar que los flujos no cambien. También habilitaría modo
-   oscuro.
-4. **Cambiar el paquete `com.example.puntajeburaco20`.** `com.example` no se puede publicar en
+3. **Cambiar el paquete `com.example.puntajeburaco20`.** `com.example` no se puede publicar en
    Play. Requiere registrar la app de nuevo en Firebase (nuevo `google-services.json`).
 
 ## Ingeniería
 
-5. **Versionar el modelo de detección.** `best_float32.tflite` y `labels.txt` no están en el
+4. **Versionar el modelo de detección.** `best_float32.tflite` y `labels.txt` no están en el
    repo, así que la detección no anda en un clon limpio. Opciones: Git LFS, o descargar el modelo
    al primer uso (Firebase ML / Storage). Hace falta tener los archivos del modelo.
-6. **Actualizar LiteRT** cuando Google corrija el conflicto de namespaces con AGP 9
+5. **Actualizar LiteRT** cuando Google corrija el conflicto de namespaces con AGP 9
    ([issue #6965](https://github.com/google-ai-edge/LiteRT/issues/6965)). Se probó la 2.2.0
    (octubre de 2026) y sigue fallando.
-7. **Tests de UI en CI.** Hoy el workflow solo los compila; correrlos necesita un emulador
+6. **Tests de UI en CI.** Hoy el workflow solo los compila; correrlos necesita un emulador
    (por ejemplo `reactivecircus/android-emulator-runner`), lo que hace el build bastante más lento.
 
 ## Hecho
@@ -58,6 +53,7 @@ Se resolvieron en la rama `refactor/arquitectura`:
 - `targetSdk` 36 con edge-to-edge.
 - Cámara opcional en el manifest y mejoras de accesibilidad.
 - Módulos Gradle por capa (`:domain`, `:data`, `:app`).
+- UI migrada a Jetpack Compose + Material 3, con rediseño completo y modo oscuro.
 - DataStore en lugar de SharedPreferences (con migración automática de los datos guardados).
 - Integración continua con GitHub Actions.
 - Tests de UI (Espresso + Hilt) de los flujos principales.

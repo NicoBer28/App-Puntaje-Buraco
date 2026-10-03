@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.PuntajeBuraco" parent="Theme.AppCompat.Light.DarkActionBar" />
+    <!-- La UI es Compose (ver ui/tema/Tema.kt): el tema de la ventana solo define el fondo inicial. -->
+    <style name="Theme.PuntajeBuraco" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fondo_ventana</item>
+    </style>
 </resources>

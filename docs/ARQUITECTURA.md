@@ -10,7 +10,7 @@ ui  ──►  domain  ◄──  data
 - **`domain`**: Kotlin puro (sin Android ni Firebase). Contiene las reglas del juego y de negocio.
 - **`data`**: implementa las interfaces del dominio con tecnologías concretas (Firestore,
   DataStore, LiteRT/TensorFlow Lite).
-- **`ui`**: pantallas (Fragments) y su lógica de presentación (ViewModels).
+- **`ui`**: pantallas (Jetpack Compose + Material 3) y su lógica de presentación (ViewModels).
 
 Cada capa es un **módulo Gradle**, así que el compilador hace cumplir la regla: `:domain` es un
 módulo Kotlin/JVM sin dependencias de Android, `:data` es una librería Android que depende de
@@ -52,8 +52,11 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
 │   ├── AppModule.kt          Dispatchers
 │   └── DataModule.kt         Interfaz → implementación de cada repositorio
 └── ui/
-    ├── MainActivity.kt       Aloja la navegación y aplica los márgenes de edge-to-edge
-    ├── common/               UiText, mensajes de error, selectores de jugadores, extensiones
+    ├── MainActivity.kt       Activa edge-to-edge y aloja la navegación
+    ├── navegacion/           Rutas y grafo de navegación (Navigation Compose)
+    ├── tema/                 Colores, tipografía (Barlow) y formas: TemaBuraco
+    ├── common/               Componentes compartidos (encabezado, tarjetas, selector de
+    │                         jugador, tabla de rondas), UiText, mensajes de error
     ├── login/                Iniciar sesión / registrarse
     ├── nuevapartida/         Pantalla principal: elegir jugadores, cerrar sesión
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
@@ -66,7 +69,7 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
 
 Ejemplo: el usuario toca **Agregar amigo**.
 
-1. `AmigosFragment` llama a `AmigosViewModel.agregar(nombre)`. El Fragment no tiene lógica.
+1. `AmigosScreen` llama a `AmigosViewModel.agregar(nombre)`. La pantalla no tiene lógica.
 2. El ViewModel ejecuta `AgregarAmigoUseCase` en una corrutina.
 3. El caso de uso aplica las reglas (no vacío, no uno mismo, existe, no es amigo ya) usando
    `UsuarioRepository` (interfaz) y lanza un `ErrorUsuario` si alguna falla.
@@ -74,10 +77,21 @@ Ejemplo: el usuario toca **Agregar amigo**.
    No espera al servidor: Firestore guarda la escritura en el dispositivo y la sube cuando hay
    conexión. Mientras tanto `SincronizacionRepository` informa que hay cambios pendientes y la
    pantalla principal lo avisa.
-5. El ViewModel emite un `Evento.Mensaje` con un `UiText`. El Fragment lo muestra como Toast.
+5. El ViewModel emite un `Evento.Mensaje` con un `UiText`. La pantalla lo muestra en un
+   snackbar (`Mensajero`).
 
 El estado de cada pantalla se expone con `StateFlow` y los eventos únicos (mensajes, navegación)
-con un `Channel`. Los Fragments los recolectan solo mientras están visibles (`recolectar`).
+con un `Channel`. Las pantallas leen el estado con `collectAsStateWithLifecycle` y recolectan los
+eventos solo mientras están visibles (`RecolectarEventos`).
+
+## Diseño
+
+Todas las pantallas comparten la misma estructura (`PantallaBuraco`): un encabezado azul oscuro
+con esquinas redondeadas, contenido desplazable en tarjetas y, si hace falta, un pie fijo con la
+acción principal. Los colores están en `ui/tema/Colores.kt`: el esquema de Material 3 (claro y
+oscuro, según el sistema) más `ColoresBuraco`, con el color de cada equipo (cobalto y petróleo) y
+el dorado del ganador. La tipografía es Barlow, y Barlow Condensed para títulos y puntajes
+(`res/font`, licencia OFL en `docs/licencias/OFL-Barlow.txt`).
 
 ## Cambiar de base de datos
 
@@ -101,8 +115,8 @@ en curso (hoy en DataStore) o para el detector de fichas.
 
 ## Navegación
 
-`main_navigation.xml` arranca siempre en `NuevaPartidaFragment` (navegación condicional, como
-recomienda Google). Esa pantalla redirige:
+`ui/navegacion/NavegacionApp.kt` arranca siempre en `NuevaPartidaScreen` (navegación
+condicional, como recomienda Google). Esa pantalla redirige:
 
 - al **login** si no hay sesión (al iniciar sesión, el login se cierra y se vuelve);
 - a la **partida en curso** si la app se cerró en medio de una.
@@ -153,9 +167,9 @@ habla con Firebase.
 - **Unitarios** (JVM, sin emulador): `domain/src/test` cubre las reglas de la partida, el
   historial, las validaciones y los casos de uso; `data/src/test` la serialización de la partida
   (incluido el formato anterior); `app/src/test` los ViewModels.
-- **De UI** (`app/src/androidTest`, Espresso + Hilt): recorren login, anotar y deshacer rondas,
+- **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren login, anotar y deshacer rondas,
   terminar una partida y verla en "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule`
-  reemplaza a `DataModule`, así que no tocan Firestore.
+  reemplaza a `DataModule`, así que no tocan Firestore. Los elementos se buscan por `testTag`.
 
 Todos usan los mismos repositorios en memoria, publicados por `:domain` como *test fixtures*
 (`domain/src/testFixtures`).
