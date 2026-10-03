@@ -9,7 +9,7 @@ ui  ──►  domain  ◄──  data
 
 - **`domain`**: Kotlin puro (sin Android ni Firebase). Contiene las reglas del juego y de negocio.
 - **`data`**: implementa las interfaces del dominio con tecnologías concretas (Firestore,
-  SharedPreferences, TensorFlow Lite).
+  SharedPreferences, LiteRT/TensorFlow Lite).
 - **`ui`**: pantallas (Fragments) y su lógica de presentación (ViewModels).
 
 Hilt (`di/`) conecta las capas: es el único lugar que sabe qué implementación usa cada interfaz.
@@ -32,7 +32,7 @@ com.example.puntajeburaco20
 ├── data/
 │   ├── firestore/                Repositorios de usuarios y estadísticas + EsquemaFirestore
 │   ├── local/                    Sesión y partida en curso (SharedPreferences)
-│   └── vision/                   DetectorFichas (interfaz) y TfliteDetectorFichas (YOLO)
+│   └── vision/                   DetectorFichas (interfaz) y TfliteDetectorFichas (YOLO sobre LiteRT)
 └── ui/
     ├── MainActivity.kt           Solo aloja la navegación
     ├── common/                   UiText, mensajes de error, selectores de jugadores, extensiones
@@ -78,7 +78,7 @@ recomienda Google). Esa pantalla redirige:
 
 ## Compilar
 
-- JDK 17 o 21 (Gradle 8.10 no corre sobre JDK 25+). Android Studio usa su propio JDK.
+- JDK 17 o superior para correr Gradle (funciona con el JDK que trae Android Studio).
 - `app/google-services.json`: está en `.gitignore`. Se descarga de la consola de Firebase
   (proyecto `app-puntaje-burako`).
 - Modelo de detección: `app/src/main/assets/best_float32.tflite` y `labels.txt`. Tampoco están en
@@ -96,3 +96,14 @@ Los tests unitarios (`app/src/test`) cubren el dominio (reglas de la partida, va
 puntaje de fichas), los casos de uso, la serialización de la partida y los ViewModels de Puntaje
 e Historial. Usan repositorios en memoria (`fakes/`), así que no necesitan Firebase ni un
 emulador.
+
+## Versiones
+
+Todas las versiones están centralizadas en `gradle/libs.versions.toml` y apuntan a la última
+estable. La única excepción es LiteRT: las versiones 2.1.6 en adelante (y `litert-support`)
+declaran namespaces duplicados, que AGP 9 rechaza
+([issue #6965](https://github.com/google-ai-edge/LiteRT/issues/6965)). Por eso se usa la 2.1.5 y
+el preprocesamiento de imágenes se hace a mano en `TfliteDetectorFichas`.
+
+Para ver qué dependencias tienen versiones nuevas, correr `./gradlew lintDebug` y buscar las
+advertencias `GradleDependency`.

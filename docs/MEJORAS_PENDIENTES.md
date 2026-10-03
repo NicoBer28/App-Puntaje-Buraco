@@ -60,6 +60,8 @@ Están ordenados por prioridad.
     `lintDebug` en cada push.
 18. **Tests de UI** (Espresso o Compose testing) para los flujos principales.
 19. **Build de release.** `isMinifyEnabled = false` y no hay configuración de firma. Al activar
-    R8 hay que agregar reglas para TensorFlow Lite.
+    R8 hay que agregar reglas para LiteRT.
 20. **Rendimiento de la cámara.** Cada cuadro genera dos `Bitmap` (conversión y rotación). Se puede
     reutilizar un buffer, o pasar la rotación al modelo.
+21. **Actualizar LiteRT** a 2.2.0 o superior cuando Google corrija el conflicto de namespaces con
+    AGP 9 ([issue #6965](https://github.com/google-ai-edge/LiteRT/issues/6965)).

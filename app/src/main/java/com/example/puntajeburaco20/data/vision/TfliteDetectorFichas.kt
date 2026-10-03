@@ -2,29 +2,29 @@ package com.example.puntajeburaco20.data.vision
 
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.core.graphics.scale
 import com.example.puntajeburaco20.domain.model.CajaNormalizada
 import com.example.puntajeburaco20.domain.model.FichaDetectada
 import dagger.hilt.android.qualifiers.ApplicationContext
-import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.support.common.FileUtil
-import org.tensorflow.lite.support.common.ops.CastOp
-import org.tensorflow.lite.support.common.ops.NormalizeOp
-import org.tensorflow.lite.support.image.ImageProcessor
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
+import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Detector basado en un modelo YOLO exportado a TensorFlow Lite. Espera en `assets/` el modelo
- * ([ARCHIVO_MODELO]) y sus etiquetas ([ARCHIVO_ETIQUETAS]), una por línea.
+ * Detector basado en un modelo YOLO exportado a LiteRT (ex TensorFlow Lite). Espera en `assets/`
+ * el modelo ([ARCHIVO_MODELO]) y sus etiquetas ([ARCHIVO_ETIQUETAS]), una por línea.
  */
 @Singleton
 class TfliteDetectorFichas @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : DetectorFichas {
 
+    /** Modelo cargado junto con los buffers de entrada/salida, que se reutilizan en cada cuadro. */
     private class Modelo(
         val interprete: Interpreter,
         val etiquetas: List<String>,
@@ -32,22 +32,22 @@ class TfliteDetectorFichas @Inject constructor(
         val altoEntrada: Int,
         val canales: Int,
         val elementos: Int,
-    )
+    ) {
+        val pixeles = IntArray(anchoEntrada * altoEntrada)
+        val entrada: ByteBuffer = bufferDeFloats(pixeles.size * CANALES_COLOR)
+        val salida: ByteBuffer = bufferDeFloats(canales * elementos)
+        val valoresSalida = FloatArray(canales * elementos)
+    }
 
     @Volatile
     private var modelo: Modelo? = null
-
-    private val procesador = ImageProcessor.Builder()
-        .add(NormalizeOp(MEDIA_ENTRADA, DESVIO_ENTRADA))
-        .add(CastOp(DataType.FLOAT32))
-        .build()
 
     @Synchronized
     override fun preparar() {
         if (modelo != null) return
 
         val interprete = Interpreter(
-            FileUtil.loadMappedFile(context, ARCHIVO_MODELO),
+            cargarModelo(),
             Interpreter.Options().apply { numThreads = HILOS },
         )
         val formaEntrada = interprete.getInputTensor(0).shape() // [1, alto, ancho, 3]
@@ -69,15 +69,39 @@ class TfliteDetectorFichas @Inject constructor(
     override fun detectar(imagen: Bitmap): List<FichaDetectada> {
         val modelo = checkNotNull(modelo) { "Hay que llamar a preparar() antes de detectar" }
 
-        val escalada = Bitmap.createScaledBitmap(imagen, modelo.anchoEntrada, modelo.altoEntrada, false)
-        val entrada = procesador.process(TensorImage(DataType.FLOAT32).apply { load(escalada) })
-        val salida = TensorBuffer.createFixedSize(
-            intArrayOf(1, modelo.canales, modelo.elementos),
-            DataType.FLOAT32,
-        )
-        modelo.interprete.run(entrada.buffer, salida.buffer)
+        cargarEntrada(modelo, imagen)
+        modelo.salida.rewind()
+        modelo.interprete.run(modelo.entrada, modelo.salida)
+        modelo.salida.rewind()
+        modelo.salida.asFloatBuffer().get(modelo.valoresSalida)
 
-        return supresionNoMaxima(candidatas(modelo, salida.floatArray))
+        return supresionNoMaxima(candidatas(modelo, modelo.valoresSalida))
+    }
+
+    /** El modelo se mapea en memoria (sin copiarlo) directamente desde el APK. */
+    private fun cargarModelo(): MappedByteBuffer =
+        context.assets.openFd(ARCHIVO_MODELO).use { descriptor ->
+            FileInputStream(descriptor.fileDescriptor).use { flujo ->
+                flujo.channel.map(
+                    FileChannel.MapMode.READ_ONLY,
+                    descriptor.startOffset,
+                    descriptor.declaredLength,
+                )
+            }
+        }
+
+    /** Escala la imagen al tamaño del modelo y la vuelca como RGB normalizado (0 a 1). */
+    private fun cargarEntrada(modelo: Modelo, imagen: Bitmap) {
+        val escalada = imagen.scale(modelo.anchoEntrada, modelo.altoEntrada, filter = false)
+        escalada.getPixels(modelo.pixeles, 0, modelo.anchoEntrada, 0, 0, modelo.anchoEntrada, modelo.altoEntrada)
+
+        modelo.entrada.rewind()
+        for (pixel in modelo.pixeles) {
+            modelo.entrada.putFloat((pixel shr 16 and 0xFF) / MAXIMO_COLOR)
+            modelo.entrada.putFloat((pixel shr 8 and 0xFF) / MAXIMO_COLOR)
+            modelo.entrada.putFloat((pixel and 0xFF) / MAXIMO_COLOR)
+        }
+        modelo.entrada.rewind()
     }
 
     /**
@@ -149,10 +173,13 @@ class TfliteDetectorFichas @Inject constructor(
         const val ARCHIVO_MODELO = "best_float32.tflite"
         const val ARCHIVO_ETIQUETAS = "labels.txt"
         const val HILOS = 4
-        const val MEDIA_ENTRADA = 0f
-        const val DESVIO_ENTRADA = 255f
+        const val CANALES_COLOR = 3
+        const val MAXIMO_COLOR = 255f
         const val CANALES_CAJA = 4
         const val UMBRAL_CONFIANZA = 0.3f
         const val UMBRAL_IOU = 0.7f
+
+        fun bufferDeFloats(cantidad: Int): ByteBuffer =
+            ByteBuffer.allocateDirect(cantidad * Float.SIZE_BYTES).order(ByteOrder.nativeOrder())
     }
 }
