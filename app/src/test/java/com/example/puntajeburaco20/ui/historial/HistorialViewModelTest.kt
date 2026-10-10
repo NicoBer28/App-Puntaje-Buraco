@@ -1,6 +1,7 @@
 package com.example.puntajeburaco20.ui.historial
 
 import com.example.puntajeburaco20.R
+import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Estadisticas
 import com.example.puntajeburaco20.domain.model.ModoJuego
 import com.example.puntajeburaco20.domain.usecase.ConsultarEstadisticasUseCase
@@ -21,6 +22,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 
@@ -152,5 +154,19 @@ class HistorialViewModelTest {
         viewModel.elegirJugador(1, beto)
 
         assertEquals(Estadisticas.VACIAS, viewModel.estado.value.equipoUno)
+    }
+
+    @Test
+    fun `sin conexion avisa que las estadisticas la necesitan y no muestra nada`() = runTest {
+        estadisticas.error = ErrorUsuario.SinConexion
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+        viewModel.elegirJugador(0, ana)
+
+        viewModel.buscar()
+
+        assertEquals(listOf(Evento.Mensaje(UiText.de(R.string.error_estadisticas_sin_conexion))), eventos)
+        assertEquals(Estadisticas.VACIAS, viewModel.estado.value.equipoUno)
+        assertFalse(viewModel.estado.value.buscando)
     }
 }

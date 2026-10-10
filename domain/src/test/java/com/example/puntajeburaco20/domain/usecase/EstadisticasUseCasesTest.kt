@@ -15,19 +15,49 @@ import org.junit.Test
 
 class EstadisticasUseCasesTest {
 
-    private val repositorio = FakeEstadisticasRepository()
     private val partidasJugadas = FakePartidasJugadasRepository()
-    private val registrarResultado = RegistrarResultadoPartidaUseCase(repositorio, partidasJugadas)
+    private val repositorio = FakeEstadisticasRepository(partidasJugadas)
+    private val registrarResultado = RegistrarResultadoPartidaUseCase(partidasJugadas)
+    private val consultar = ConsultarEstadisticasUseCase(repositorio)
     private val ana = jugador("Ana")
     private val beto = jugador("Beto")
+    private val caro = jugador("Caro")
+    private val dani = jugador("Dani")
 
     @Test
-    fun `registrar el resultado pasa ganador y perdedor segun el lado elegido`() = runTest {
-        val partida = Partida.nueva(listOf(ana, beto)).finalizar(LadoEquipo.DOS)
+    fun `una partida registrada cuenta en las estadisticas de los dos equipos`() = runTest {
+        registrarResultado(Partida.nueva(listOf(ana, beto)).finalizar(LadoEquipo.DOS))
+        registrarResultado(Partida.nueva(listOf(beto, ana)).finalizar(LadoEquipo.DOS))
+        registrarResultado(Partida.nueva(listOf(ana, caro)).finalizar(LadoEquipo.UNO))
 
-        registrarResultado(partida)
+        assertEquals(Estadisticas(jugadas = 3, ganadas = 2), consultar(Equipo(listOf(ana)), rival = null))
+        assertEquals(Estadisticas(jugadas = 2, ganadas = 1), consultar(Equipo(listOf(ana)), Equipo(listOf(beto))))
+        assertEquals(Estadisticas(jugadas = 2, ganadas = 1), consultar(Equipo(listOf(beto)), Equipo(listOf(ana))))
+        assertNull(consultar(Equipo(listOf(beto)), Equipo(listOf(caro))))
+    }
 
-        assertEquals(listOf(Equipo(listOf(beto)) to Equipo(listOf(ana))), repositorio.resultados)
+    @Test
+    fun `las partidas en pareja no cuentan para cada jugador por separado`() = runTest {
+        registrarResultado(Partida.nueva(listOf(ana, beto, caro, dani)).finalizar(LadoEquipo.UNO))
+
+        // El orden de los integrantes no cambia de qué pareja se trata.
+        assertEquals(Estadisticas(jugadas = 1, ganadas = 1), consultar(Equipo(listOf(beto, ana)), rival = null))
+        assertEquals(
+            Estadisticas(jugadas = 1, ganadas = 0),
+            consultar(Equipo(listOf(caro, dani)), Equipo(listOf(ana, beto))),
+        )
+        assertNull(consultar(Equipo(listOf(ana)), rival = null))
+        assertNull(consultar(Equipo(listOf(ana, caro)), rival = null))
+    }
+
+    @Test
+    fun `a las partidas registradas se les suman las estadisticas previas`() = runTest {
+        repositorio.generales["ana"] = Estadisticas(jugadas = 10, ganadas = 4)
+        repositorio.enfrentamientos["ana" to "beto"] = Estadisticas(jugadas = 3, ganadas = 1)
+        registrarResultado(Partida.nueva(listOf(ana, beto)).finalizar(LadoEquipo.UNO))
+
+        assertEquals(Estadisticas(jugadas = 11, ganadas = 5), consultar(Equipo(listOf(ana)), rival = null))
+        assertEquals(Estadisticas(jugadas = 4, ganadas = 2), consultar(Equipo(listOf(ana)), Equipo(listOf(beto))))
     }
 
     @Test
@@ -52,7 +82,6 @@ class EstadisticasUseCasesTest {
         val equipoBeto = Equipo(listOf(beto))
         repositorio.generales["ana"] = Estadisticas(jugadas = 10, ganadas = 4)
         repositorio.enfrentamientos["ana" to "beto"] = Estadisticas(jugadas = 3, ganadas = 1)
-        val consultar = ConsultarEstadisticasUseCase(repositorio)
 
         assertEquals(Estadisticas(10, 4), consultar(equipoAna, rival = null))
         assertEquals(Estadisticas(3, 1), consultar(equipoAna, rival = equipoBeto))

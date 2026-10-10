@@ -4,10 +4,10 @@ import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
-import com.example.puntajeburaco20.domain.model.Ronda
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PartidaGuardadaTest {
@@ -38,48 +38,33 @@ class PartidaGuardadaTest {
     }
 
     @Test
-    fun `una partida guardada por la version anterior conserva totales, ultima ronda y turno`() {
-        // Formato anterior: sin rondas, solo la última y los totales.
-        val texto = """
+    fun `los jugadores se recuperan por su id aunque dos se llamen igual`() {
+        val partida = Partida.nueva(listOf(Jugador("p1", "Ana"), Jugador("p2", "Ana")))
+            .registrarRonda(PuntajeRonda(10, 0), PuntajeRonda(0, 0))
+
+        val recuperada = idaYVuelta(partida)
+
+        assertEquals(listOf("p1", "p2"), recuperada.ordenDeInicio.map { it.id })
+        assertEquals("p2", recuperada.empieza.id)
+    }
+
+    @Test
+    fun `una partida guardada por una version anterior no se puede leer`() {
+        // Las versiones anteriores identificaban a los jugadores solo por su nombre.
+        val soloNombres = """
+            {"equipoUno":["Ana"],"equipoDos":["Beto"],"empieza":"Ana",
+             "rondas":[{"equipoUno":{"base":100,"puntos":30},"equipoDos":{"base":0,"puntos":-20}}]}
+        """.trimIndent()
+        val soloTotales = """
             {"equipoUno":["Ana"],"equipoDos":["Beto"],"empieza":"Ana",
              "ultimaRondaUno":{"base":100,"puntos":30},"ultimaRondaDos":{"base":0,"puntos":-20},
              "totalUno":530,"totalDos":-20}
         """.trimIndent()
 
-        val partida = json.decodeFromString(PartidaGuardada.serializer(), texto).aDominio()
-
-        assertEquals(530, partida.totalUno)
-        assertEquals(-20, partida.totalDos)
-        assertEquals(Ronda(PuntajeRonda(100, 30), PuntajeRonda(0, -20)), partida.ultimaRonda)
-        assertEquals(Jugador(id = "ana", nombre = "Ana"), partida.empieza)
-        assertNull(partida.ganador)
-    }
-
-    @Test
-    fun `una partida de la version anterior sin rondas jugadas queda vacia`() {
-        val texto = """
-            {"equipoUno":["Ana"],"equipoDos":["Beto"],"empieza":"Ana",
-             "ultimaRondaUno":{"base":0,"puntos":0},"ultimaRondaDos":{"base":0,"puntos":0},
-             "totalUno":0,"totalDos":0}
-        """.trimIndent()
-
-        val partida = json.decodeFromString(PartidaGuardada.serializer(), texto).aDominio()
-
-        assertEquals(Partida.nueva(listOf(Jugador("ana", "Ana"), Jugador("beto", "Beto"))), partida)
-    }
-
-    @Test
-    fun `una partida guardada solo con nombres usa el nombre en minusculas como id`() {
-        // Formato anterior: jugadores identificados por nombre, con las rondas completas.
-        val texto = """
-            {"equipoUno":["Ana","Caro"],"equipoDos":["Beto","Dani"],"empieza":"Beto",
-             "rondas":[{"equipoUno":{"base":100,"puntos":30},"equipoDos":{"base":0,"puntos":-20}}]}
-        """.trimIndent()
-
-        val partida = json.decodeFromString(PartidaGuardada.serializer(), texto).aDominio()
-
-        assertEquals(listOf("ana", "caro"), partida.equipoUno.jugadores.map { it.id })
-        assertEquals(Jugador("beto", "Beto"), partida.empieza)
-        assertEquals(130, partida.totalUno)
+        listOf(soloNombres, soloTotales).forEach { texto ->
+            assertThrows(SerializationException::class.java) {
+                json.decodeFromString(PartidaGuardada.serializer(), texto)
+            }
+        }
     }
 }

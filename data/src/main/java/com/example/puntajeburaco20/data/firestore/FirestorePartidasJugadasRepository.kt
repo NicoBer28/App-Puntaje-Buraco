@@ -3,16 +3,22 @@ package com.example.puntajeburaco20.data.firestore
 import android.util.Log
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.BASE_DOS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.BASE_UNO
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.CREADA_POR
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EMPIEZA
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.ENFRENTAMIENTO
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EQUIPOS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EQUIPO_DOS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EQUIPO_GANADOR
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EQUIPO_UNO
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.FECHA
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.GANADOR
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.JUGADORES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRES_DE_JUGADORES
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PARTIDAS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PUNTOS_DOS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PUNTOS_UNO
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.RONDAS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.USUARIOS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.claveEnfrentamiento
+import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
@@ -20,50 +26,58 @@ import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.model.Ronda
-import com.example.puntajeburaco20.domain.model.Usuario
+import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Cada jugador tiene su copia de la partida en `users/{id}/partidas`, con el mismo id en todas.
- * Así consultar el historial de alguien es leer una sola colección, ordenada por fecha, sin
- * necesitar índices compuestos.
+ * Cada partida es un solo documento de `partidas/`, compartido por todos sus jugadores. El
+ * historial de alguien son las partidas que lo tienen en `jugadores`, ordenadas por fecha (hace
+ * falta el índice compuesto de `firestore.indexes.json`).
  */
 @Singleton
 class FirestorePartidasJugadasRepository @Inject constructor(
     private val db: FirebaseFirestore,
+    private val auth: AuthRepository,
     private val sincronizacion: FirestoreSincronizacionRepository,
 ) : PartidasJugadasRepository {
 
-    private fun partidasDe(idJugador: String) = db.collection(USUARIOS).document(idJugador).collection(PARTIDAS)
+    private val partidas get() = db.collection(PARTIDAS)
 
     override suspend fun guardar(partida: Partida) {
         val ganador = requireNotNull(partida.ganador) { "Solo se guardan partidas terminadas" }
-        val datos = mapOf(
-            EQUIPO_UNO to partida.equipoUno.nombres(),
-            EQUIPO_DOS to partida.equipoDos.nombres(),
-            EMPIEZA to partida.empieza.nombre,
-            RONDAS to partida.rondas.map { it.aMapa() },
-            GANADOR to ganador.name,
-            FECHA to FieldValue.serverTimestamp(),
-        )
-        val idPartida = db.collection(PARTIDAS).document().id
+        val cuenta = auth.cuenta.first() ?: throw ErrorUsuario.SinSesion
         val jugadores = partida.equipoUno.jugadores + partida.equipoDos.jugadores
-        sincronizacion.enviar(
-            db.batch().apply {
-                jugadores.forEach { set(partidasDe(it.id).document(idPartida), datos) }
-            },
+        val datos = mapOf(
+            EQUIPO_UNO to partida.equipoUno.ids(),
+            EQUIPO_DOS to partida.equipoDos.ids(),
+            // Se guarda el nombre que cada uno tenía al jugar, para mostrar la partida sin leer
+            // un perfil por jugador.
+            NOMBRES_DE_JUGADORES to jugadores.associate { it.id to it.nombre },
+            // Lo que sigue repite a los equipos en la forma en que se consultan: el historial de
+            // un jugador y las estadísticas de un equipo, en general o contra un rival.
+            JUGADORES to jugadores.map { it.id },
+            EQUIPOS to listOf(partida.equipoUno.id, partida.equipoDos.id),
+            ENFRENTAMIENTO to claveEnfrentamiento(partida.equipoUno, partida.equipoDos),
+            EQUIPO_GANADOR to partida.equipo(ganador).id,
+            EMPIEZA to partida.empieza.id,
+            RONDAS to partida.rondas.map { it.aMapa() },
+            FECHA to FieldValue.serverTimestamp(),
+            CREADA_POR to cuenta.uid,
         )
+        sincronizacion.enviar(db.batch().apply { set(partidas.document(), datos) })
     }
 
     override suspend fun obtenerDe(jugador: Jugador, limite: Int): List<PartidaJugada> =
-        partidasDe(jugador.id)
+        partidas
+            .whereArrayContains(JUGADORES, jugador.id)
             .orderBy(FECHA, Query.Direction.DESCENDING)
             .limit(limite.toLong())
             .get()
@@ -71,7 +85,7 @@ class FirestorePartidasJugadasRepository @Inject constructor(
             .documents
             .mapNotNull { it.aPartidaJugada() }
 
-    private fun Equipo.nombres(): List<String> = jugadores.map { it.nombre }
+    private fun Equipo.ids(): List<String> = jugadores.map { it.id }
 
     private fun Ronda.aMapa(): Map<String, Int> = mapOf(
         BASE_UNO to equipoUno.base,
@@ -82,15 +96,24 @@ class FirestorePartidasJugadasRepository @Inject constructor(
 
     /** Un documento mal formado se descarta en lugar de romper todo el historial. */
     private fun DocumentSnapshot.aPartidaJugada(): PartidaJugada? = try {
+        val nombres = get(NOMBRES_DE_JUGADORES) as Map<*, *>
+        fun equipo(campo: String) = Equipo((get(campo) as List<*>).map { Jugador(it as String, nombres[it] as String) })
+        val equipoUno = equipo(EQUIPO_UNO)
+        val equipoDos = equipo(EQUIPO_DOS)
+        val idEmpieza = requireNotNull(getString(EMPIEZA))
         // Una escritura todavía sin confirmar no tiene la hora del servidor: se usa la estimada.
         val fecha = getTimestamp(FECHA, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
         PartidaJugada(
             partida = Partida(
-                equipoUno = Equipo(nombres(EQUIPO_UNO).map(::jugadorPorNombre)),
-                equipoDos = Equipo(nombres(EQUIPO_DOS).map(::jugadorPorNombre)),
-                empieza = jugadorPorNombre(requireNotNull(getString(EMPIEZA))),
+                equipoUno = equipoUno,
+                equipoDos = equipoDos,
+                empieza = (equipoUno.jugadores + equipoDos.jugadores).first { it.id == idEmpieza },
                 rondas = (get(RONDAS) as? List<*>).orEmpty().map { aRonda(it as Map<*, *>) },
-                ganador = LadoEquipo.valueOf(requireNotNull(getString(GANADOR))),
+                ganador = when (requireNotNull(getString(EQUIPO_GANADOR))) {
+                    equipoUno.id -> LadoEquipo.UNO
+                    equipoDos.id -> LadoEquipo.DOS
+                    else -> error("El ganador no es ninguno de los dos equipos")
+                },
             ),
             fecha = requireNotNull(fecha).toDate().time,
         )
@@ -98,13 +121,6 @@ class FirestorePartidasJugadasRepository @Inject constructor(
         Log.w(TAG, "Partida $id inválida; se omite", e)
         null
     }
-
-    // El esquema anterior solo guarda nombres, que además eran el id de cada jugador. Las partidas
-    // pasan a guardar los ids de perfil en la fase 3 de docs/PLAN_AUTENTICACION.md.
-    private fun jugadorPorNombre(nombre: String) = Jugador(id = Usuario.claveDeNombre(nombre), nombre = nombre)
-
-    private fun DocumentSnapshot.nombres(campo: String): List<String> =
-        (get(campo) as List<*>).map { it as String }
 
     private fun aRonda(mapa: Map<*, *>): Ronda {
         fun valor(campo: String) = (mapa[campo] as Number).toInt()

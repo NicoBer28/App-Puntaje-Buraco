@@ -46,7 +46,7 @@ object RepositoriosEnMemoriaModule {
 
     @Provides
     @Singleton
-    fun estadisticas() = FakeEstadisticasRepository()
+    fun estadisticas(partidasJugadas: FakePartidasJugadasRepository) = FakeEstadisticasRepository(partidasJugadas)
 
     @Provides
     @Singleton

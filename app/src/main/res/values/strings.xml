@@ -162,6 +162,7 @@
     <string name="mensaje_nunca_jugaron_entre_ellos">Nunca jugaron entre ellos</string>
     <string name="mensaje_nunca_jugaron_juntos">Nunca jugaron juntos</string>
     <string name="error_consultar_estadisticas">No se pudieron obtener las estadísticas: %1$s</string>
+    <string name="error_estadisticas_sin_conexion">Las estadísticas necesitan conexión. Probá de nuevo cuando tengas señal.</string>
     <string name="accion_mis_partidas">Mis partidas</string>
     <string name="accion_mis_partidas_detalle">Tus últimas partidas, ronda por ronda</string>
 

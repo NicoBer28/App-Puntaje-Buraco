@@ -8,7 +8,6 @@ import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.service.CalculadoraPuntosFichas
 import com.example.puntajeburaco20.domain.usecase.RegistrarResultadoPartidaUseCase
 import com.example.puntajeburaco20.fakes.FakeDetectorFichas
-import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
@@ -38,13 +37,12 @@ class PuntajeViewModelTest {
     private val ana = jugador("Ana")
     private val beto = jugador("Beto")
     private val repositorio = FakePartidaEnCursoRepository(Partida.nueva(listOf(ana, beto)))
-    private val estadisticas = FakeEstadisticasRepository()
     private val partidasJugadas = FakePartidasJugadasRepository()
     private val detector = FakeDetectorFichas()
 
     private fun crearViewModel() = PuntajeViewModel(
         partidaEnCurso = repositorio,
-        registrarResultado = RegistrarResultadoPartidaUseCase(estadisticas, partidasJugadas),
+        registrarResultado = RegistrarResultadoPartidaUseCase(partidasJugadas),
         calculadora = CalculadoraPuntosFichas(),
         detector = detector,
         io = mainDispatcherRule.dispatcher,
@@ -142,20 +140,20 @@ class PuntajeViewModelTest {
     }
 
     @Test
-    fun `finalizar guarda la partida terminada y registra el resultado`() = runTest {
+    fun `finalizar guarda la partida terminada en el historial`() = runTest {
         val viewModel = crearViewModel()
 
         viewModel.finalizar(LadoEquipo.UNO)
 
         assertTrue(viewModel.partida.value!!.terminada)
         assertTrue(repositorio.partida!!.terminada)
-        assertEquals(ana, estadisticas.resultados.single().first.jugadores.single())
+        assertEquals(LadoEquipo.UNO, partidasJugadas.guardadas.single().partida.ganador)
         assertEquals(viewModel.partida.value, partidasJugadas.guardadas.single().partida)
     }
 
     @Test
     fun `si no se puede registrar el resultado se avisa pero la partida queda terminada`() = runTest {
-        estadisticas.error = IllegalStateException("sin conexión")
+        partidasJugadas.error = IllegalStateException("sin conexión")
         val viewModel = crearViewModel()
         val eventos = eventosDe(viewModel)
 

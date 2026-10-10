@@ -215,21 +215,26 @@ también sin conexión (la amistad se guarda en el dispositivo y sube al volver 
 
 ## Fase 3 — Partidas y estadísticas
 
-- [ ] `PartidasJugadasRepository`: guardar una partida es crear un solo documento en `partidas/`.
+- [x] `PartidasJugadasRepository`: guardar una partida es crear un solo documento en `partidas/`.
       "Mis partidas" consulta por `jugadores`.
-- [ ] `EstadisticasRepository`: las estadísticas se obtienen contando partidas y sumando
+- [x] `EstadisticasRepository`: las estadísticas se obtienen contando partidas y sumando
       `estadisticasPrevias/`. Desaparece `registrarResultado`: `RegistrarResultadoPartidaUseCase`
       solo guarda la partida.
-- [ ] Índice compuesto para "Mis partidas" (`jugadores` + `fecha`) en `firestore.indexes.json`.
-- [ ] Partida en curso (`PartidaGuardada`): ya guarda los ids (fase 1). Falta decidir qué pasa
-      con una partida empezada con la versión anterior: recuperarla buscando los nombres, o
-      descartarla. Hoy se lee usando el nombre en minúsculas como id.
-- [ ] Pantalla de estadísticas: estado para cuando no hay conexión.
-- [ ] Reglas y tests de reglas para `partidas/` y `estadisticasPrevias/`.
-- [ ] Actualizar los tests de puntaje, historial, estadísticas y "Mis partidas".
+- [x] Índice compuesto para "Mis partidas" (`jugadores` + `fecha`) en `firestore.indexes.json`.
+      Hay otro para el historial contra un rival (`enfrentamiento` + `equipoGanador`), por las
+      dudas: el emulador no exige índices, así que recién al publicar se sabe si hacía falta.
+- [x] Partida en curso (`PartidaGuardada`): guarda los ids de los jugadores. Una partida
+      empezada con una versión anterior, que solo tenía nombres, se descarta al abrir la app.
+- [x] Pantalla de estadísticas: sin conexión avisa que hacen falta datos del servidor y deja a
+      la vista el último resultado consultado.
+- [x] Reglas y tests de reglas para `partidas/` y `estadisticasPrevias/`.
+- [x] Actualizar los tests de puntaje, historial, estadísticas y "Mis partidas".
 
 **Listo cuando**: en el emulador se juega una partida completa y aparece en "Mis partidas" y en
 las estadísticas de todos los jugadores.
+Comprobado el 9/10/2026 en un emulador de Android contra los emuladores de Auth y Firestore: de
+a dos y de a cuatro, con estadísticas previas cargadas a mano, desde las cuentas de los dos
+jugadores y terminando una partida sin conexión.
 
 **Implicaciones**
 
@@ -241,6 +246,11 @@ las estadísticas de todos los jugadores.
   anotó, igual que hoy.
 - Si el servidor rechaza una partida guardada sin conexión, se pierde sin aviso. Hoy pasa lo
   mismo, pero con reglas hay más motivos de rechazo.
+- Las reglas comprueban que una partida sea coherente (equipos, ganador, campos de consulta),
+  pero no que los jugadores existan ni que sus nombres sean los reales. Comprobarlo haría que
+  una partida se pierda si alguien cambia de nombre o borra su perfil mientras se juega.
+- La app ya no lee ni escribe `users/` ni `doubles/`. Esas colecciones quedan solo para el
+  script de migración de la fase 4.
 
 ## Fase 4 — Migración y corte
 
@@ -363,9 +373,9 @@ Después de registrarse y verificar el mail:
 
 ## Riesgos aceptados
 
-- **Partidas falsas**: cualquier usuario verificado puede crear una partida que nombre a otro. Es
-  el costo de poder jugar con alguien sin esperar que acepte. Queda en un único documento, con
-  su autor en `creadaPor`.
+- **Partidas falsas**: cualquier usuario verificado puede crear una partida que nombre a otro, y
+  ponerle el nombre que quiera. Es el costo de poder jugar con alguien sin esperar que acepte.
+  Queda en un único documento, con su autor en `creadaPor`.
 - **Amigos no elegidos**: cualquiera puede agregarse a la lista de otro. Se lo puede quitar, pero
   puede volver a agregarse.
 - **Fuerza bruta sobre contraseñas viejas**: nadie las lee, pero un usuario verificado puede

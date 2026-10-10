@@ -5,6 +5,7 @@ import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Estadisticas
 import com.example.puntajeburaco20.domain.model.Jugador
+import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
@@ -180,26 +181,41 @@ class FakePartidaEnCursoRepository(var partida: Partida? = null) : PartidaEnCurs
     }
 }
 
-class FakeEstadisticasRepository : EstadisticasRepository {
+/**
+ * Estadísticas en memoria. Como el repositorio real, suma lo cargado en [generales] y
+ * [enfrentamientos] (las estadísticas previas) con lo que surge de las partidas guardadas.
+ */
+class FakeEstadisticasRepository(
+    private val partidasJugadas: FakePartidasJugadasRepository = FakePartidasJugadasRepository(),
+) : EstadisticasRepository {
 
-    val resultados = mutableListOf<Pair<Equipo, Equipo>>()
     val generales = mutableMapOf<String, Estadisticas>()
     val enfrentamientos = mutableMapOf<Pair<String, String>, Estadisticas>()
     var error: Exception? = null
 
-    override suspend fun registrarResultado(ganador: Equipo, perdedor: Equipo) {
-        error?.let { throw it }
-        resultados += ganador to perdedor
-    }
-
     override suspend fun obtenerGenerales(equipo: Equipo): Estadisticas? {
         error?.let { throw it }
-        return generales[equipo.id]
+        return sumar(generales[equipo.id], delHistorial(equipo, rival = null))
     }
 
     override suspend fun obtenerEnfrentamiento(equipo: Equipo, rival: Equipo): Estadisticas? {
         error?.let { throw it }
-        return enfrentamientos[equipo.id to rival.id]
+        return sumar(enfrentamientos[equipo.id to rival.id], delHistorial(equipo, rival))
+    }
+
+    private fun sumar(previas: Estadisticas?, historial: Estadisticas): Estadisticas? =
+        ((previas ?: Estadisticas.VACIAS) + historial).takeIf { it.jugadas > 0 }
+
+    private fun delHistorial(equipo: Equipo, rival: Equipo?): Estadisticas {
+        val lados = partidasJugadas.guardadas.mapNotNull { jugada ->
+            val partida = jugada.partida
+            val lado = LadoEquipo.entries.firstOrNull { partida.equipo(it).id == equipo.id }
+            lado?.takeIf { rival == null || partida.equipo(it.rival).id == rival.id }?.let { it to partida.ganador }
+        }
+        return Estadisticas(
+            jugadas = lados.size.toLong(),
+            ganadas = lados.count { (lado, ganador) -> lado == ganador }.toLong(),
+        )
     }
 }
 

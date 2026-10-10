@@ -3,9 +3,7 @@ package com.example.puntajeburaco20.data.firestore
 import com.example.puntajeburaco20.domain.model.Equipo
 
 /**
- * Nombres de colecciones y campos en Firestore.
- *
- * Los perfiles y las cuentas usan el esquema nuevo (ver docs/PLAN_AUTENTICACION.md):
+ * Nombres de colecciones y campos en Firestore (ver docs/PLAN_AUTENTICACION.md).
  *
  * ```
  * perfiles/{idPerfil}                    nombre, uid (ausente si no tiene login), creadoPor
@@ -13,21 +11,19 @@ import com.example.puntajeburaco20.domain.model.Equipo
  * nombres/{nombre}                       perfil    reserva el nombre de usuario, en minúsculas
  * cuentas/{uid}                          perfil    perfil vinculado a la cuenta de acceso
  * mails/{mail}                           perfil, uid    un mail no puede tener dos perfiles
+ *
+ * partidas/{idPartida}                   equipoUno, equipoDos, jugadores, nombres, equipos,
+ *                                        enfrentamiento, equipoGanador, empieza, rondas, fecha,
+ *                                        creadaPor
+ *
+ * estadisticasPrevias/{equipo}                    jugadas, ganadas
+ * estadisticasPrevias/{equipo}/rivales/{rival}    jugadas, ganadas
  * ```
  *
- * Las estadísticas y las partidas siguen en el esquema anterior hasta que se migren:
- *
- * ```
- * users/{idUsuario}                                 Partidas Jugadas, Partidas Ganadas
- * users/{idUsuario}/statistics/{idRival}            Partidas Jugadas, Partidas Ganadas
- * users/{idUsuario}/partidas/{idPartida}            EquipoUno, EquipoDos, Empieza, Rondas,
- *                                                   Ganador, Fecha
- * doubles/{idPareja}                                Partidas Jugadas, Partidas Ganadas
- * doubles/{idPareja}/statisticsDoubles/{idRival}    Partidas Jugadas, Partidas Ganadas
- * ```
- *
- * El id de una pareja es [Equipo.id] ("ana|zoe"). Las versiones anteriores concatenaban los ids
- * sin separador ([idParejaAnterior]); esos documentos se siguen leyendo pero ya no se escriben.
+ * Un equipo se identifica por [Equipo.id]: el id del perfil, o los dos ids ordenados y unidos con
+ * "|". Las estadísticas no se guardan: se cuentan las partidas, y para eso cada una repite sus
+ * equipos en los campos por los que se consulta (`equipos`, `enfrentamiento`, `equipoGanador`).
+ * `estadisticasPrevias` tiene los resultados anteriores a que existiera el detalle por partida.
  */
 internal object EsquemaFirestore {
     const val PERFILES = "perfiles"
@@ -35,6 +31,9 @@ internal object EsquemaFirestore {
     const val CUENTAS = "cuentas"
     const val MAILS = "mails"
     const val AMIGOS = "amigos"
+    const val PARTIDAS = "partidas"
+    const val ESTADISTICAS_PREVIAS = "estadisticasPrevias"
+    const val RIVALES = "rivales"
 
     const val NOMBRE = "nombre"
     const val UID = "uid"
@@ -42,26 +41,28 @@ internal object EsquemaFirestore {
     const val PERFIL = "perfil"
     const val DESDE = "desde"
 
-    // Esquema anterior
-    const val USUARIOS = "users"
-    const val ESTADISTICAS_INDIVIDUALES = "statistics"
-    const val PAREJAS = "doubles"
-    const val ESTADISTICAS_PAREJAS = "statisticsDoubles"
-    const val PARTIDAS = "partidas"
+    const val EQUIPO_UNO = "equipoUno"
+    const val EQUIPO_DOS = "equipoDos"
+    const val JUGADORES = "jugadores"
+    const val NOMBRES_DE_JUGADORES = "nombres"
+    const val EQUIPOS = "equipos"
+    const val ENFRENTAMIENTO = "enfrentamiento"
+    const val EQUIPO_GANADOR = "equipoGanador"
+    const val EMPIEZA = "empieza"
+    const val RONDAS = "rondas"
+    const val FECHA = "fecha"
+    const val CREADA_POR = "creadaPor"
+    const val BASE_UNO = "baseUno"
+    const val PUNTOS_UNO = "puntosUno"
+    const val BASE_DOS = "baseDos"
+    const val PUNTOS_DOS = "puntosDos"
 
-    const val PARTIDAS_JUGADAS = "Partidas Jugadas"
-    const val PARTIDAS_GANADAS = "Partidas Ganadas"
+    const val JUGADAS = "jugadas"
+    const val GANADAS = "ganadas"
 
-    const val EQUIPO_UNO = "EquipoUno"
-    const val EQUIPO_DOS = "EquipoDos"
-    const val EMPIEZA = "Empieza"
-    const val RONDAS = "Rondas"
-    const val GANADOR = "Ganador"
-    const val FECHA = "Fecha"
-    const val BASE_UNO = "BaseUno"
-    const val PUNTOS_UNO = "PuntosUno"
-    const val BASE_DOS = "BaseDos"
-    const val PUNTOS_DOS = "PuntosDos"
+    private const val SEPARADOR_ENFRENTAMIENTO = "~"
 
-    fun idParejaAnterior(pareja: Equipo): String = pareja.jugadores.map { it.id }.sorted().joinToString("")
+    /** Identifica a dos equipos que se enfrentan, sin importar de qué lado jugó cada uno. */
+    fun claveEnfrentamiento(equipo: Equipo, rival: Equipo): String =
+        listOf(equipo.id, rival.id).sorted().joinToString(SEPARADOR_ENFRENTAMIENTO)
 }

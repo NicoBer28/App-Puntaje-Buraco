@@ -6,62 +6,32 @@ import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.model.Ronda
-import com.example.puntajeburaco20.domain.model.Usuario
 import kotlinx.serialization.Serializable
 
 /**
  * Representación serializable de una [Partida], desacoplada del modelo de dominio.
  *
- * Todavía se leen dos formatos de versiones anteriores, que ya no se escriben, para poder retomar
- * una partida empezada antes de actualizar la app:
- * - el que identificaba a los jugadores solo por su nombre ([equipoUno], [equipoDos], [empieza]);
- * - el que no guardaba las rondas sino solo la última y los totales ([ultimaRondaUno],
- *   [ultimaRondaDos], [totalUno], [totalDos]).
+ * Una partida guardada por una versión anterior de la app, que identificaba a los jugadores solo
+ * por su nombre, no tiene estos campos: no se puede leer y se descarta.
  */
 @Serializable
 internal data class PartidaGuardada(
-    val jugadoresUno: List<JugadorGuardado>? = null,
-    val jugadoresDos: List<JugadorGuardado>? = null,
-    val idEmpieza: String? = null,
-    val rondas: List<RondaGuardada>? = null,
+    val jugadoresUno: List<JugadorGuardado>,
+    val jugadoresDos: List<JugadorGuardado>,
+    val idEmpieza: String,
+    val rondas: List<RondaGuardada>,
     val ganador: LadoEquipo? = null,
-    val equipoUno: List<String> = emptyList(),
-    val equipoDos: List<String> = emptyList(),
-    val empieza: String? = null,
-    val ultimaRondaUno: PuntajeGuardado? = null,
-    val ultimaRondaDos: PuntajeGuardado? = null,
-    val totalUno: Int = 0,
-    val totalDos: Int = 0,
 ) {
     fun aDominio(): Partida {
-        val uno = jugadoresUno?.map { it.aDominio() } ?: equipoUno.map(JugadorGuardado::delFormatoAnterior)
-        val dos = jugadoresDos?.map { it.aDominio() } ?: equipoDos.map(JugadorGuardado::delFormatoAnterior)
-        val todos = uno + dos
+        val uno = jugadoresUno.map { it.aDominio() }
+        val dos = jugadoresDos.map { it.aDominio() }
         return Partida(
             equipoUno = Equipo(uno),
             equipoDos = Equipo(dos),
-            empieza = todos.firstOrNull { it.id == idEmpieza }
-                ?: todos.firstOrNull { it.nombre == empieza }
-                ?: todos.first(),
-            rondas = rondas?.map { it.aDominio() } ?: rondasDelFormatoAnterior(),
+            empieza = (uno + dos).first { it.id == idEmpieza },
+            rondas = rondas.map { it.aDominio() },
             ganador = ganador,
         )
-    }
-
-    /**
-     * El formato anterior no tiene el detalle de cada ronda: todas las anteriores a la última se
-     * agrupan en una sola, de modo que los totales y la última ronda se mantienen.
-     */
-    private fun rondasDelFormatoAnterior(): List<Ronda> {
-        val ultima = Ronda(
-            equipoUno = ultimaRondaUno?.aDominio() ?: PuntajeRonda.CERO,
-            equipoDos = ultimaRondaDos?.aDominio() ?: PuntajeRonda.CERO,
-        )
-        val anteriores = Ronda(
-            equipoUno = PuntajeRonda(base = totalUno - ultima.equipoUno.total, puntos = 0),
-            equipoDos = PuntajeRonda(base = totalDos - ultima.equipoDos.total, puntos = 0),
-        )
-        return listOf(anteriores, ultima).filter { it != Ronda.CERO }
     }
 
     companion object {
@@ -81,9 +51,6 @@ internal data class JugadorGuardado(val id: String, val nombre: String) {
 
     companion object {
         fun desde(jugador: Jugador) = JugadorGuardado(jugador.id, jugador.nombre)
-
-        /** En el formato anterior el id de un jugador era su nombre en minúsculas. */
-        fun delFormatoAnterior(nombre: String) = Jugador(id = Usuario.claveDeNombre(nombre), nombre = nombre)
     }
 }
 

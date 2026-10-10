@@ -7,7 +7,10 @@ import com.example.puntajeburaco20.domain.model.PartidaJugada
 /** Historial detallado (ronda por ronda) de las partidas terminadas. */
 interface PartidasJugadasRepository {
 
-    /** Guarda la partida terminada en el historial de cada uno de sus jugadores. */
+    /**
+     * Guarda la partida terminada. No espera al servidor: sin conexión queda en el dispositivo y
+     * se sube después.
+     */
     suspend fun guardar(partida: Partida)
 
     /** Las últimas [limite] partidas del [jugador], de la más reciente a la más vieja. */

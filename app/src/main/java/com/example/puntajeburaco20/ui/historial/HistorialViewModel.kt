@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.puntajeburaco20.R
+import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Estadisticas
 import com.example.puntajeburaco20.domain.model.Jugador
@@ -120,8 +121,14 @@ class HistorialViewModel @Inject constructor(
                     }
                     if (estadisticas == null && sinPartidas != null) avisar(sinPartidas)
                 }
-                .onFailure {
-                    _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_consultar_estadisticas)))
+                .onFailure { error ->
+                    // Las estadísticas se calculan en el servidor: sin conexión no hay qué mostrar.
+                    val mensaje = if (error is ErrorUsuario.SinConexion) {
+                        UiText.de(R.string.error_estadisticas_sin_conexion)
+                    } else {
+                        error.aMensaje(R.string.error_consultar_estadisticas)
+                    }
+                    _eventos.send(Evento.Mensaje(mensaje))
                 }
             _estado.update { it.copy(buscando = false) }
         }

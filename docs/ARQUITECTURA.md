@@ -133,15 +133,25 @@ Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfi
 reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos
 listas a la vez. Sus tests están en `scripts/firestore/reglas/`.
 
+## Partidas y estadísticas
+
+Una partida terminada es un único documento de `partidas/`, que comparten todos sus jugadores y
+que nadie modifica después. Guardarla no espera al servidor, así que funciona sin conexión.
+
+Las estadísticas no se guardan: `FirestoreEstadisticasRepository` cuenta en el servidor las
+partidas que jugó y ganó cada equipo, y les suma `estadisticasPrevias/` (los resultados
+anteriores a que existiera el detalle por partida). Por eso consultarlas necesita conexión,
+mientras que "Mis partidas" se puede ver con la copia que Firestore guarda en el dispositivo.
+
 ## Compatibilidad con datos anteriores
 
 - **Preferencias**: la primera vez que arranca, DataStore migra el archivo de SharedPreferences de
   versiones anteriores (`SharedPreferencesMigration`).
-- **Partida en curso**: las versiones anteriores guardaban solo la última ronda y los totales, e
-  identificaban a los jugadores por su nombre. `PartidaGuardada` sigue leyendo ambos formatos
-  (las rondas previas a la última se agrupan en una, y el id es el nombre en minúsculas).
-- **Parejas**: el id pasó de `"anazoe"` a `"ana|zoe"` para evitar choques. Se escribe solo en el
-  documento nuevo, y al leer se suman el nuevo y el del formato anterior.
+- **Partida en curso**: las versiones anteriores identificaban a los jugadores por su nombre. Una
+  partida guardada así no se puede retomar: se descarta al abrir la app.
+- **Base de datos**: la app usa solo el esquema nuevo (`EsquemaFirestore`). Los datos de las
+  versiones anteriores (`users/`, `doubles/`) los pasa el script de migración de
+  [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md).
 
 ## Navegación
 

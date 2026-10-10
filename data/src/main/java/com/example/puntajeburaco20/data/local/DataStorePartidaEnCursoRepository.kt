@@ -23,9 +23,11 @@ class DataStorePartidaEnCursoRepository @Inject constructor(
         val guardada = preferencias.datosSeguros().first()[CLAVE_PARTIDA] ?: return null
         return try {
             json.decodeFromString(PartidaGuardada.serializer(), guardada).aDominio()
-        } catch (e: IllegalArgumentException) {
-            // Incluye SerializationException: JSON corrupto o de un formato desconocido.
+        } catch (e: RuntimeException) {
+            // JSON corrupto o de una versión anterior de la app (SerializationException), o datos
+            // que no forman una partida válida.
             Log.w(TAG, "Partida guardada inválida; se descarta", e)
+            eliminar()
             null
         }
     }
@@ -42,7 +44,6 @@ class DataStorePartidaEnCursoRepository @Inject constructor(
     private companion object {
         const val TAG = "PartidaEnCurso"
 
-        /** Misma clave que la versión anterior, para retomar una partida empezada antes de actualizar. */
         val CLAVE_PARTIDA = stringPreferencesKey("partidaEnCurso")
     }
 }

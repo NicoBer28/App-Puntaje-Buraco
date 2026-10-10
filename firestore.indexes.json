@@ -1,4 +1,21 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jugadores", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enfrentamiento", "order": "ASCENDING" },
+        { "fieldPath": "equipoGanador", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

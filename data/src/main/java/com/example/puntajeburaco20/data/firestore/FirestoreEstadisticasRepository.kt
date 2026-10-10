@@ -1,99 +1,77 @@
 package com.example.puntajeburaco20.data.firestore
 
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.ESTADISTICAS_INDIVIDUALES
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.ESTADISTICAS_PAREJAS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PAREJAS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PARTIDAS_GANADAS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PARTIDAS_JUGADAS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.USUARIOS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.idParejaAnterior
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.ENFRENTAMIENTO
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EQUIPOS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.EQUIPO_GANADOR
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.ESTADISTICAS_PREVIAS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.GANADAS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.JUGADAS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PARTIDAS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.RIVALES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.claveEnfrentamiento
+import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Estadisticas
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Los jugadores individuales guardan sus estadísticas en su propio documento de usuario; las
- * parejas, en la colección de dobles. Ver [EsquemaFirestore].
+ * Las estadísticas no están guardadas: se cuentan las partidas de `partidas/` que jugó y ganó
+ * cada equipo, y se les suma lo que haya en `estadisticasPrevias/` (los resultados anteriores a
+ * que existiera el detalle por partida). Ver [EsquemaFirestore].
  *
- * Las parejas pueden tener además un documento con el id del formato anterior: al leer se suman
- * ambos, así el historial previo no se pierde y no hace falta migrar datos.
+ * Firestore cuenta en el servidor, sin descargar las partidas, así que hace falta conexión.
  */
 @Singleton
 class FirestoreEstadisticasRepository @Inject constructor(
     private val db: FirebaseFirestore,
-    private val sincronizacion: FirestoreSincronizacionRepository,
 ) : EstadisticasRepository {
 
-    override suspend fun registrarResultado(ganador: Equipo, perdedor: Equipo) {
-        val victoria = mapOf(
-            PARTIDAS_JUGADAS to FieldValue.increment(1),
-            PARTIDAS_GANADAS to FieldValue.increment(1),
-        )
-        val derrota = mapOf(PARTIDAS_JUGADAS to FieldValue.increment(1))
+    private val partidas get() = db.collection(PARTIDAS)
 
-        sincronizacion.enviar(
-            db.batch().apply {
-                set(generales(ganador.id, ganador.esPareja), victoria, SetOptions.merge())
-                set(generales(perdedor.id, perdedor.esPareja), derrota, SetOptions.merge())
-                set(enfrentamiento(ganador.id, perdedor.id, ganador.esPareja), victoria, SetOptions.merge())
-                set(enfrentamiento(perdedor.id, ganador.id, perdedor.esPareja), derrota, SetOptions.merge())
-            },
-        )
-    }
+    private fun previas(equipo: Equipo) = db.collection(ESTADISTICAS_PREVIAS).document(equipo.id)
 
-    override suspend fun obtenerGenerales(equipo: Equipo): Estadisticas? =
-        leerYSumar(
-            buildList {
-                add(generales(equipo.id, equipo.esPareja))
-                if (equipo.esPareja) add(generales(idParejaAnterior(equipo), esPareja = true))
-            },
-        )
+    override suspend fun obtenerGenerales(equipo: Equipo): Estadisticas? = sumar(
+        previas = previas(equipo),
+        jugadas = partidas.whereArrayContains(EQUIPOS, equipo.id),
+        ganadas = partidas.whereEqualTo(EQUIPO_GANADOR, equipo.id),
+    )
 
-    override suspend fun obtenerEnfrentamiento(equipo: Equipo, rival: Equipo): Estadisticas? =
-        leerYSumar(
-            buildList {
-                add(enfrentamiento(equipo.id, rival.id, equipo.esPareja))
-                if (equipo.esPareja) {
-                    add(enfrentamiento(idParejaAnterior(equipo), idParejaAnterior(rival), esPareja = true))
-                }
-            },
-        )
-
-    private fun generales(id: String, esPareja: Boolean): DocumentReference {
-        val coleccion = if (esPareja) PAREJAS else USUARIOS
-        return db.collection(coleccion).document(id)
-    }
-
-    private fun enfrentamiento(id: String, idRival: String, esPareja: Boolean): DocumentReference {
-        val subcoleccion = if (esPareja) ESTADISTICAS_PAREJAS else ESTADISTICAS_INDIVIDUALES
-        return generales(id, esPareja).collection(subcoleccion).document(idRival)
-    }
-
-    /** Lee los documentos en paralelo y suma los que existen; `null` si no existe ninguno. */
-    private suspend fun leerYSumar(documentos: List<DocumentReference>): Estadisticas? = coroutineScope {
-        documentos
-            .map { async { it.get().await().aEstadisticas() } }
-            .awaitAll()
-            .filterNotNull()
-            .reduceOrNull { total, otras -> total + otras }
-    }
-
-    private fun DocumentSnapshot.aEstadisticas(): Estadisticas? {
-        if (!exists()) return null
-        return Estadisticas(
-            jugadas = getLong(PARTIDAS_JUGADAS) ?: 0,
-            ganadas = getLong(PARTIDAS_GANADAS) ?: 0,
+    override suspend fun obtenerEnfrentamiento(equipo: Equipo, rival: Equipo): Estadisticas? {
+        val entreEllos = partidas.whereEqualTo(ENFRENTAMIENTO, claveEnfrentamiento(equipo, rival))
+        return sumar(
+            previas = previas(equipo).collection(RIVALES).document(rival.id),
+            jugadas = entreEllos,
+            ganadas = entreEllos.whereEqualTo(EQUIPO_GANADOR, equipo.id),
         )
     }
+
+    /** Hace las tres consultas en paralelo; `null` si el equipo no tiene ninguna partida. */
+    private suspend fun sumar(previas: DocumentReference, jugadas: Query, ganadas: Query): Estadisticas? =
+        try {
+            coroutineScope {
+                val anteriores = async { previas.get().await() }
+                val cantidadJugadas = async { jugadas.contar() }
+                val cantidadGanadas = async { ganadas.contar() }
+                val total = Estadisticas(
+                    jugadas = cantidadJugadas.await() + (anteriores.await().getLong(JUGADAS) ?: 0),
+                    ganadas = cantidadGanadas.await() + (anteriores.await().getLong(GANADAS) ?: 0),
+                )
+                total.takeIf { it.jugadas > 0 }
+            }
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) throw ErrorUsuario.SinConexion
+            throw e
+        }
+
+    private suspend fun Query.contar(): Long = count().get(AggregateSource.SERVER).await().count
 }

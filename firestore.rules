@@ -130,6 +130,57 @@ service cloud.firestore {
         && esMiPerfilDespues(request.resource.data.perfil);
     }
 
+    // Una partida terminada, compartida por todos sus jugadores. La crea quien la anotó, que
+    // puede no haber jugado, y después nadie la modifica ni la borra. Las estadísticas se
+    // calculan contándolas: por eso se exige que los campos por los que se consulta (jugadores,
+    // equipos, enfrentamiento) coincidan con los equipos que dice tener.
+    match /partidas/{idPartida} {
+      allow read: if verificado();
+
+      allow create: if verificado()
+        && camposExactos(['equipoUno', 'equipoDos', 'jugadores', 'nombres', 'equipos', 'enfrentamiento',
+                          'equipoGanador', 'empieza', 'rondas', 'fecha', 'creadaPor'])
+        && request.resource.data.creadaPor == request.auth.uid
+        && request.resource.data.fecha == request.time
+        && equiposValidos(request.resource.data)
+        && request.resource.data.equipoGanador in request.resource.data.equipos
+        && request.resource.data.empieza in request.resource.data.jugadores
+        && request.resource.data.nombres.keys().toSet() == request.resource.data.jugadores.toSet()
+        && request.resource.data.rondas is list
+        && request.resource.data.rondas.size() <= 300;
+
+      // Se juega de a 2 o de a 4, sin repetir jugadores.
+      function equiposValidos(partida) {
+        return partida.equipoUno is list
+          && partida.equipoDos is list
+          && partida.equipoUno.size() in [1, 2]
+          && partida.equipoDos.size() == partida.equipoUno.size()
+          && partida.jugadores == partida.equipoUno.concat(partida.equipoDos)
+          && partida.jugadores.toSet().size() == partida.jugadores.size()
+          && partida.equipos == [claveDeEquipo(partida.equipoUno), claveDeEquipo(partida.equipoDos)]
+          && partida.enfrentamiento == ordenados(partida.equipos[0], partida.equipos[1], '~');
+      }
+
+      // La misma clave que usa la app: el id del jugador, o los dos ids ordenados y unidos con "|".
+      function claveDeEquipo(ids) {
+        return ids.size() == 1 ? ids[0] : ordenados(ids[0], ids[1], '|');
+      }
+
+      function ordenados(uno, otro, separador) {
+        return uno < otro ? uno + separador + otro : otro + separador + uno;
+      }
+    }
+
+    // Resultados anteriores a que existiera el detalle por partida. Los carga la migración y
+    // quedan congelados.
+    match /estadisticasPrevias/{equipo} {
+      allow get: if verificado();
+
+      match /rivales/{rival} {
+        allow get: if verificado();
+      }
+    }
+
     // Esquema anterior. Sigue abierto, igual que hasta ahora, mientras lo use la versión
     // publicada de la app. En el corte de la fase 4 pasa a estar bloqueado.
     match /users/{documento=**} {

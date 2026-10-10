@@ -231,6 +231,32 @@ class FlujosPrincipalesTest {
     }
 
     @Test
+    fun unaPartidaTerminadaCuentaEnLasEstadisticasDeLosDosJugadores() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            empezarPartidaAnaContraBeto()
+            cargarRonda("200", "50", "100", "0")
+            tocar("btnFin")
+            compose.onNodeWithTag("ganador_UNO").performClick()
+            compose.waitForIdle()
+            tocarDesplazando("btnAtras")
+            confirmarDialogo()
+
+            tocarDesplazando("btnHistoriales")
+            elegir(0, "Ana")
+            elegir(1, "Beto")
+            tocarDesplazando("btnBuscar")
+
+            // No hay contadores aparte: la partida recién guardada ya figura para ambos.
+            esperar("jugUno")
+            compose.onNodeWithTag("jugUno").performScrollTo().assertTextEquals("1")
+            compose.onNodeWithTag("ganUno").performScrollTo().assertTextEquals("1")
+            compose.onNodeWithTag("jugDos").performScrollTo().assertTextEquals("1")
+            compose.onNodeWithTag("ganDos").performScrollTo().assertTextEquals("0")
+        }
+    }
+
+    @Test
     fun cerrarSesionLlevaAlLogin() {
         iniciarSesionComoAna()
         abrirApp().use {
