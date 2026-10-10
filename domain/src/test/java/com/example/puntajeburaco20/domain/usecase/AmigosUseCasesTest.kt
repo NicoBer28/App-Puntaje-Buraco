@@ -53,9 +53,16 @@ class AmigosUseCasesTest {
     }
 
     @Test
-    fun `no se puede eliminar a alguien que no es amigo`() = runTest {
+    fun `no se puede eliminar a alguien que no es amigo, a uno mismo ni a quien no existe`() = runTest {
         esperarError<ErrorUsuario.NoEsAmigo> { eliminarAmigo("Beto") }
+        esperarError<ErrorUsuario.EsElUsuarioActual> { eliminarAmigo("ana") }
         esperarError<ErrorUsuario.UsuarioInexistente> { eliminarAmigo("Caro") }
+    }
+
+    @Test
+    fun `a un amigo se lo encuentra por su nombre sin distinguir mayusculas`() = runTest {
+        assertEquals(jugador("Beto"), usuarios.buscarPorNombre("BETO"))
+        assertEquals(null, usuarios.buscarPorNombre("Caro"))
     }
 
     @Test
@@ -63,6 +70,7 @@ class AmigosUseCasesTest {
         crearUsuarioAmigo("Caro")
 
         val caro = usuarios.obtener("caro")!!
+        assertEquals("Caro", caro.nombre)
         assertEquals(listOf(jugador("Ana")), caro.amigos)
         assertTrue(usuarios.obtener("ana")!!.esAmigoDe(caro.jugador))
         assertFalse(usuarios.tieneLogin("caro"))

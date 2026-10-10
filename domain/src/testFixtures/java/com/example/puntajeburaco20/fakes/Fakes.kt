@@ -54,7 +54,7 @@ class FakeUsuarioRepository : UsuarioRepository {
 
     override suspend fun obtener(id: String): Usuario? = aUsuario(id)
 
-    override suspend fun buscarPorNombre(nombre: String): Usuario? = aUsuario(Usuario.claveDeNombre(nombre))
+    override suspend fun buscarPorNombre(nombre: String): Jugador? = aJugador(Usuario.claveDeNombre(nombre))
 
     override fun observarIdDeCuenta(uid: String): Flow<String?> =
         perfiles.map { actuales -> actuales.entries.firstOrNull { it.value.uid == uid }?.key }
@@ -65,10 +65,12 @@ class FakeUsuarioRepository : UsuarioRepository {
         return aUsuario(id)!!
     }
 
-    override suspend fun crearSinLogin(nombre: String, creador: Cuenta): Usuario {
+    override suspend fun crearAmigoSinLogin(nombre: String, creador: Cuenta, amigoDe: Jugador): Jugador {
         val id = idLibre(nombre)
         perfiles.value += id to Perfil(nombre, uid = null, creadoPor = creador.uid, amigos = emptyList())
-        return aUsuario(id)!!
+        val nuevo = aJugador(id)!!
+        agregarAmistad(amigoDe, nuevo)
+        return nuevo
     }
 
     override suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador) {

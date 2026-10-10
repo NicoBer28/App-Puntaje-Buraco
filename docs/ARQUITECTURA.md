@@ -77,10 +77,10 @@ Ejemplo: el usuario toca **Agregar amigo**.
 2. El ViewModel ejecuta `AgregarAmigoUseCase` en una corrutina.
 3. El caso de uso aplica las reglas (no vacío, no uno mismo, existe, no es amigo ya) usando
    `UsuarioRepository` (interfaz) y lanza un `ErrorUsuario` si alguna falla.
-4. `FirestoreUsuarioRepository` escribe en Firestore. Las escrituras que no necesitan leer antes
-   no esperan al servidor: Firestore las guarda en el dispositivo y las sube cuando hay
-   conexión. Mientras tanto `SincronizacionRepository` informa que hay cambios pendientes y la
-   pantalla principal lo avisa.
+4. `FirestoreUsuarioRepository` escribe en Firestore (un lote atómico con la amistad en la lista
+   de cada uno). No espera al servidor: Firestore guarda la escritura en el dispositivo y la sube
+   cuando hay conexión. Mientras tanto `SincronizacionRepository` informa que hay cambios
+   pendientes y la pantalla principal lo avisa.
 5. El ViewModel emite un `Evento.Mensaje` con un `UiText`. La pantalla lo muestra en un
    snackbar (`Mensajero`).
 
@@ -125,8 +125,13 @@ El plan completo de este cambio, con sus fases, está en
 - `ObservarSesionUseCase` combina ambos en un `EstadoSesion`: sin sesión, sin verificar el mail,
   sin perfil (todavía no eligió nombre) o completa.
 
-Las reglas de seguridad (`firestore.rules`) exigen mail verificado y que el perfil, su nombre
-reservado, su cuenta y su mail se creen juntos. Sus tests están en `scripts/firestore/reglas/`.
+Hay perfiles **sin login**: los crea un usuario para alguien que no usa la app, y quedan a su
+cargo. Las amistades son siempre de a dos (cada una figura en la lista de ambos perfiles) y no
+necesitan que el otro acepte; la lista de amigos de cada uno es privada.
+
+Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfil, su nombre
+reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos
+listas a la vez. Sus tests están en `scripts/firestore/reglas/`.
 
 ## Compatibilidad con datos anteriores
 

@@ -29,6 +29,25 @@ service cloud.firestore {
       return perfilDespues(idPerfil).uid == request.auth.uid;
     }
 
+    function perfilAntes(idPerfil) {
+      return get(/databases/$(database)/documents/perfiles/$(idPerfil)).data;
+    }
+
+    // Quien responde por un perfil: su dueño o, mientras no tenga cuenta, quien lo creó.
+    function administra(datosDelPerfil) {
+      return datosDelPerfil.get('uid', null) == request.auth.uid
+        || (!('uid' in datosDelPerfil) && datosDelPerfil.get('creadoPor', null) == request.auth.uid);
+    }
+
+    // Perfil de la cuenta que hace el pedido.
+    function miPerfil() {
+      return get(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil;
+    }
+
+    function amistadDespues(idPerfil, idAmigo) {
+      return existsAfter(/databases/$(database)/documents/perfiles/$(idPerfil)/amigos/$(idAmigo));
+    }
+
     // Las mismas reglas que ValidadorCredenciales: de 3 a 8 letras o números.
     function nombreValido(nombre) {
       return nombre is string && nombre.matches('[a-zA-Z0-9]{3,8}');
@@ -37,15 +56,47 @@ service cloud.firestore {
     match /perfiles/{idPerfil} {
       allow get: if verificado();
 
-      // Una cuenta crea su propio perfil, y solo uno: cuentas/{uid} no se puede cambiar una
-      // vez creado, así que un segundo perfil nunca cumple la condición.
       allow create: if verificado()
-        && camposExactos(['nombre', 'uid'])
-        && request.resource.data.uid == request.auth.uid
         && nombreValido(request.resource.data.nombre)
         && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombre.lower())).data.perfil == idPerfil
-        && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
-        && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil;
+        && (esAltaPropia(idPerfil) || esAltaParaOtro(idPerfil));
+
+      // Una cuenta crea su propio perfil, y solo uno: cuentas/{uid} no se puede cambiar una
+      // vez creado, así que un segundo perfil nunca cumple la condición.
+      function esAltaPropia(idPerfil) {
+        return camposExactos(['nombre', 'uid'])
+          && request.resource.data.uid == request.auth.uid
+          && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
+          && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil;
+      }
+
+      // Perfil sin login para alguien que no usa la app. Nace como amigo de quien lo crea: así
+      // nunca queda uno suelto que nadie tenga en su lista.
+      function esAltaParaOtro(idPerfil) {
+        return camposExactos(['nombre', 'creadoPor'])
+          && request.resource.data.creadoPor == request.auth.uid
+          && amistadDespues(idPerfil, miPerfil());
+      }
+
+      // Las amistades son siempre de a dos: cada una figura en la lista de los dos perfiles.
+      match /amigos/{idAmigo} {
+        // La lista de amigos es privada.
+        allow read: if verificado() && administra(perfilAntes(idPerfil));
+
+        // Cualquiera de los dos lados puede crear la amistad, sin que el otro la acepte. En la
+        // lista de otro, entonces, cada uno solo puede agregarse a sí mismo.
+        allow create: if verificado()
+          && idPerfil != idAmigo
+          && (administra(perfilDespues(idPerfil)) || administra(perfilDespues(idAmigo)))
+          && camposExactos(['nombre', 'desde'])
+          && request.resource.data.nombre == perfilDespues(idAmigo).nombre
+          && request.resource.data.desde == request.time
+          && amistadDespues(idAmigo, idPerfil);
+
+        allow delete: if verificado()
+          && (administra(perfilAntes(idPerfil)) || administra(perfilAntes(idAmigo)))
+          && !amistadDespues(idAmigo, idPerfil);
+      }
     }
 
     // Reserva de nombres de usuario. El id es el nombre en minúsculas.
@@ -54,7 +105,7 @@ service cloud.firestore {
 
       allow create: if verificado()
         && camposExactos(['perfil'])
-        && esMiPerfilDespues(request.resource.data.perfil)
+        && administra(perfilDespues(request.resource.data.perfil))
         && perfilDespues(request.resource.data.perfil).nombre.lower() == nombre;
     }
 

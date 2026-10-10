@@ -9,13 +9,17 @@ import kotlinx.coroutines.flow.Flow
 /** Acceso a los perfiles de los jugadores, independiente de dónde estén guardados. */
 interface UsuarioRepository {
 
-    /** Emite el usuario cada vez que cambia, o `null` si no existe. */
+    /**
+     * Emite el usuario, con sus amigos, cada vez que cambia; o `null` si no existe. La lista de
+     * amigos es privada: solo se puede pedir el perfil propio.
+     */
     fun observar(id: String): Flow<Usuario?>
 
+    /** El usuario con sus amigos. Como [observar], solo sirve para el perfil propio. */
     suspend fun obtener(id: String): Usuario?
 
-    /** Busca por nombre de usuario, sin distinguir mayúsculas. */
-    suspend fun buscarPorNombre(nombre: String): Usuario?
+    /** Busca a cualquier jugador por su nombre de usuario, sin distinguir mayúsculas. */
+    suspend fun buscarPorNombre(nombre: String): Jugador?
 
     /**
      * Id del perfil vinculado a la cuenta [uid], o `null` si todavía no tiene uno. Emite de nuevo
@@ -33,12 +37,14 @@ interface UsuarioRepository {
     suspend fun crear(cuenta: Cuenta, nombre: String): Usuario
 
     /**
-     * Crea un perfil sin cuenta de acceso para alguien que no usa la app. Queda a cargo de
-     * [creador] hasta que esa persona lo reclame.
+     * Crea un perfil sin cuenta de acceso para alguien que no usa la app, ya como amigo de
+     * [amigoDe], que es el perfil de [creador]. Queda a cargo de [creador] hasta que esa persona
+     * lo reclame. Todo es una sola operación: nunca queda un perfil suelto que nadie tiene en
+     * su lista.
      *
      * @throws ErrorUsuario.NombreEnUso si ya existe un perfil con ese nombre.
      */
-    suspend fun crearSinLogin(nombre: String, creador: Cuenta): Usuario
+    suspend fun crearAmigoSinLogin(nombre: String, creador: Cuenta, amigoDe: Jugador): Jugador
 
     /** Registra la amistad en ambos sentidos. */
     suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador)

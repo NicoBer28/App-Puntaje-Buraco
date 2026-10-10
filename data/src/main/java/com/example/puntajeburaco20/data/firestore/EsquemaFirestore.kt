@@ -8,10 +8,11 @@ import com.example.puntajeburaco20.domain.model.Equipo
  * Los perfiles y las cuentas usan el esquema nuevo (ver docs/PLAN_AUTENTICACION.md):
  *
  * ```
- * perfiles/{idPerfil}       nombre, uid (ausente si no tiene login), creadoPor
- * nombres/{nombre}          perfil            reserva el nombre de usuario, en minúsculas
- * cuentas/{uid}             perfil            perfil vinculado a la cuenta de acceso
- * mails/{mail}              perfil, uid       un mail no puede quedar asociado a dos perfiles
+ * perfiles/{idPerfil}                    nombre, uid (ausente si no tiene login), creadoPor
+ * perfiles/{idPerfil}/amigos/{idAmigo}   nombre, desde    siempre de a dos: uno en cada perfil
+ * nombres/{nombre}                       perfil    reserva el nombre de usuario, en minúsculas
+ * cuentas/{uid}                          perfil    perfil vinculado a la cuenta de acceso
+ * mails/{mail}                           perfil, uid    un mail no puede tener dos perfiles
  * ```
  *
  * Las estadísticas y las partidas siguen en el esquema anterior hasta que se migren:
@@ -33,11 +34,13 @@ internal object EsquemaFirestore {
     const val NOMBRES = "nombres"
     const val CUENTAS = "cuentas"
     const val MAILS = "mails"
+    const val AMIGOS = "amigos"
 
     const val NOMBRE = "nombre"
     const val UID = "uid"
     const val CREADO_POR = "creadoPor"
     const val PERFIL = "perfil"
+    const val DESDE = "desde"
 
     // Esquema anterior
     const val USUARIOS = "users"

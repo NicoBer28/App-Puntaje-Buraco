@@ -14,8 +14,9 @@ class EliminarAmigoUseCase @Inject constructor(
 
         val amigo = usuarios.buscarPorNombre(nombreAmigo) ?: throw ErrorUsuario.UsuarioInexistente
         if (amigo.id == actual.id) throw ErrorUsuario.EsElUsuarioActual
-        if (!amigo.esAmigoDe(actual.jugador)) throw ErrorUsuario.NoEsAmigo
+        // Las amistades son siempre de a dos: alcanza con mirar la lista propia.
+        if (!actual.esAmigoDe(amigo)) throw ErrorUsuario.NoEsAmigo
 
-        usuarios.eliminarAmistad(actual.jugador, amigo.jugador)
+        usuarios.eliminarAmistad(actual.jugador, amigo)
     }
 }

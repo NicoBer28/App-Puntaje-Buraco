@@ -14,8 +14,8 @@ class AgregarAmigoUseCase @Inject constructor(
 
         val amigo = usuarios.buscarPorNombre(nombreAmigo) ?: throw ErrorUsuario.UsuarioInexistente
         if (amigo.id == actual.id) throw ErrorUsuario.EsElUsuarioActual
-        if (actual.esAmigoDe(amigo.jugador)) throw ErrorUsuario.YaEsAmigo
+        if (actual.esAmigoDe(amigo)) throw ErrorUsuario.YaEsAmigo
 
-        usuarios.agregarAmistad(actual.jugador, amigo.jugador)
+        usuarios.agregarAmistad(actual.jugador, amigo)
     }
 }

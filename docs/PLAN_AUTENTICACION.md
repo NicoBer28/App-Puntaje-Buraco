@@ -35,7 +35,7 @@ reales. La fase 4 migra los datos y es la única publicación obligada (**el cor
 | Registro | En dos pasos: primero la cuenta, después el perfil | Permite reclamar un perfil existente antes de elegir nombre |
 | Partidas | Un solo documento por partida. Las crea cualquier usuario verificado, participe o no | Quien anota puede no jugar. Una partida falsa queda en un único documento con autor |
 | Estadísticas | Se calculan contando partidas; no se guardan contadores | Nadie escribe en los datos de otro, y no pueden quedar desfasadas |
-| Amistad | Simétrica y sin aceptación. En la lista de otro, cada uno solo puede agregarse o quitarse a sí mismo | Se puede jugar con alguien sin esperar que acepte |
+| Amistad | Simétrica y sin aceptación. En la lista de otro, cada uno solo puede agregarse o quitarse a sí mismo. La lista de cada uno es privada | Se puede jugar con alguien sin esperar que acepte |
 | Cuenta para otro | Perfil sin login, sin contraseña, con el mail de la persona obligatorio | Así después puede reclamarlo |
 | Reclamo | Automático si el mail coincide; con aprobación de quien creó el perfil si no coincide | El nombre es público: no alcanza con saberlo |
 | Un mail, un perfil | No se puede crear una cuenta para otro con un mail que ya tiene cuenta o reclamo | Evita perfiles duplicados, que no se pueden fusionar |
@@ -124,7 +124,7 @@ A cada conteo se le suma lo que haya en `estadisticasPrevias/`.
 | Dato | Quién lee | Quién escribe |
 |---|---|---|
 | `perfiles/` y `nombres/` | Cualquier usuario verificado | El dueño. Quien lo creó, mientras no tenga `uid` |
-| `perfiles/{id}/amigos/` | Cualquier usuario verificado | El dueño de cualquiera de los dos lados |
+| `perfiles/{id}/amigos/` | El dueño del perfil | El dueño de cualquiera de los dos lados, y siempre los dos lados juntos |
 | `partidas/` | Cualquier usuario verificado | Las crea cualquier usuario verificado, con su `uid` en `creadaPor`. Nadie las modifica |
 | `cuentas/{uid}` | Esa cuenta | Esa cuenta |
 | `mails/{mail}` | El dueño de ese mail y quien creó el reclamo | Igual. Un mail existente no se puede pisar |
@@ -134,6 +134,9 @@ A cada conteo se le suma lo que haya en `estadisticasPrevias/`.
 
 "Dueño de cualquiera de los dos lados" equivale a que cada uno solo puede agregarse o quitarse
 a sí mismo de la lista de otro. Para un perfil sin login, el dueño es quien lo creó.
+
+Las reglas rechazan una amistad a medias: se crea o se borra en las dos listas a la vez. Por eso
+a cada uno le alcanza con leer su propia lista, y nadie necesita ver la de otro.
 
 ## Fase 0 — Preparación
 
@@ -189,18 +192,26 @@ partida en curso ya guarda los ids de los jugadores (fase 3).
 
 ## Fase 2 — Amigos y cuentas para otros
 
-- [ ] `UsuarioRepository` sobre el esquema nuevo: buscar por `nombres/`, y amigos en la
+- [x] `UsuarioRepository` sobre el esquema nuevo: buscar por `nombres/`, y amigos en la
       subcolección `amigos/` de cada perfil.
-- [ ] Agregar y quitar amigos escribe los dos lados en una sola operación, como hoy.
-- [ ] **Crear cuenta para otro**: `CrearUsuarioAmigoUseCase` deja de pedir contraseña. Crea un
+- [x] Agregar y quitar amigos escribe los dos lados en una sola operación, como hoy.
+- [x] **Crear cuenta para otro**: `CrearUsuarioAmigoUseCase` deja de pedir contraseña. Crea un
       perfil sin login con `creadoPor`, reserva su nombre y lo agrega como amigo. El mail llega
-      en la fase 5. El caso de uso y la pantalla ya están (fase 1); falta
-      `FirestoreUsuarioRepository.crearSinLogin`.
-- [ ] Reglas y tests de reglas para `amigos/` y para los perfiles sin login.
-- [ ] Actualizar los tests de amigos y el flujo de UI correspondiente.
+      en la fase 5. El perfil nace ya con la amistad, en la misma operación: las reglas no
+      aceptan uno que nadie tenga en su lista.
+- [x] Reglas y tests de reglas para `amigos/` y para los perfiles sin login.
+- [x] Actualizar los tests de amigos y el flujo de UI correspondiente.
 
 **Listo cuando**: en el emulador dos cuentas se agregan y se quitan, y una crea un perfil para
 un tercero y lo ve en su lista.
+Comprobado el 9/10/2026 en un emulador de Android contra los emuladores de Auth y Firestore,
+también sin conexión (la amistad se guarda en el dispositivo y sube al volver la señal).
+
+**Implicaciones**
+
+- Buscar a alguien por su nombre necesita conexión, salvo que ya se lo haya buscado antes en ese
+  dispositivo. Crear un usuario para otro necesita conexión siempre.
+- Quien creó un perfil sin login puede quitarlo de la lista de cualquiera, porque responde por él.
 
 ## Fase 3 — Partidas y estadísticas
 

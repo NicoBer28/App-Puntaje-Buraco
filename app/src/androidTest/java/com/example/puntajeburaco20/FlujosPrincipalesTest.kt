@@ -28,6 +28,7 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +71,8 @@ class FlujosPrincipalesTest {
     private fun abrirApp() = ActivityScenario.launch(MainActivity::class.java)
 
     private fun iniciarSesionComoAna() = runBlocking { auth.iniciarSesion(cuentaDe("Ana").mail, CLAVE) }
+
+    private fun amigosDeAna() = runBlocking { usuarios.obtener("ana")!!.amigos }
 
     private fun escribir(tag: String, texto: String) {
         esperar(tag)
@@ -158,6 +161,32 @@ class FlujosPrincipalesTest {
 
             esperar("btnPerfil")
             compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Caro")
+        }
+    }
+
+    @Test
+    fun agregarUnAmigoYCrearUnUsuarioParaOtroLosDejaElegibles() {
+        usuarios.registrar("Caro")
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocarDesplazando("btnUsuario")
+
+            // Se confirma desde el teclado: mientras se abre, los botones todavía se están moviendo.
+            escribir("usuarioAmigo", "caro")
+            compose.onNodeWithTag("usuarioAmigo").performImeAction()
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { amigosDeAna().any { it.nombre == "Caro" } }
+
+            escribir("usuarioCrear", "Dani")
+            compose.onNodeWithTag("usuarioCrear").performImeAction()
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { amigosDeAna().any { it.nombre == "Dani" } }
+            // Dani no usa la app: su perfil no tiene cuenta y queda a cargo de Ana.
+            assertFalse(usuarios.tieneLogin("dani"))
+            assertEquals(cuentaDe("Ana").uid, usuarios.creadorDe("dani"))
+
+            tocar("btnVolver")
+            tocarDesplazando("jugador_0")
+            esperar("opcion_caro")
+            esperar("opcion_dani")
         }
     }
 

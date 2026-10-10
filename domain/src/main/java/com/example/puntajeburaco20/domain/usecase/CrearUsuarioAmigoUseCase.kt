@@ -25,8 +25,7 @@ class CrearUsuarioAmigoUseCase @Inject constructor(
             throw ErrorUsuario.EsElUsuarioActual
         }
 
-        // crearSinLogin() falla con NombreEnUso si el nombre ya está tomado.
-        val nuevo = usuarios.crearSinLogin(nombre, creador = sesion.cuenta)
-        usuarios.agregarAmistad(actual.jugador, nuevo.jugador)
+        // Falla con NombreEnUso si el nombre ya está tomado.
+        usuarios.crearAmigoSinLogin(nombre, creador = sesion.cuenta, amigoDe = actual.jugador)
     }
 }
