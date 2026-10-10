@@ -11,8 +11,8 @@ Las fases 1 a 3 se desarrollan y prueban contra el emulador de Firebase, sin toc
 reales. La fase 4 migra los datos y es la única publicación obligada (**el corte**). Las fases
 5 a 7 se publican después, cada una por separado.
 
-**Estado al 10/10/2026**: fases 0 a 6 hechas, con el corte aplicado y las reglas hasta la fase 6
-publicadas en el proyecto real. Falta la fase 7. El APK se reparte cuando estén todas.
+**Estado al 10/10/2026**: las siete fases están hechas, con el corte aplicado y todas las reglas
+publicadas en el proyecto real. Falta repartir el APK.
 
 ## Conceptos
 
@@ -136,10 +136,10 @@ A cada conteo se le suma lo que haya en `estadisticasPrevias/`.
 
 | Dato | Quién lee | Quién escribe |
 |---|---|---|
-| `perfiles/` y `nombres/` | Cualquier usuario verificado | El dueño. Quien lo creó, mientras no tenga `uid`. Un perfil migrado, quien demuestre saber su contraseña vieja, y solo para quedárselo |
+| `perfiles/` y `nombres/` | Cualquier usuario verificado | El dueño, que lo renombra y lo borra. Quien lo creó, mientras no tenga `uid`. Un perfil migrado, quien demuestre saber su contraseña vieja, y solo para quedárselo |
 | `perfiles/{id}/amigos/` | El dueño del perfil | El dueño de cualquiera de los dos lados, y siempre los dos lados juntos |
 | `partidas/` | Cualquier usuario verificado | Las crea cualquier usuario verificado, con su `uid` en `creadaPor`. Nadie las modifica |
-| `cuentas/{uid}` | Esa cuenta | Esa cuenta |
+| `cuentas/{uid}` | Esa cuenta | Esa cuenta: la crea con su perfil y la borra con él |
 | `mails/{mail}` | El dueño de ese mail y quien creó el reclamo. Que un mail está libre lo ve cualquier usuario verificado | El registro de una cuenta, su dueño. Un reclamo lo crea y lo borra quien creó el perfil; el dueño del mail lo acepta (pasa a ser el registro de su cuenta) o lo borra. Un mail existente no se puede pisar |
 | `estadisticasPrevias/` | Cualquier usuario verificado | Nadie |
 | `pedidosReclamo/{uid}` | Esa cuenta y quien creó el perfil pedido | Lo crea esa cuenta, si no tiene perfil. Lo borran ella o quien creó el perfil. Nadie lo modifica |
@@ -442,13 +442,32 @@ confirme desde el aviso, y volver a ingresar y aceptar el perfil.
 
 Se puede publicar sola.
 
-- [ ] **Renombrar**: reservar el nombre nuevo, liberar el anterior y actualizar `nombre` en el
-      perfil y en las listas de sus amigos.
-- [ ] **Borrar un perfil sin login**: lo hace quien lo creó, desde la pantalla de amigos. Se
-      borran el perfil, su nombre reservado, su reclamo y sus amistades.
-- [ ] **Borrar la cuenta propia**: desde el perfil. Además de lo anterior se borran la cuenta de
-      Auth, `cuentas/{uid}` y `mails/{mail}`. Firebase pide haber iniciado sesión hace poco.
-- [ ] Reglas: borra quien creó el perfil mientras no tenga `uid`, y solo el dueño después.
+- [x] **Renombrar**: reservar el nombre nuevo, liberar el anterior y actualizar `nombre` en el
+      perfil y en las listas de sus amigos. El propio, desde el perfil; el de un usuario creado
+      para otro, desde "Usuarios que creaste" en la pantalla Amigos, junto con su mail.
+- [x] **Borrar un perfil sin login**: lo hace quien lo creó, desde la pantalla de amigos. Se
+      borran el perfil, su nombre reservado, su reclamo, los pedidos que le hayan hecho y sus
+      amistades.
+- [x] **Borrar la cuenta propia**: desde el perfil. Además de lo anterior se borran la cuenta de
+      Auth, `cuentas/{uid}` y `mails/{mail}`. Firebase pide haber iniciado sesión hace poco: la
+      app pide la contraseña y la comprueba antes de borrar nada.
+- [x] Reglas: renombra y borra quien creó el perfil mientras no tenga `uid`, y solo el dueño
+      después. Un perfil no puede quedarse con dos nombres reservados ni con ninguno, y se borra
+      junto con su nombre (y con su cuenta y su mail, si tiene dueño).
+- [x] Las amistades se corrigen o se quitan de a tres por operación: las reglas consultan los dos
+      perfiles de cada una y tienen un tope de documentos por operación. Al borrar van primero
+      las amistades y al final el perfil, así que si se corta en el medio el perfil sigue
+      existiendo y se puede volver a intentar.
+
+**Listo cuando**: en el emulador alguien cambia su nombre, edita y borra un usuario que creó para
+otro, y borra su cuenta.
+Comprobado el 10/10/2026 en un emulador de Android contra los emuladores de Auth y Firestore, con
+un perfil con 8 amigos: renombrarlo (el nombre cambió en las 8 listas), renombrar, cambiarle el
+mail y borrar un usuario creado para otro con 6 amistades, y borrar la cuenta propia (rechazó
+una contraseña equivocada; con la real no quedó ningún documento ni la cuenta de Auth) y
+registrarse de nuevo con el mismo mail y el mismo nombre.
+
+**Publicación**: las reglas se publicaron el 10/10/2026; el APK todavía no se repartió.
 
 **Implicaciones**
 
@@ -456,6 +475,13 @@ Se puede publicar sola.
 - Las partidas ya jugadas no se borran: siguen en el historial de los otros jugadores, con el
   nombre que el perfil tenía en ese momento.
 - Las partidas viejas conservan el nombre anterior de quien se renombró.
+- Si la corrección del nombre en las listas de los amigos se corta en el medio, algunos lo siguen
+  viendo con el nombre anterior. Es solo lo que se muestra: el perfil ya es el mismo para todos.
+- El nombre de quien creó un perfil queda copiado en la reserva de ese perfil: si después se
+  renombra, a quien se le ofrezca el perfil le va a figurar el nombre anterior.
+- Los usuarios que alguien creó para otros no se borran con su cuenta. Siguen en las listas de
+  sus demás amigos y su dueño todavía puede aceptarlos con el mail reservado, pero ya no queda
+  nadie que pueda renombrarlos, borrarlos ni confirmar un pedido.
 
 ## Cómo queda el registro al final
 

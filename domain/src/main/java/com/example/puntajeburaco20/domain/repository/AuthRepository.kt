@@ -41,4 +41,15 @@ interface AuthRepository {
 
     /** Envía un mail para elegir una contraseña nueva. No informa si el mail tiene cuenta o no. */
     suspend fun enviarRecuperacion(mail: String)
+
+    /**
+     * Vuelve a comprobar la contraseña de la cuenta actual. Hace falta antes de [borrarCuenta],
+     * que solo se permite a quien inició sesión hace poco.
+     *
+     * @throws ErrorUsuario.CredencialesIncorrectas si la contraseña no coincide.
+     */
+    suspend fun confirmarIdentidad(password: String)
+
+    /** Elimina la cuenta actual, que deja de tener la sesión iniciada. No se puede deshacer. */
+    suspend fun borrarCuenta()
 }

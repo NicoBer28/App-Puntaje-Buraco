@@ -99,6 +99,16 @@
         <item>Oscuro</item>
     </string-array>
     <string name="seccion_cuenta">Cuenta</string>
+    <string name="opcion_cambiar_nombre">Cambiar nombre de usuario</string>
+    <string name="opcion_cambiar_nombre_detalle">Tus amigos te van a buscar con el nuevo</string>
+    <string name="dialogo_nombre_titulo">Nombre de usuario</string>
+    <string name="dialogo_nombre_detalle">De 3 a 8 letras o números. Las partidas ya jugadas conservan el nombre anterior.</string>
+    <string name="mensaje_nombre_cambiado">Nombre cambiado</string>
+    <string name="opcion_borrar_cuenta">Borrar mi cuenta</string>
+    <string name="opcion_borrar_cuenta_detalle">Se borra tu perfil y no se puede deshacer</string>
+    <string name="dialogo_borrar_cuenta_titulo">Borrar mi cuenta</string>
+    <string name="dialogo_borrar_cuenta_detalle">Se borran tu perfil y tus amistades, y tu nombre y tu mail quedan libres. Las partidas que jugaste siguen en el historial de los demás. Para confirmar, escribí tu contraseña.</string>
+    <string name="accion_borrar_cuenta">Borrar cuenta</string>
     <string name="opcion_cambiar_contrasena">Cambiar contraseña</string>
     <string name="opcion_cambiar_contrasena_detalle">Elegí una clave nueva</string>
     <string name="seccion_aplicacion">Aplicación</string>
@@ -161,11 +171,13 @@
     <string name="seccion_perfiles_a_cargo">Usuarios que creaste</string>
     <string name="seccion_perfiles_a_cargo_detalle">Cada uno espera a que su dueño se registre con el mail que le cargaste.</string>
     <string name="perfil_a_cargo_sin_mail">Sin mail</string>
-    <string name="accion_cargar_mail">Cargar mail</string>
-    <string name="accion_cambiar_mail">Cambiar mail</string>
-    <string name="dialogo_mail_titulo">Mail de %1$s</string>
+    <string name="accion_editar">Editar</string>
+    <string name="dialogo_usuario_titulo">Usuario que creaste</string>
     <string name="accion_guardar">Guardar</string>
-    <string name="mensaje_mail_guardado">Mail guardado</string>
+    <string name="mensaje_usuario_guardado">Cambios guardados</string>
+    <string name="accion_borrar_usuario">Borrar usuario</string>
+    <string name="dialogo_borrar_usuario">Se borra el usuario %1$s y deja de ser amigo de todos. Las partidas que jugó siguen en el historial de los demás.</string>
+    <string name="mensaje_usuario_borrado">Usuario borrado</string>
     <string name="accion_crear_usuario">Crear usuario</string>
     <string name="hint_usuario_amigo">Usuario del amigo</string>
     <string name="accion_agregar_amigo">Agregar</string>
@@ -252,6 +264,7 @@
         <item quantity="other">La contraseña debe tener al menos %1$d caracteres</item>
     </plurals>
     <string name="error_credenciales_incorrectas">Mail o contraseña incorrectos</string>
+    <string name="error_contrasena_incorrecta">La contraseña no coincide</string>
     <string name="error_demasiados_intentos">Demasiados intentos. Probá de nuevo más tarde.</string>
     <string name="error_sin_conexion">No hay conexión. Revisá tu internet y probá de nuevo.</string>
     <string name="error_sin_sesion">No hay una sesión iniciada</string>

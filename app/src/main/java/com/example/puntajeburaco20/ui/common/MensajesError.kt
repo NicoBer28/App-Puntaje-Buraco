@@ -22,6 +22,7 @@ fun Throwable.aMensaje(@StringRes errorInesperado: Int = R.string.error_verifica
         is ErrorUsuario.MailSinVerificar -> UiText.de(R.string.error_mail_sin_verificar)
         is ErrorUsuario.ContrasenaCorta -> UiText.Plural(R.plurals.error_contrasena_corta, minimo)
         is ErrorUsuario.CredencialesIncorrectas -> UiText.de(R.string.error_credenciales_incorrectas)
+        is ErrorUsuario.ContrasenaIncorrecta -> UiText.de(R.string.error_contrasena_incorrecta)
         is ErrorUsuario.DemasiadosIntentos -> UiText.de(R.string.error_demasiados_intentos)
         is ErrorUsuario.SinConexion -> UiText.de(R.string.error_sin_conexion)
         is ErrorUsuario.SinSesion -> UiText.de(R.string.error_sin_sesion)

@@ -66,10 +66,11 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     │                         recuperar el perfil que ya se tenía o aceptar el que creó otro
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── pedidos/              Aviso de que alguien pide un perfil que el usuario creó para otro
-    ├── perfil/               Datos de la cuenta, tema claro u oscuro, cerrar sesión
+    ├── perfil/               Datos de la cuenta, tema claro u oscuro, cambiar el nombre de
+    │                         usuario, cerrar sesión y borrar la cuenta
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
-    ├── amigos/               Agregar / eliminar amigos, crear usuarios para otros y cargarles
-    │                         el mail
+    ├── amigos/               Agregar / eliminar amigos; crear usuarios para otros, cambiarles
+    │                         el nombre o el mail y borrarlos
     ├── historial/            Estadísticas por jugador o pareja
     └── partidas/             "Mis partidas": historial ronda por ronda, racha y promedio
 ```
@@ -144,6 +145,12 @@ Si esa persona se registra con **otro mail**, lo recupera desde "Ya tenía un pe
 usuario y sin contraseña. Eso crea un `PedidoDeReclamo` y la deja esperando. Quien creó el perfil
 ve el pedido al abrir la app (`PedidosRecibidos`, sobre cualquier pantalla): si lo confirma, el
 perfil queda reservado para el mail del pedido y la persona lo recibe como en el caso anterior.
+
+El nombre de usuario se puede **cambiar**: el perfil conserva su id, así que sus amigos y sus
+partidas siguen siendo los mismos (las partidas ya jugadas muestran el nombre que tenía). Un
+perfil también se puede **borrar**: el propio, junto con la cuenta, y el de un usuario creado
+para otro mientras nadie lo haya aceptado. Las partidas que jugó quedan en el historial de los
+demás.
 
 Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfil, su nombre
 reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos
@@ -289,8 +296,8 @@ habla con Firebase.
   (incluido el formato anterior); `app/src/test` los ViewModels.
 - **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren ingresar, crear una cuenta
   (verificar el mail y elegir nombre), recuperar un perfil anterior, aceptar uno creado por otro,
-  pedirlo cuando el mail no coincide y confirmar ese pedido, crear un usuario para otro y
-  corregirle el mail, anotar y deshacer rondas,
+  pedirlo cuando el mail no coincide y confirmar ese pedido, crear un usuario para otro,
+  editarlo y borrarlo, cambiar el nombre propio y borrar la cuenta, anotar y deshacer rondas,
   terminar una partida y verla en "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule`
   reemplaza a `DataModule`, así que no tocan Firebase. Los elementos se buscan por `testTag`.
 - **De reglas de seguridad** (`scripts/firestore/reglas`, Node + emulador de Firestore): prueban

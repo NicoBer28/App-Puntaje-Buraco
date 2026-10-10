@@ -325,18 +325,66 @@ class FlujosPrincipalesTest {
             assertEquals(cuentaDe("Ana").uid, usuarios.creadorDe("dani"))
             assertEquals("dani@test.com", usuarios.mailReservadoPara("dani"))
 
-            // Ana se equivocó de mail: lo corrige desde la lista de usuarios que creó.
-            tocarDesplazando("btnMail_dani")
+            // Ana se equivocó de nombre y de mail: los corrige desde la lista de usuarios que creó.
+            tocarDesplazando("btnEditar_dani")
             esperar("mailACargo")
+            compose.onNodeWithTag("nombreACargo").performTextReplacement("Daniel")
             compose.onNodeWithTag("mailACargo").performTextReplacement("daniel@test.com")
-            tocar("btnGuardarMail")
+            tocar("btnGuardarUsuario")
             compose.waitUntil(TIEMPO_MAXIMO_MS) { usuarios.mailReservadoPara("dani") == "daniel@test.com" }
+            assertTrue(amigosDeAna().any { it.nombre == "Daniel" })
 
             // El encabezado se desplaza con el contenido, y la lista está al final de la pantalla.
             tocarDesplazando("btnVolver")
             tocarDesplazando("jugador_0")
             esperar("opcion_caro")
             esperar("opcion_dani")
+        }
+    }
+
+    @Test
+    fun quienCreoUnUsuarioParaOtroLoPuedeBorrar() {
+        runBlocking {
+            usuarios.crearAmigoSinLogin("Dani", "dani@test.com", creador = cuentaDe("Ana"), amigoDe = jugador("Ana"))
+        }
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocarDesplazando("btnUsuario")
+            tocarDesplazando("btnEditar_dani")
+            tocar("btnBorrarUsuario")
+            confirmarDialogo()
+
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { runBlocking { usuarios.obtener("dani") } == null }
+            assertEquals(listOf(jugador("Beto")), amigosDeAna())
+            // Ya no figura entre los usuarios que creó.
+            compose.waitUntil(TIEMPO_MAXIMO_MS) {
+                compose.onAllNodesWithTag("btnEditar_dani").fetchSemanticsNodes().isEmpty()
+            }
+        }
+    }
+
+    @Test
+    fun desdeElPerfilSeCambiaElNombreYSeBorraLaCuenta() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocar("btnPerfil")
+            tocarDesplazando("opcionCambiarNombre")
+            esperar("nombreNuevo")
+            compose.onNodeWithTag("nombreNuevo").performTextReplacement("Anita")
+            tocar("btnGuardarNombre")
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { runBlocking { usuarios.obtener("ana") }?.nombre == "Anita" }
+            compose.onNodeWithTag("nombrePerfil").assertTextEquals("Anita")
+
+            // Borrar la cuenta pide la contraseña, y al terminar la app vuelve al ingreso.
+            tocarDesplazando("opcionBorrarCuenta")
+            esperar("passwordBorrarCuenta")
+            compose.onNodeWithTag("passwordBorrarCuenta").performTextReplacement(CLAVE)
+            tocar("btnBorrarCuenta")
+
+            esperar("btnLogin")
+            assertNull(runBlocking { usuarios.obtener("ana") })
+            assertFalse(auth.tieneCuenta("ana@test.com"))
+            assertEquals(emptyList<Any>(), runBlocking { usuarios.obtener("beto")!!.amigos })
         }
     }
 

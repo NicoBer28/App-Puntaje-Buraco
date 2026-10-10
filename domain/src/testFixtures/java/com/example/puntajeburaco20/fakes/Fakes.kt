@@ -88,7 +88,7 @@ class FakeUsuarioRepository : UsuarioRepository {
 
     override suspend fun obtener(id: String): Usuario? = aUsuario(id)
 
-    override suspend fun buscarPorNombre(nombre: String): Jugador? = aJugador(Usuario.claveDeNombre(nombre))
+    override suspend fun buscarPorNombre(nombre: String): Jugador? = idDe(nombre)?.let(::aJugador)
 
     override fun observarIdDeCuenta(uid: String): Flow<String?> =
         perfiles.map { actuales -> actuales.entries.firstOrNull { it.value.uid == uid }?.key }
@@ -103,8 +103,8 @@ class FakeUsuarioRepository : UsuarioRepository {
 
     override suspend fun vincularAnterior(cuenta: Cuenta, nombre: String, passwordAnterior: String): Jugador {
         if (cuenta.mail in reservas.value) throw ErrorUsuario.ReclamoPendiente
-        val id = Usuario.claveDeNombre(nombre)
-        val perfil = perfiles.value[id] ?: throw ErrorUsuario.UsuarioInexistente
+        val id = idDe(nombre) ?: throw ErrorUsuario.UsuarioInexistente
+        val perfil = perfiles.value.getValue(id)
         when {
             perfil.uid != null -> throw ErrorUsuario.PerfilYaVinculado
             perfil.creadoPor != null -> throw ErrorUsuario.PerfilCreadoPorOtro
@@ -172,8 +172,8 @@ class FakeUsuarioRepository : UsuarioRepository {
 
     override suspend fun pedirPerfil(cuenta: Cuenta, nombre: String): PedidoDeReclamo {
         if (cuenta.mail in reservas.value) throw ErrorUsuario.ReclamoPendiente
-        val id = Usuario.claveDeNombre(nombre)
-        val perfil = perfiles.value[id] ?: throw ErrorUsuario.UsuarioInexistente
+        val id = idDe(nombre) ?: throw ErrorUsuario.UsuarioInexistente
+        val perfil = perfiles.value.getValue(id)
         if (perfil.uid != null) throw ErrorUsuario.PerfilYaVinculado
         if (perfil.creadoPor == null) throw ErrorUsuario.UsuarioInexistente
         val pedido = PedidoDeReclamo(cuenta.uid, cuenta.mail, Jugador(id, perfil.nombre))
@@ -212,9 +212,37 @@ class FakeUsuarioRepository : UsuarioRepository {
         if (mail in mailsConCuenta || mail in reservas.value) throw ErrorUsuario.MailConPerfil
     }
 
+    override suspend fun renombrar(perfil: Jugador, nombreNuevo: String): Jugador {
+        if (idDe(nombreNuevo) !in listOf(null, perfil.id)) throw ErrorUsuario.NombreEnUso
+        perfiles.value += perfil.id to perfiles.value.getValue(perfil.id).copy(nombre = nombreNuevo)
+        return perfil.copy(nombre = nombreNuevo)
+    }
+
+    override suspend fun borrarPerfilACargo(perfil: Jugador, creador: Cuenta) = borrar(perfil.id)
+
+    override suspend fun borrarPerfilPropio(perfil: Jugador, cuenta: Cuenta) {
+        borrar(perfil.id)
+        mailsConCuenta -= cuenta.mail
+    }
+
+    /** Quita el perfil con todo lo que lo nombra: amistades, la reserva de su mail y sus pedidos. */
+    private fun borrar(id: String) {
+        perfiles.value = (perfiles.value - id).mapValues { (_, otro) -> otro.copy(amigos = otro.amigos - id) }
+        reservas.value = reservas.value.filterValues { it.idPerfil != id }
+        pedidos.value = pedidos.value.filterValues { it.perfil.id != id }
+    }
+
+    /** Id del perfil que hoy se llama así, sin distinguir mayúsculas. */
+    private fun idDe(nombre: String): String? {
+        val clave = Usuario.claveDeNombre(nombre)
+        return perfiles.value.entries.firstOrNull { Usuario.claveDeNombre(it.value.nombre) == clave }?.key
+    }
+
+    /** Un id para un perfil nuevo: el nombre en minúsculas, salvo que lo tenga uno que después se renombró. */
     private fun idLibre(nombre: String): String {
-        val id = Usuario.claveDeNombre(nombre)
-        if (id in perfiles.value) throw ErrorUsuario.NombreEnUso
+        if (idDe(nombre) != null) throw ErrorUsuario.NombreEnUso
+        var id = Usuario.claveDeNombre(nombre)
+        while (id in perfiles.value) id += "2"
         return id
     }
 
@@ -297,6 +325,23 @@ class FakeAuthRepository(cuentaInicial: Cuenta? = null) : AuthRepository {
         error?.let { throw it }
         recuperacionesEnviadas += mail
     }
+
+    override suspend fun confirmarIdentidad(password: String) {
+        error?.let { throw it }
+        val cuenta = actual.value ?: throw ErrorUsuario.SinSesion
+        // Una cuenta puesta directo en el constructor no tiene registro: se da por buena.
+        if (registros[cuenta.mail]?.let { it.password != password } == true) throw ErrorUsuario.CredencialesIncorrectas
+    }
+
+    override suspend fun borrarCuenta() {
+        error?.let { throw it }
+        val cuenta = actual.value ?: throw ErrorUsuario.SinSesion
+        registros -= cuenta.mail
+        actual.value = null
+    }
+
+    /** `true` si se puede iniciar sesión con ese mail. */
+    fun tieneCuenta(mail: String): Boolean = mail in registros
 }
 
 class FakePartidaEnCursoRepository(var partida: Partida? = null) : PartidaEnCursoRepository {

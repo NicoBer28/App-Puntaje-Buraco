@@ -8,9 +8,11 @@ import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.domain.usecase.AgregarAmigoUseCase
+import com.example.puntajeburaco20.domain.usecase.BorrarPerfilACargoUseCase
 import com.example.puntajeburaco20.domain.usecase.CrearUsuarioAmigoUseCase
 import com.example.puntajeburaco20.domain.usecase.EliminarAmigoUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarPerfilesACargoUseCase
+import com.example.puntajeburaco20.domain.usecase.RenombrarPerfilUseCase
 import com.example.puntajeburaco20.domain.usecase.ReservarPerfilACargoUseCase
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.common.aMensaje
@@ -27,13 +29,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Agregar o quitar amigos, y crear usuarios para quienes no usan la app. */
+/** Agregar o quitar amigos, y crear, editar y borrar usuarios para quienes no usan la app. */
 @HiltViewModel
 class AmigosViewModel @Inject constructor(
     private val agregarAmigo: AgregarAmigoUseCase,
     private val eliminarAmigo: EliminarAmigoUseCase,
     private val crearUsuarioAmigo: CrearUsuarioAmigoUseCase,
     private val reservarPerfilACargo: ReservarPerfilACargoUseCase,
+    private val renombrarPerfil: RenombrarPerfilUseCase,
+    private val borrarPerfilACargoUseCase: BorrarPerfilACargoUseCase,
     observarPerfilesACargo: ObservarPerfilesACargoUseCase,
 ) : ViewModel() {
 
@@ -71,11 +75,19 @@ class AmigosViewModel @Inject constructor(
         limpiar = Evento.LimpiarNuevoUsuario,
     ) { crearUsuarioAmigo(nombre, mail) }
 
-    /** Carga o corrige el mail para el que queda reservado un usuario que creó para otro. */
-    fun cambiarMail(perfil: PerfilACargo, mail: String) = ejecutar(
-        exito = R.string.mensaje_mail_guardado,
-        campoUnico = true,
-    ) { reservarPerfilACargo(perfil, mail) }
+    /** Cambia el nombre de un usuario que creó para otro, o el mail para el que queda reservado. */
+    fun guardarPerfilACargo(perfil: PerfilACargo, nombre: String, mail: String) = ejecutar(
+        exito = R.string.mensaje_usuario_guardado,
+    ) {
+        val renombrado = perfil.copy(jugador = renombrarPerfil(perfil.jugador, nombre))
+        // Un usuario que todavía no tiene mail puede seguir sin él; una vez que lo tiene, solo
+        // se lo puede cambiar por otro.
+        if (mail.isNotBlank() || perfil.mail != null) reservarPerfilACargo(renombrado, mail)
+    }
+
+    fun borrarPerfilACargo(perfil: PerfilACargo) = ejecutar(exito = R.string.mensaje_usuario_borrado) {
+        borrarPerfilACargoUseCase(perfil)
+    }
 
     private fun ejecutar(
         @StringRes exito: Int,

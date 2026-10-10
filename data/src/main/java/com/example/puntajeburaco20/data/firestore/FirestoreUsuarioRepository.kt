@@ -271,6 +271,62 @@ class FirestoreUsuarioRepository @Inject constructor(
         conConexion { pedidoDe(pedido.uid).delete().await() }
     }
 
+    /**
+     * El perfil, la reserva nueva y la anterior cambian juntos: las reglas no aceptan que un
+     * perfil se quede con dos nombres ni con ninguno. La copia del nombre que guarda cada amigo
+     * se corrige después, de a pocas.
+     */
+    override suspend fun renombrar(perfil: Jugador, nombreNuevo: String): Jugador = conConexion {
+        val nombreActual = nombreActualDe(perfil)
+        if (Usuario.claveDeNombre(nombreNuevo) == Usuario.claveDeNombre(nombreActual)) {
+            // Solo cambian mayúsculas: la reserva es la misma.
+            perfil(perfil.id).update(NOMBRE, nombreNuevo).await()
+        } else {
+            reservandoNombre(nombreNuevo) { transaccion ->
+                transaccion.update(perfil(perfil.id), NOMBRE, nombreNuevo)
+                transaccion.delete(reservaDe(nombreActual))
+                transaccion.set(reservaDe(nombreNuevo), mapOf(PERFIL to perfil.id))
+            }
+        }
+        for (grupo in amigos(perfil.id).get(Source.SERVER).await().documents.chunked(AMISTADES_POR_LOTE)) {
+            db.batch().apply {
+                grupo.forEach { amigo -> update(amigos(amigo.id).document(perfil.id), NOMBRE, nombreNuevo) }
+            }.commit().await()
+        }
+        perfil.copy(nombre = nombreNuevo)
+    }
+
+    override suspend fun borrarPerfilACargo(perfil: Jugador, creador: Cuenta) {
+        conConexion {
+            val nombreActual = nombreActualDe(perfil)
+            quitarAmistadesDe(perfil.id)
+            val suyos = { coleccion: String, campoCreador: String ->
+                db.collection(coleccion).whereEqualTo(campoCreador, creador.uid).whereEqualTo(PERFIL, perfil.id)
+            }
+            val reservas = suyos(MAILS, CREADO_POR).get(Source.SERVER).await().documents
+            val pedidos = suyos(PEDIDOS, CREADOR).get(Source.SERVER).await().documents
+            db.batch().apply {
+                (reservas + pedidos).forEach { delete(it.reference) }
+                delete(perfil(perfil.id))
+                delete(reservaDe(nombreActual))
+            }.commit().await()
+        }
+    }
+
+    /** El perfil, su nombre, la cuenta y el mail se borran juntos: las reglas no aceptan menos. */
+    override suspend fun borrarPerfilPropio(perfil: Jugador, cuenta: Cuenta) {
+        conConexion {
+            val nombreActual = nombreActualDe(perfil)
+            quitarAmistadesDe(perfil.id)
+            db.batch().apply {
+                delete(perfil(perfil.id))
+                delete(reservaDe(nombreActual))
+                delete(db.collection(CUENTAS).document(cuenta.uid))
+                delete(registroDe(cuenta.mail))
+            }.commit().await()
+        }
+    }
+
     /** Los dos lados van en el mismo lote: las reglas rechazan una amistad a medias. */
     override suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador) {
         sincronizacion.enviar(
@@ -314,6 +370,26 @@ class FirestoreUsuarioRepository @Inject constructor(
      */
     private fun DocumentReference.confirmados(): Flow<DocumentSnapshot> =
         snapshots(MetadataChanges.INCLUDE).filter { it.exists() || !it.metadata.isFromCache }
+
+    /** El nombre con el que el perfil está reservado ahora: el que trae quien llama puede ser viejo. */
+    private suspend fun nombreActualDe(perfil: Jugador): String =
+        perfil(perfil.id).get(Source.SERVER).await().getString(NOMBRE) ?: throw ErrorUsuario.UsuarioInexistente
+
+    /**
+     * Quita todas las amistades de un perfil, antes de borrarlo. Va de a pocas porque las reglas
+     * consultan los dos perfiles de cada amistad y tienen un tope de documentos por operación; si
+     * se corta en el medio, el perfil sigue existiendo y se puede volver a intentar.
+     */
+    private suspend fun quitarAmistadesDe(idPerfil: String) {
+        for (grupo in amigos(idPerfil).get(Source.SERVER).await().documents.chunked(AMISTADES_POR_LOTE)) {
+            db.batch().apply {
+                grupo.forEach { amigo ->
+                    delete(amigo.reference)
+                    delete(amigos(amigo.id).document(idPerfil))
+                }
+            }.commit().await()
+        }
+    }
 
     /** Las escrituras con las que un perfil sin dueño pasa a ser de la [cuenta]. */
     private fun Transaction.vincular(idPerfil: String, cuenta: Cuenta, datosDeCuenta: Map<String, Any> = emptyMap()) {
@@ -376,5 +452,10 @@ class FirestoreUsuarioRepository @Inject constructor(
         val jugador = aJugador() ?: return null
         val amigos = amistades.documents.mapNotNull { it.aJugador() }.sortedBy { it.nombre.lowercase(Locale.ROOT) }
         return Usuario(jugador, amigos)
+    }
+
+    private companion object {
+        /** Amistades que se corrigen o se quitan en una misma operación. */
+        const val AMISTADES_POR_LOTE = 3
     }
 }

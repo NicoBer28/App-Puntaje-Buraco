@@ -64,11 +64,19 @@ fun DialogoConfirmacion(
     @StringRes mensaje: Int,
     alConfirmar: () -> Unit,
     alCerrar: () -> Unit,
+) = DialogoConfirmacion(stringResource(mensaje), alConfirmar, alCerrar)
+
+/** Diálogo de confirmación "Sí / No", con un mensaje ya armado. */
+@Composable
+fun DialogoConfirmacion(
+    mensaje: String,
+    alConfirmar: () -> Unit,
+    alCerrar: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = alCerrar,
         title = { Text(stringResource(R.string.dialogo_confirmacion_titulo)) },
-        text = { Text(stringResource(mensaje), style = MaterialTheme.typography.bodyLarge) },
+        text = { Text(mensaje, style = MaterialTheme.typography.bodyLarge) },
         confirmButton = {
             TextButton(
                 onClick = {

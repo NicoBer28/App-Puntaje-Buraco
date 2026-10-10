@@ -31,6 +31,7 @@ import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
 import com.example.puntajeburaco20.ui.common.CampoTexto
+import com.example.puntajeburaco20.ui.common.DialogoConfirmacion
 import com.example.puntajeburaco20.ui.common.Encabezado
 import com.example.puntajeburaco20.ui.common.PantallaBuraco
 import com.example.puntajeburaco20.ui.common.RecolectarEventos
@@ -49,8 +50,9 @@ fun AmigosScreen(
     var amigo by rememberSaveable { mutableStateOf("") }
     var usuarioNuevo by rememberSaveable { mutableStateOf("") }
     var mailNuevo by rememberSaveable { mutableStateOf("") }
-    // El usuario al que se le está cargando o corrigiendo el mail.
+    // El usuario creado para otro que se está editando, y el que se está por borrar.
     var editando by remember { mutableStateOf<PerfilACargo?>(null) }
+    var borrando by remember { mutableStateOf<PerfilACargo?>(null) }
 
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {
@@ -151,24 +153,32 @@ fun AmigosScreen(
                     stringResource(R.string.seccion_perfiles_a_cargo_detalle),
                 )
                 perfilesACargo.forEach { perfil ->
-                    FilaPerfilACargo(perfil, alCambiarMail = { editando = perfil }, habilitado = !cargando)
+                    FilaPerfilACargo(perfil, alEditar = { editando = perfil }, habilitado = !cargando)
                 }
             }
         }
     }
 
     editando?.let { perfil ->
-        DialogoMail(
+        DialogoPerfilACargo(
             perfil = perfil,
-            alGuardar = { viewModel.cambiarMail(perfil, it) },
+            alGuardar = { nombre, mail -> viewModel.guardarPerfilACargo(perfil, nombre, mail) },
+            alBorrar = { borrando = perfil },
             alCerrar = { editando = null },
+        )
+    }
+    borrando?.let { perfil ->
+        DialogoConfirmacion(
+            mensaje = stringResource(R.string.dialogo_borrar_usuario, perfil.jugador.nombre),
+            alConfirmar = { viewModel.borrarPerfilACargo(perfil) },
+            alCerrar = { borrando = null },
         )
     }
 }
 
-/** Un usuario creado para otro: su nombre, el mail para el que está reservado y cómo cambiarlo. */
+/** Un usuario creado para otro: su nombre, el mail para el que está reservado y cómo editarlo. */
 @Composable
-private fun FilaPerfilACargo(perfil: PerfilACargo, alCambiarMail: () -> Unit, habilitado: Boolean) {
+private fun FilaPerfilACargo(perfil: PerfilACargo, alEditar: () -> Unit, habilitado: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(perfil.jugador.nombre, style = MaterialTheme.typography.titleMedium)
@@ -181,42 +191,66 @@ private fun FilaPerfilACargo(perfil: PerfilACargo, alCambiarMail: () -> Unit, ha
             )
         }
         TextButton(
-            onClick = alCambiarMail,
-            modifier = Modifier.testTag("btnMail_${perfil.jugador.id}"),
+            onClick = alEditar,
+            modifier = Modifier.testTag("btnEditar_${perfil.jugador.id}"),
             enabled = habilitado,
         ) {
-            Text(
-                stringResource(if (perfil.mail == null) R.string.accion_cargar_mail else R.string.accion_cambiar_mail),
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Text(stringResource(R.string.accion_editar), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
 
+/** Cambiar el nombre o el mail de un usuario creado para otro, o borrarlo. */
 @Composable
-private fun DialogoMail(perfil: PerfilACargo, alGuardar: (mail: String) -> Unit, alCerrar: () -> Unit) {
+private fun DialogoPerfilACargo(
+    perfil: PerfilACargo,
+    alGuardar: (nombre: String, mail: String) -> Unit,
+    alBorrar: () -> Unit,
+    alCerrar: () -> Unit,
+) {
+    var nombre by rememberSaveable { mutableStateOf(perfil.jugador.nombre) }
     var mail by rememberSaveable { mutableStateOf(perfil.mail.orEmpty()) }
     val guardar = {
         alCerrar()
-        alGuardar(mail)
+        alGuardar(nombre, mail)
     }
     AlertDialog(
         onDismissRequest = alCerrar,
-        title = { Text(stringResource(R.string.dialogo_mail_titulo, perfil.jugador.nombre)) },
+        title = { Text(stringResource(R.string.dialogo_usuario_titulo)) },
         text = {
-            CampoTexto(
-                valor = mail,
-                alCambiar = { mail = it },
-                etiqueta = stringResource(R.string.hint_mail),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("mailACargo"),
-                teclado = TECLADO_MAIL,
-                acciones = KeyboardActions(onDone = { guardar() }),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                CampoTexto(
+                    valor = nombre,
+                    alCambiar = { nombre = it },
+                    etiqueta = stringResource(R.string.hint_usuario),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("nombreACargo"),
+                    teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
+                )
+                CampoTexto(
+                    valor = mail,
+                    alCambiar = { mail = it },
+                    etiqueta = stringResource(R.string.hint_mail),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("mailACargo"),
+                    teclado = TECLADO_MAIL,
+                    acciones = KeyboardActions(onDone = { guardar() }),
+                )
+                TextButton(
+                    onClick = {
+                        alCerrar()
+                        alBorrar()
+                    },
+                    modifier = Modifier.testTag("btnBorrarUsuario"),
+                ) {
+                    Text(stringResource(R.string.accion_borrar_usuario), color = MaterialTheme.colorScheme.error)
+                }
+            }
         },
         confirmButton = {
-            TextButton(onClick = guardar, modifier = Modifier.testTag("btnGuardarMail")) {
+            TextButton(onClick = guardar, modifier = Modifier.testTag("btnGuardarUsuario")) {
                 Text(stringResource(R.string.accion_guardar))
             }
         },

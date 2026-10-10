@@ -6,8 +6,8 @@ Están ordenados por prioridad.
 
 ## Seguridad y datos (prioridad alta)
 
-1. **Terminar el plan de cuentas.** De [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md) falta la
-   fase 7 (renombrar y borrar perfiles). Después, repartir el APK.
+1. **Repartir el APK.** Las siete fases de [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md) están
+   hechas y sus reglas publicadas; falta que la versión nueva llegue a los usuarios.
 2. **Borrar el esquema anterior.** `users/`, `doubles/` y `users_v2/` siguen en la base como
    respaldo de la migración, con las contraseñas viejas sin hashear. Las reglas los bloquean
    para todos, pero conviene borrarlos cuando el esquema nuevo lleve un tiempo funcionando bien
@@ -43,7 +43,7 @@ Están ordenados por prioridad.
 
 ## Hecho
 
-Se resolvieron en la rama `feature/cuentas-y-esquema-nuevo` (fases 0 a 6 de
+Se resolvieron en la rama `feature/cuentas-y-esquema-nuevo` (las siete fases de
 [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md)):
 
 - Cuentas con Firebase Authentication: mail verificado, contraseña de 6 caracteres o más y
@@ -56,6 +56,7 @@ Se resolvieron en la rama `feature/cuentas-y-esquema-nuevo` (fases 0 a 6 de
 - Una partida es un solo documento y las estadísticas se calculan contándolas.
 - Migración de los datos anteriores al esquema nuevo. Quien ya usaba la app recupera su perfil
   con la contraseña que tenía.
+- Cambiar el nombre de usuario, y borrar la cuenta propia o un usuario creado para otro.
 - El campo de contraseña muestra cada carácter al escribirlo y tiene un botón para verla entera.
 
 Se resolvieron en la rama `refactor/arquitectura`:

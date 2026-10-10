@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,14 +17,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +42,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -43,6 +51,8 @@ import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.ui.common.Avatar
 import com.example.puntajeburaco20.ui.common.BotonSecundario
+import com.example.puntajeburaco20.ui.common.CampoContrasena
+import com.example.puntajeburaco20.ui.common.CampoTexto
 import com.example.puntajeburaco20.ui.common.DialogoConfirmacion
 import com.example.puntajeburaco20.ui.common.Encabezado
 import com.example.puntajeburaco20.ui.common.PantallaBuraco
@@ -62,6 +72,8 @@ fun PerfilScreen(
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val mensajero = rememberMensajero()
     var confirmarCierre by remember { mutableStateOf(false) }
+    var cambiandoNombre by remember { mutableStateOf(false) }
+    var borrandoCuenta by remember { mutableStateOf(false) }
 
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {
@@ -94,14 +106,31 @@ fun PerfilScreen(
                 tag = { "tema_${ModoTema.entries[it].name}" },
             )
         }
-        // Estas opciones todavía no tienen pantalla: se muestran marcadas como "Pronto" y avisan al tocarlas.
         GrupoOpciones(stringResource(R.string.seccion_cuenta)) {
+            FilaOpcion(
+                titulo = R.string.opcion_cambiar_nombre,
+                detalle = R.string.opcion_cambiar_nombre_detalle,
+                icono = R.drawable.ic_edit,
+                tag = "opcionCambiarNombre",
+                alTocar = { cambiandoNombre = true },
+            )
+            SeparadorDeOpciones()
+            // Las opciones que todavía no tienen pantalla se muestran marcadas como "Pronto" y avisan al tocarlas.
             OpcionProximamente(
                 titulo = R.string.opcion_cambiar_contrasena,
                 detalle = R.string.opcion_cambiar_contrasena_detalle,
                 icono = R.drawable.ic_lock,
                 tag = "opcionCambiarContrasena",
                 avisar = mensajero::mostrar,
+            )
+            SeparadorDeOpciones()
+            FilaOpcion(
+                titulo = R.string.opcion_borrar_cuenta,
+                detalle = R.string.opcion_borrar_cuenta_detalle,
+                icono = R.drawable.ic_person_remove,
+                tag = "opcionBorrarCuenta",
+                alTocar = { borrandoCuenta = true },
+                peligrosa = true,
             )
         }
         GrupoOpciones(stringResource(R.string.seccion_aplicacion)) {
@@ -112,10 +141,7 @@ fun PerfilScreen(
                 tag = "opcionConfiguracion",
                 avisar = mensajero::mostrar,
             )
-            HorizontalDivider(
-                Modifier.padding(start = 74.dp, end = 20.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
+            SeparadorDeOpciones()
             OpcionProximamente(
                 titulo = R.string.opcion_ayuda,
                 detalle = R.string.opcion_ayuda_detalle,
@@ -143,6 +169,86 @@ fun PerfilScreen(
             alCerrar = { confirmarCierre = false },
         )
     }
+    if (cambiandoNombre) {
+        DialogoNombre(
+            nombreActual = estado.nombreUsuario,
+            alGuardar = viewModel::cambiarNombre,
+            alCerrar = { cambiandoNombre = false },
+        )
+    }
+    if (borrandoCuenta) {
+        DialogoBorrarCuenta(alBorrar = viewModel::borrarCuenta, alCerrar = { borrandoCuenta = false })
+    }
+}
+
+@Composable
+private fun DialogoNombre(nombreActual: String, alGuardar: (nombre: String) -> Unit, alCerrar: () -> Unit) {
+    var nombre by rememberSaveable { mutableStateOf(nombreActual) }
+    val guardar = {
+        alCerrar()
+        alGuardar(nombre)
+    }
+    AlertDialog(
+        onDismissRequest = alCerrar,
+        title = { Text(stringResource(R.string.dialogo_nombre_titulo)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.dialogo_nombre_detalle), style = MaterialTheme.typography.bodyMedium)
+                CampoTexto(
+                    valor = nombre,
+                    alCambiar = { nombre = it },
+                    etiqueta = stringResource(R.string.hint_usuario),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("nombreNuevo"),
+                    teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Done),
+                    acciones = KeyboardActions(onDone = { guardar() }),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = guardar, modifier = Modifier.testTag("btnGuardarNombre")) {
+                Text(stringResource(R.string.accion_guardar))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = alCerrar) { Text(stringResource(R.string.cancelar)) }
+        },
+    )
+}
+
+/** Borrar la cuenta no se puede deshacer: explica qué se pierde y pide la contraseña para confirmar. */
+@Composable
+private fun DialogoBorrarCuenta(alBorrar: (password: String) -> Unit, alCerrar: () -> Unit) {
+    val password = rememberTextFieldState()
+    val borrar = {
+        alCerrar()
+        alBorrar(password.text.toString())
+    }
+    AlertDialog(
+        onDismissRequest = alCerrar,
+        title = { Text(stringResource(R.string.dialogo_borrar_cuenta_titulo)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.dialogo_borrar_cuenta_detalle), style = MaterialTheme.typography.bodyMedium)
+                CampoContrasena(
+                    estado = password,
+                    etiqueta = stringResource(R.string.hint_password),
+                    alConfirmar = borrar,
+                    etiquetaDePrueba = "passwordBorrarCuenta",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = borrar, modifier = Modifier.testTag("btnBorrarCuenta")) {
+                Text(stringResource(R.string.accion_borrar_cuenta), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = alCerrar) { Text(stringResource(R.string.cancelar)) }
+        },
+    )
 }
 
 /** Quién tiene la sesión iniciada, dentro del encabezado. */
@@ -204,40 +310,13 @@ private fun OpcionProximamente(
     avisar: (UiText) -> Unit,
 ) {
     val nombre = stringResource(titulo)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button) { avisar(UiText.de(R.string.mensaje_proximamente, nombre)) }
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-            .testTag(tag),
-        verticalAlignment = Alignment.CenterVertically,
+    FilaOpcion(
+        titulo = titulo,
+        detalle = detalle,
+        icono = icono,
+        tag = tag,
+        alTocar = { avisar(UiText.de(R.string.mensaje_proximamente, nombre)) },
     ) {
-        Box(
-            Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painterResource(icono),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        Column(
-            Modifier
-                .weight(1f)
-                .padding(horizontal = 14.dp),
-        ) {
-            Text(nombre, style = MaterialTheme.typography.titleMedium)
-            Text(
-                stringResource(detalle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
         Text(
             stringResource(R.string.etiqueta_proximamente),
             modifier = Modifier
@@ -248,4 +327,69 @@ private fun OpcionProximamente(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * Fila tocable de un grupo de opciones: un ícono, el título y una línea de detalle. Las
+ * [peligrosa]s, que no se pueden deshacer, van en el color de error.
+ */
+@Composable
+private fun FilaOpcion(
+    @StringRes titulo: Int,
+    @StringRes detalle: Int,
+    @DrawableRes icono: Int,
+    tag: String,
+    alTocar: () -> Unit,
+    peligrosa: Boolean = false,
+    alFinal: @Composable () -> Unit = {},
+) {
+    val esquema = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = alTocar)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .testTag(tag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (peligrosa) esquema.errorContainer else esquema.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painterResource(icono),
+                contentDescription = null,
+                tint = if (peligrosa) esquema.onErrorContainer else esquema.onPrimaryContainer,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(horizontal = 14.dp),
+        ) {
+            Text(
+                stringResource(titulo),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (peligrosa) esquema.error else Color.Unspecified,
+            )
+            Text(
+                stringResource(detalle),
+                style = MaterialTheme.typography.bodySmall,
+                color = esquema.onSurfaceVariant,
+            )
+        }
+        alFinal()
+    }
+}
+
+@Composable
+private fun SeparadorDeOpciones() {
+    HorizontalDivider(
+        Modifier.padding(start = 74.dp, end = 20.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
 }

@@ -8,6 +8,7 @@ import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -73,6 +74,19 @@ class FirebaseAuthRepository @Inject constructor(
         } catch (_: FirebaseAuthInvalidUserException) {
             // No se informa si el mail tiene cuenta o no.
         }
+        Unit
+    }
+
+    override suspend fun confirmarIdentidad(password: String) = traducirErrores {
+        val usuario = auth.currentUser ?: throw ErrorUsuario.SinSesion
+        usuario.reauthenticate(EmailAuthProvider.getCredential(usuario.email.orEmpty(), password)).await()
+        Unit
+    }
+
+    override suspend fun borrarCuenta() = traducirErrores {
+        val usuario = auth.currentUser ?: throw ErrorUsuario.SinSesion
+        usuario.delete().await()
+        publicarCuentaActual()
         Unit
     }
 

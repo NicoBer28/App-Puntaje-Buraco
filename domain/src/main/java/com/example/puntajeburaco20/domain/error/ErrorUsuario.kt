@@ -19,6 +19,9 @@ sealed class ErrorUsuario : Exception() {
 
     /** El mail no tiene cuenta o la contraseña no coincide: no se distingue cuál de las dos. */
     data object CredencialesIncorrectas : ErrorUsuario()
+
+    /** La contraseña con la que la cuenta confirma una operación delicada no es la suya. */
+    data object ContrasenaIncorrecta : ErrorUsuario()
     data object DemasiadosIntentos : ErrorUsuario()
     data object SinConexion : ErrorUsuario()
     data object SinSesion : ErrorUsuario()

@@ -123,6 +123,30 @@ interface UsuarioRepository {
     /** Quien creó el perfil dice que quien hizo el [pedido] no es su dueño. */
     suspend fun rechazarPedido(pedido: PedidoDeReclamo)
 
+    /**
+     * Cambia el nombre de usuario de [perfil], que tiene que ser el propio o uno sin cuenta que
+     * haya creado quien hace el pedido. Reserva el nombre nuevo y libera el anterior en una sola
+     * operación, y después lo corrige en la lista de cada amigo. Las partidas ya jugadas conservan
+     * el nombre que tenía.
+     *
+     * @return el perfil con su nombre nuevo.
+     * @throws ErrorUsuario.NombreEnUso si ya existe otro perfil con ese nombre.
+     */
+    suspend fun renombrar(perfil: Jugador, nombreNuevo: String): Jugador
+
+    /**
+     * Borra un perfil sin cuenta que [creador] creó para otra persona, con sus amistades, su
+     * nombre reservado, la reserva de su mail y los pedidos que le hayan hecho. Las partidas que
+     * jugó no se borran: siguen en el historial de los demás jugadores.
+     */
+    suspend fun borrarPerfilACargo(perfil: Jugador, creador: Cuenta)
+
+    /**
+     * Borra el perfil de la [cuenta] con sus amistades, y deja libres su nombre y su mail. La
+     * cuenta de acceso se elimina aparte. Las partidas que jugó no se borran.
+     */
+    suspend fun borrarPerfilPropio(perfil: Jugador, cuenta: Cuenta)
+
     /** Registra la amistad en ambos sentidos. */
     suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador)
 

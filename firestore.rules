@@ -85,18 +85,43 @@ service cloud.firestore {
           && amistadDespues(idPerfil, miPerfil());
       }
 
+      // Un perfil cambia de dos maneras, y nunca las dos a la vez: pasa a tener dueño o cambia
+      // de nombre.
+      allow update: if verificado() && (seVincula(idPerfil) || seRenombra(idPerfil));
+
       // Una cuenta sin perfil se queda con uno que no tiene dueño. Lo único que cambia es que
       // pasa a tenerlo, y la cuenta y el mail tienen que quedar apuntando a él. Hay dos formas de
       // demostrar que le corresponde: la contraseña que tenía, si es anterior al corte, o que
       // quien lo creó lo haya dejado reservado para su mail.
-      allow update: if verificado()
-        && !('uid' in resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
-        && request.resource.data.uid == request.auth.uid
-        && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
-        && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil
-        && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.uid == request.auth.uid
-        && (loReclamaSuMail(idPerfil) || sabeLaClaveVieja(idPerfil));
+      function seVincula(idPerfil) {
+        return !('uid' in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
+          && request.resource.data.uid == request.auth.uid
+          && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
+          && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil
+          && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.uid == request.auth.uid
+          && (loReclamaSuMail(idPerfil) || sabeLaClaveVieja(idPerfil));
+      }
+
+      // Lo renombra quien responde por él. El nombre nuevo tiene que quedar reservado y el
+      // anterior libre, en la misma operación; si solo cambian mayúsculas, la reserva es la misma.
+      function seRenombra(idPerfil) {
+        return administra(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+          && nombreValido(request.resource.data.nombre)
+          && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombre.lower())).data.perfil == idPerfil
+          && (request.resource.data.nombre.lower() == resource.data.nombre.lower()
+            || !existsAfter(/databases/$(database)/documents/nombres/$(resource.data.nombre.lower())));
+      }
+
+      // Lo borra quien responde por él: quien lo creó mientras no tenga dueño, y después solo su
+      // dueño. Su nombre queda libre y, si tenía dueño, también su cuenta y su mail.
+      allow delete: if verificado()
+        && administra(resource.data)
+        && !existsAfter(/databases/$(database)/documents/nombres/$(resource.data.nombre.lower()))
+        && (!('uid' in resource.data)
+          || (!existsAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/mails/$(request.auth.token.email))));
 
       // Antes de esta escritura, el mail verificado de la cuenta tiene un reclamo de este perfil.
       function loReclamaSuMail(idPerfil) {
@@ -136,6 +161,13 @@ service cloud.firestore {
         allow delete: if verificado()
           && (administra(perfilAntes(idPerfil)) || administra(perfilAntes(idAmigo)))
           && !amistadDespues(idAmigo, idPerfil);
+
+        // Cada lista guarda el nombre del amigo. Cuando un perfil cambia de nombre, quien
+        // responde por él lo corrige en la lista de cada uno de sus amigos.
+        allow update: if verificado()
+          && administra(perfilDespues(idAmigo))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+          && request.resource.data.nombre == perfilDespues(idAmigo).nombre;
       }
     }
 
@@ -147,6 +179,12 @@ service cloud.firestore {
         && camposExactos(['perfil'])
         && administra(perfilDespues(request.resource.data.perfil))
         && perfilDespues(request.resource.data.perfil).nombre.lower() == nombre;
+
+      // Se libera cuando el perfil deja de llamarse así o se borra, en la misma operación.
+      allow delete: if verificado()
+        && administra(perfilAntes(resource.data.perfil))
+        && (!existsAfter(/databases/$(database)/documents/perfiles/$(resource.data.perfil))
+          || perfilDespues(resource.data.perfil).nombre.lower() != nombre);
     }
 
     // Perfil vinculado a cada cuenta de acceso.
@@ -158,6 +196,11 @@ service cloud.firestore {
         // pruebaClaveVieja solo está cuando el perfil se vinculó con la contraseña anterior.
         && (camposExactos(['perfil']) || camposExactos(['perfil', 'pruebaClaveVieja']))
         && esMiPerfilDespues(request.resource.data.perfil);
+
+      // Se borra junto con el perfil, cuando su dueño elimina su cuenta.
+      allow delete: if verificado()
+        && request.auth.uid == uid
+        && !existsAfter(/databases/$(database)/documents/perfiles/$(resource.data.perfil));
     }
 
     // Un documento por mail: impide que un mail quede asociado a dos perfiles. Es el registro de
@@ -207,10 +250,13 @@ service cloud.firestore {
         && esMiPerfilDespues(request.resource.data.perfil);
 
       // Un reclamo lo borra quien lo creó (para corregir el mail crea otro) o el dueño del
-      // mail, si dice que el perfil no es suyo. El registro de una cuenta no se borra.
+      // mail, si dice que el perfil no es suyo. El registro de una cuenta solo se borra junto
+      // con su perfil, cuando su dueño la elimina.
       allow delete: if verificado()
-        && !('uid' in resource.data)
-        && (resource.data.creadoPor == request.auth.uid || request.auth.token.email == mail);
+        && ('uid' in resource.data
+          ? resource.data.uid == request.auth.uid
+            && !existsAfter(/databases/$(database)/documents/perfiles/$(resource.data.perfil))
+          : resource.data.creadoPor == request.auth.uid || request.auth.token.email == mail);
     }
 
     // Alguien sin perfil dice ser el dueño de uno que otra persona creó, pero no se registró
