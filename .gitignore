@@ -32,3 +32,6 @@ scripts/firestore/respaldos/
 .firebase/
 *-debug.log
 .emuladores/
+
+# Scripts de Python (detección de fichas)
+__pycache__/

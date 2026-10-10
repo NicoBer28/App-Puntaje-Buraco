@@ -62,6 +62,11 @@ android {
         compose = true
     }
 
+    androidResources {
+        // El modelo se mapea en memoria desde el APK (openFd): no se puede guardar comprimido.
+        noCompress += "tflite"
+    }
+
     testOptions {
         // Las clases de Android (Log, etc.) devuelven valores por defecto en los tests JVM.
         unitTests.isReturnDefaultValues = true

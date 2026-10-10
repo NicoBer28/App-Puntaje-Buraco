@@ -107,6 +107,7 @@ fun PuntajeScreen(
     val partida by viewModel.partida.collectAsStateWithLifecycle()
     val camaraActiva by viewModel.camaraActiva.collectAsStateWithLifecycle()
     val fichas by viewModel.fichasEnPantalla.collectAsStateWithLifecycle()
+    val foto by viewModel.foto.collectAsStateWithLifecycle()
     val mensajero = rememberMensajero()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -281,8 +282,13 @@ fun PuntajeScreen(
         VistaCamara(
             camara = camara,
             fichas = fichas,
+            foto = foto,
             nombreUno = nombreUno,
             nombreDos = nombreDos,
+            alSacarFoto = { camara.sacarFoto(viewModel::analizarFoto, viewModel::informarErrorFoto) },
+            alDescartarFoto = viewModel::descartarFoto,
+            alCorregir = viewModel::corregirFicha,
+            alAgregar = viewModel::agregarFicha,
             alSumar = viewModel::sumarFichasDetectadas,
             alCerrar = viewModel::cancelarCamara,
             alFallar = viewModel::informarErrorCamara,

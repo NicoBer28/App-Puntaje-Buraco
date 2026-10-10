@@ -142,7 +142,14 @@
     <string name="ganador">Ganó %1$s</string>
     <string name="ganador_detalle">El resultado ya quedó guardado.</string>
     <string name="camara_titulo">Apuntá a las fichas</string>
-    <string name="camara_detalle">Cuando se vean marcadas, elegí a qué equipo sumarlas.</string>
+    <string name="camara_detalle">Para muchas fichas, sacá una foto. Con pocas, alcanza con sumar lo que se ve marcado.</string>
+    <string name="camara_analizando">Contando fichas…</string>
+    <string name="camara_analizando_detalle">Se revisa la foto por partes: puede tardar unos segundos.</string>
+    <string name="camara_resultado">%1$d fichas · %2$d puntos</string>
+    <string name="camara_corregir_detalle">Tocá una ficha para corregirla, o un lugar vacío para agregar una que faltó.</string>
+    <string name="accion_sacar_foto">Sacar foto y contar</string>
+    <string name="accion_otra_foto">Sacar otra foto</string>
+    <string name="accion_quitar_ficha">Quitar</string>
     <string name="dialogo_deshacer_ronda">Se borra la última ronda y se restan sus puntos.</string>
     <string name="mensaje_ronda_deshecha">Se deshizo la última ronda</string>
     <string name="dialogo_fin_titulo">Fin de la partida</string>
@@ -158,6 +165,7 @@
     <string name="error_permiso_camara">Se necesita permiso de cámara para detectar las fichas</string>
     <string name="error_detector_no_disponible">No se pudo cargar el detector de fichas: %1$s</string>
     <string name="error_camara">No se pudo iniciar la cámara: %1$s</string>
+    <string name="error_analizar_foto">No se pudo analizar la foto: %1$s</string>
     <string name="error_guardar_resultado">No se pudo guardar el resultado: %1$s</string>
 
     <!-- Amigos -->

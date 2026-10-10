@@ -47,7 +47,7 @@ data/     (módulo :data, paquete com.example.puntajeburaco20.data)
 │                             + EsquemaFirestore
 ├── local/                    Partida en curso, preferencias y sesión de la versión anterior
 │                             (DataStore)
-└── vision/                   DetectorFichas (interfaz) y TfliteDetectorFichas (YOLO sobre LiteRT)
+└── vision/                   DetectorFichas (interfaz), TfliteDetectorFichas (YOLO sobre LiteRT) y Recortes
 
 app/      (módulo :app, paquete com.example.puntajeburaco20)
 ├── PuntajeBuracoApp.kt       Application (punto de entrada de Hilt)
@@ -203,8 +203,9 @@ cerrar sesión desde el **perfil** es solo cerrar la sesión.
 - JDK 17 o superior para correr Gradle (funciona con el JDK que trae Android Studio).
 - `app/google-services.json`: está en `.gitignore`. Se descarga de la consola de Firebase
   (proyecto `app-puntaje-burako`).
-- Modelo de detección: `app/src/main/assets/best_float32.tflite` y `labels.txt`. Tampoco están en
-  el repo. Sin ellos la app funciona igual, pero el botón **Cámara** muestra un aviso.
+- Modelo de detección: `app/src/main/assets/best_float32.tflite` (44 MB, no está en el repo;
+  `labels.txt` sí). Sin el modelo la app funciona igual, pero el botón **Cámara** muestra un aviso.
+  Cómo funciona la detección y cómo reentrenar el modelo: [DETECCION_FICHAS.md](DETECCION_FICHAS.md).
 
 ```bash
 ./gradlew assembleDebug                 # APK de debug

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.data.vision.DetectorFichas
 import com.example.puntajeburaco20.di.IoDispatcher
+import com.example.puntajeburaco20.domain.model.CajaNormalizada
 import com.example.puntajeburaco20.domain.model.FichaDetectada
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
@@ -66,6 +67,18 @@ class PuntajeViewModel @Inject constructor(
         data object Salir : Evento
     }
 
+    /**
+     * Foto sacada para contar las fichas. Mientras se analiza, [fichas] es `null`. Las fichas se
+     * pueden corregir a mano antes de sumarlas.
+     */
+    data class FotoFichas(
+        val imagen: Bitmap,
+        val fichas: List<FichaDetectada>? = null,
+        val puntos: Int = 0,
+    ) {
+        val analizando: Boolean get() = fichas == null
+    }
+
     private val _partida = MutableStateFlow<Partida?>(null)
     val partida: StateFlow<Partida?> = _partida.asStateFlow()
 
@@ -82,6 +95,9 @@ class PuntajeViewModel @Inject constructor(
      */
     @Volatile
     private var ultimaDeteccion: List<FichaDetectada> = emptyList()
+
+    private val _foto = MutableStateFlow<FotoFichas?>(null)
+    val foto: StateFlow<FotoFichas?> = _foto.asStateFlow()
 
     private val _eventos = Channel<Evento>(Channel.BUFFERED)
     val eventos = _eventos.receiveAsFlow()
@@ -178,14 +194,66 @@ class PuntajeViewModel @Inject constructor(
 
     /** Se llama por cada cuadro de la cámara, desde su hilo de análisis. */
     fun analizarImagen(imagen: Bitmap, rotacion: Int) {
-        if (!_camaraActiva.value) return
+        // Con una foto en pantalla la vista previa no se analiza: el detector está ocupado con ella.
+        if (!_camaraActiva.value || _foto.value != null) return
         val fichas = detector.detectar(imagen, rotacion)
         _fichasEnPantalla.value = fichas
         if (fichas.isNotEmpty()) ultimaDeteccion = fichas
     }
 
+    /** La cámara entrega la foto ya derecha, desde un hilo secundario. Se analiza por recortes. */
+    fun analizarFoto(imagen: Bitmap) {
+        if (!_camaraActiva.value) return
+        _foto.value = FotoFichas(imagen)
+        viewModelScope.launch {
+            intentar { withContext(io) { detector.detectarFoto(imagen) } }
+                .onSuccess { fichas ->
+                    // Si mientras tanto se descartó la foto (o se sacó otra), el resultado ya no sirve.
+                    if (_foto.value?.imagen === imagen) _foto.value = conFichas(FotoFichas(imagen), fichas)
+                }
+                .onFailure {
+                    if (_foto.value?.imagen === imagen) _foto.value = null
+                    _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_analizar_foto)))
+                }
+        }
+    }
+
+    fun informarErrorFoto(error: Throwable) {
+        _foto.value = null
+        _eventos.trySend(Evento.Mensaje(error.aMensaje(R.string.error_analizar_foto)))
+    }
+
+    /** Vuelve a la vista previa para sacar otra foto. */
+    fun descartarFoto() {
+        _foto.value = null
+    }
+
+    /** Cambia el valor de una ficha mal leída, o la quita si [etiqueta] es `null`. */
+    fun corregirFicha(indice: Int, etiqueta: String?) {
+        val foto = _foto.value ?: return
+        val fichas = foto.fichas ?: return
+        if (indice !in fichas.indices) return
+        val corregidas = if (etiqueta == null) {
+            fichas.filterIndexed { i, _ -> i != indice }
+        } else {
+            fichas.mapIndexed { i, ficha -> if (i == indice) ficha.copy(etiqueta = etiqueta, confianza = 1f) else ficha }
+        }
+        _foto.value = conFichas(foto, corregidas)
+    }
+
+    /** Agrega una ficha que el detector no vio, en el lugar que se tocó. */
+    fun agregarFicha(caja: CajaNormalizada, etiqueta: String) {
+        val foto = _foto.value ?: return
+        val fichas = foto.fichas ?: return
+        _foto.value = conFichas(foto, fichas + FichaDetectada(etiqueta, 1f, caja))
+    }
+
+    private fun conFichas(foto: FotoFichas, fichas: List<FichaDetectada>) =
+        foto.copy(fichas = fichas, puntos = calculadora.sumar(fichas))
+
     fun sumarFichasDetectadas(lado: LadoEquipo) {
-        val fichas = ultimaDeteccion
+        // Si hay una foto analizada se suma esa (con las correcciones); si no, lo último que se vio en vivo.
+        val fichas = _foto.value?.fichas ?: ultimaDeteccion
         cerrarCamara()
         if (fichas.isEmpty()) {
             _eventos.trySend(Evento.Mensaje(UiText.de(R.string.mensaje_sin_detecciones)))
@@ -199,6 +267,7 @@ class PuntajeViewModel @Inject constructor(
     private fun cerrarCamara() {
         _camaraActiva.value = false
         _fichasEnPantalla.value = emptyList()
+        _foto.value = null
     }
 
     private fun avisarQuienEmpieza(partida: Partida) {

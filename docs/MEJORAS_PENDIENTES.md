@@ -30,13 +30,16 @@ Están ordenados por prioridad.
 
 ## Ingeniería
 
-6. **Versionar el modelo de detección.** `best_float32.tflite` y `labels.txt` no están en el
-   repo, así que la detección no anda en un clon limpio. Opciones: Git LFS, o descargar el modelo
-   al primer uso (Firebase ML / Storage). Hace falta tener los archivos del modelo.
-7. **Actualizar LiteRT** cuando Google corrija el conflicto de namespaces con AGP 9
+6. **Versionar el modelo de detección.** `best_float32.tflite` (44 MB) no está en el repo, así
+   que la detección no anda en un clon limpio (`labels.txt` ya está). Opciones: Git LFS, o
+   descargar el modelo al primer uso (Firebase ML / Storage). Exportarlo en float16 lo baja a 22 MB.
+7. **Reentrenar el modelo con fotos de juegos con muchas fichas.** La detección por recortes ya
+   encuentra casi todas, pero el modelo todavía confunde algunos números (3 con 5, 10 con 13) en
+   fichas chicas. Procedimiento en [DETECCION_FICHAS.md](DETECCION_FICHAS.md).
+8. **Actualizar LiteRT** cuando Google corrija el conflicto de namespaces con AGP 9
    ([issue #6965](https://github.com/google-ai-edge/LiteRT/issues/6965)). Se probó la 2.2.0
    (octubre de 2026) y sigue fallando.
-8. **Más tests en CI.** Hoy el workflow solo compila los tests de UI; correrlos necesita un
+9. **Más tests en CI.** Hoy el workflow solo compila los tests de UI; correrlos necesita un
    emulador (por ejemplo `reactivecircus/android-emulator-runner`), lo que hace el build bastante
    más lento. Tampoco corre los tests de las reglas de seguridad (necesitan el emulador de
    Firestore) ni los del script de migración (Node).
