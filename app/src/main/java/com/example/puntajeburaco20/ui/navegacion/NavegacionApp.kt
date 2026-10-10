@@ -23,6 +23,7 @@ import com.example.puntajeburaco20.ui.login.FondoAcceso
 import com.example.puntajeburaco20.ui.login.LoginScreen
 import com.example.puntajeburaco20.ui.nuevapartida.NuevaPartidaScreen
 import com.example.puntajeburaco20.ui.partidas.PartidasJugadasScreen
+import com.example.puntajeburaco20.ui.pedidos.PedidosRecibidos
 import com.example.puntajeburaco20.ui.perfil.PerfilScreen
 import com.example.puntajeburaco20.ui.puntaje.PuntajeScreen
 import com.example.puntajeburaco20.ui.sesion.SesionViewModel
@@ -60,7 +61,10 @@ fun RaizApp(viewModel: SesionViewModel = hiltViewModel()) {
     Crossfade(contenido, animationSpec = tween(DURACION_MS), label = "raiz") { visible ->
         val paso = ultimoPasoDeAcceso.value
         when {
-            visible == Contenido.PANTALLAS -> NavegacionApp()
+            visible == Contenido.PANTALLAS -> {
+                NavegacionApp()
+                PedidosRecibidos()
+            }
             visible == Contenido.ACCESO && paso != null -> LoginScreen(paso)
             else -> FondoAcceso()
         }

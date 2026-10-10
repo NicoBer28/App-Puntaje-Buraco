@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
@@ -245,6 +246,60 @@ class FlujosPrincipalesTest {
             compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Dani")
             assertTrue(usuarios.tieneLogin("dani"))
             assertEquals(listOf(jugador("Ana")), runBlocking { usuarios.obtener("dani")!!.amigos })
+        }
+    }
+
+    @Test
+    fun quienSeRegistraConOtroMailPideElPerfilYEsperaAQueSeLoConfirmen() {
+        // Ana le creó el perfil a Dani, pero lo reservó para un mail que no es el que él usa.
+        runBlocking {
+            usuarios.crearAmigoSinLogin("Dani", "dani@test.com", creador = cuentaDe("Ana"), amigoDe = jugador("Ana"))
+        }
+        abrirApp().use {
+            escribir("mail", "daniel@test.com")
+            escribir("password", CLAVE)
+            tocarDesplazando("btnCrear")
+            esperar("btnYaVerifique")
+            auth.verificarMail("daniel@test.com")
+            tocarDesplazando("btnYaVerifique")
+
+            // Como el perfil se lo creó otra persona, lo pide sin contraseña y queda esperando.
+            tocarDesplazando("btnYaTeniaPerfil")
+            escribir("usuarioAnterior", "Dani")
+            // Se confirma desde el teclado: mientras se abre, el botón todavía se está moviendo.
+            compose.onNodeWithTag("passwordAnterior").performImeAction()
+            esperar("btnNombreNuevo")
+            val pedido = runBlocking { usuarios.buscarPedidoPropio(auth.cuenta.value!!)!! }
+            assertEquals("daniel@test.com", pedido.mail)
+
+            // Ana confirma desde su teléfono que es él: la app le ofrece el perfil sin tocar nada.
+            runBlocking { usuarios.aceptarPedido(pedido, creador = cuentaDe("Ana"), nombreCreador = "Ana") }
+            tocarDesplazando("btnAceptarReclamo")
+
+            esperar("btnPerfil")
+            compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Dani")
+            assertTrue(usuarios.tieneLogin("dani"))
+        }
+    }
+
+    @Test
+    fun quienCreoUnPerfilVeElPedidoAlAbrirLaAppYLoConfirma() {
+        runBlocking {
+            usuarios.crearAmigoSinLogin("Dani", "dani@test.com", creador = cuentaDe("Ana"), amigoDe = jugador("Ana"))
+            usuarios.pedirPerfil(Cuenta(uid = "uid-dani", mail = "daniel@test.com", verificada = true), "Dani")
+        }
+        iniciarSesionComoAna()
+        abrirApp().use {
+            esperar("btnAceptarPedido")
+            compose.onNodeWithText(texto(R.string.pedido_detalle, "daniel@test.com", "Dani")).assertIsDisplayed()
+            tocar("btnAceptarPedido")
+
+            // El perfil pasa a estar reservado para el mail de quien lo pidió, y el aviso se va.
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { usuarios.mailReservadoPara("dani") == "daniel@test.com" }
+            compose.waitUntil(TIEMPO_MAXIMO_MS) {
+                compose.onAllNodesWithTag("btnAceptarPedido").fetchSemanticsNodes().isEmpty()
+            }
+            esperar("btnPerfil")
         }
     }
 

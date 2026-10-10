@@ -3,11 +3,15 @@ package com.example.puntajeburaco20.data.firestore
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.AMIGOS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.CREADO_POR
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.CUENTAS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.CREADOR
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.DESDE
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.FECHA
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.MAIL
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.MAILS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRE
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRES
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRE_CREADOR
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PEDIDOS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFIL
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFILES
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PRUEBA_CLAVE_VIEJA
@@ -16,14 +20,17 @@ import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.pruebaDeClave
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.Jugador
+import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
@@ -53,6 +60,9 @@ class FirestoreUsuarioRepository @Inject constructor(
     /** El documento de un mail: el registro de la cuenta que lo tiene, o un reclamo. */
     private fun registroDe(mail: String) = db.collection(MAILS).document(mail)
 
+    /** El pedido de una cuenta: tiene a lo sumo uno, con su uid como id. */
+    private fun pedidoDe(uid: String) = db.collection(PEDIDOS).document(uid)
+
     override fun observar(id: String): Flow<Usuario?> =
         combine(perfil(id).snapshots(), amigos(id).snapshots()) { documento, amistades ->
             documento.aUsuario(amistades)
@@ -70,11 +80,7 @@ class FirestoreUsuarioRepository @Inject constructor(
     }
 
     override fun observarIdDeCuenta(uid: String): Flow<String?> =
-        db.collection(CUENTAS).document(uid).snapshots()
-            // Sin conexión y sin copia local, Firestore informa que el documento no existe: eso
-            // no alcanza para decir que la cuenta no tiene perfil.
-            .filter { it.exists() || !it.metadata.isFromCache }
-            .map { it.getString(PERFIL) }
+        db.collection(CUENTAS).document(uid).confirmados().map { it.getString(PERFIL) }
 
     /**
      * El perfil, el nombre, la cuenta y el mail se escriben juntos porque las reglas de seguridad
@@ -199,6 +205,72 @@ class FirestoreUsuarioRepository @Inject constructor(
         conConexion { registroDe(cuenta.mail).delete().await() }
     }
 
+    override suspend fun pedirPerfil(cuenta: Cuenta, nombre: String): PedidoDeReclamo = conConexion {
+        exigirSinReclamo(cuenta)
+        val idPerfil = reservaDe(nombre).get(Source.SERVER).await().getString(PERFIL)
+            ?: throw ErrorUsuario.UsuarioInexistente
+        val documento = perfil(idPerfil).get(Source.SERVER).await()
+        val jugador = documento.aJugador() ?: throw ErrorUsuario.UsuarioInexistente
+        if (documento.contains(UID)) throw ErrorUsuario.PerfilYaVinculado
+        val creador = documento.getString(CREADO_POR) ?: throw ErrorUsuario.UsuarioInexistente
+
+        // El nombre y el creador del perfil se copian para mostrar el pedido sin más lecturas.
+        val datos = mapOf(
+            PERFIL to idPerfil,
+            NOMBRE to jugador.nombre,
+            MAIL to cuenta.mail,
+            CREADOR to creador,
+            FECHA to FieldValue.serverTimestamp(),
+        )
+        pedidoDe(cuenta.uid).set(datos).await()
+        PedidoDeReclamo(cuenta.uid, cuenta.mail, jugador)
+    }
+
+    override suspend fun buscarPedidoPropio(cuenta: Cuenta): PedidoDeReclamo? =
+        conConexion { pedidoDe(cuenta.uid).get(Source.SERVER).await().aPedido() }
+
+    override fun observarPedidoPropio(cuenta: Cuenta): Flow<PedidoDeReclamo?> =
+        pedidoDe(cuenta.uid).confirmados().map { it.aPedido() }
+
+    override suspend fun cancelarPedido(cuenta: Cuenta) {
+        conConexion { pedidoDe(cuenta.uid).delete().await() }
+    }
+
+    override fun observarPedidosRecibidos(creador: Cuenta): Flow<List<PedidoDeReclamo>> =
+        db.collection(PEDIDOS).whereEqualTo(CREADOR, creador.uid).snapshots()
+            .map { pedidos -> pedidos.documents.mapNotNull { it.aPedido() }.sortedBy { it.mail } }
+
+    /**
+     * Aceptar es reservar el perfil para el mail del pedido, como en [reservarPara], y borrar el
+     * pedido en la misma operación.
+     */
+    override suspend fun aceptarPedido(pedido: PedidoDeReclamo, creador: Cuenta, nombreCreador: String) {
+        conConexion {
+            if (perfil(pedido.perfil.id).get(Source.SERVER).await().contains(UID)) {
+                // Otra cuenta ya se quedó con el perfil: el pedido no tiene sentido.
+                pedidoDe(pedido.uid).delete().await()
+                throw ErrorUsuario.PerfilYaVinculado
+            }
+            val reservas = db.collection(MAILS)
+                .whereEqualTo(CREADO_POR, creador.uid)
+                .whereEqualTo(PERFIL, pedido.perfil.id)
+                .get(Source.SERVER)
+                .await()
+                .documents
+            val yaReservado = reservas.any { it.id == pedido.mail }
+            if (!yaReservado) exigirMailLibre(pedido.mail)
+            db.batch().apply {
+                reservas.filter { it.id != pedido.mail }.forEach { delete(it.reference) }
+                if (!yaReservado) set(registroDe(pedido.mail), reclamoDe(pedido.perfil.id, creador, nombreCreador))
+                delete(pedidoDe(pedido.uid))
+            }.commit().await()
+        }
+    }
+
+    override suspend fun rechazarPedido(pedido: PedidoDeReclamo) {
+        conConexion { pedidoDe(pedido.uid).delete().await() }
+    }
+
     /** Los dos lados van en el mismo lote: las reglas rechazan una amistad a medias. */
     override suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador) {
         sincronizacion.enviar(
@@ -233,6 +305,15 @@ class FirestoreUsuarioRepository @Inject constructor(
         }.await()
         if (!libre) throw ErrorUsuario.NombreEnUso
     }
+
+    /**
+     * Sigue un documento, pero sin dar por cierto que no existe hasta que lo dice el servidor:
+     * sin conexión, o antes de sincronizar, Firestore responde eso mismo con lo que tiene en el
+     * dispositivo. Pide también los cambios de metadatos porque, si la copia local ya decía que
+     * no existía, la confirmación del servidor no cambia ningún dato y de otro modo no llegaría.
+     */
+    private fun DocumentReference.confirmados(): Flow<DocumentSnapshot> =
+        snapshots(MetadataChanges.INCLUDE).filter { it.exists() || !it.metadata.isFromCache }
 
     /** Las escrituras con las que un perfil sin dueño pasa a ser de la [cuenta]. */
     private fun Transaction.vincular(idPerfil: String, cuenta: Cuenta, datosDeCuenta: Map<String, Any> = emptyMap()) {
@@ -281,6 +362,15 @@ class FirestoreUsuarioRepository @Inject constructor(
     private fun amistadCon(amigo: Jugador) = mapOf(NOMBRE to amigo.nombre, DESDE to FieldValue.serverTimestamp())
 
     private fun DocumentSnapshot.aJugador(): Jugador? = getString(NOMBRE)?.let { Jugador(id, it) }
+
+    private fun DocumentSnapshot.aPedido(): PedidoDeReclamo? {
+        val idPerfil = getString(PERFIL) ?: return null
+        return PedidoDeReclamo(
+            uid = id,
+            mail = getString(MAIL).orEmpty(),
+            perfil = Jugador(idPerfil, getString(NOMBRE).orEmpty()),
+        )
+    }
 
     private fun DocumentSnapshot.aUsuario(amistades: QuerySnapshot): Usuario? {
         val jugador = aJugador() ?: return null

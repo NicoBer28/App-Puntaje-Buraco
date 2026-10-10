@@ -3,6 +3,7 @@ package com.example.puntajeburaco20.domain.repository
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.Jugador
+import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Usuario
@@ -46,7 +47,8 @@ interface UsuarioRepository {
      *
      * @throws ErrorUsuario.UsuarioInexistente si no hay un perfil con ese nombre.
      * @throws ErrorUsuario.PerfilYaVinculado si el perfil ya es de una cuenta.
-     * @throws ErrorUsuario.PerfilCreadoPorOtro si lo creó otra persona: nunca tuvo contraseña.
+     * @throws ErrorUsuario.PerfilCreadoPorOtro si lo creó otra persona: nunca tuvo contraseña, y
+     *   hay que pedírselo con [pedirPerfil].
      * @throws ErrorUsuario.ContrasenaAnteriorIncorrecta si la contraseña no es la que tenía.
      * @throws ErrorUsuario.ReclamoPendiente si la cuenta tiene un perfil reservado sin responder.
      */
@@ -86,6 +88,40 @@ interface UsuarioRepository {
 
     /** Descarta el perfil reservado para el mail de la [cuenta]: sigue a cargo de quien lo creó. */
     suspend fun rechazarReclamo(cuenta: Cuenta)
+
+    /**
+     * La [cuenta] pide el perfil llamado [nombre], que otra persona creó para alguien que no
+     * usaba la app. Queda a la espera de que quien lo creó lo confirme.
+     *
+     * @throws ErrorUsuario.UsuarioInexistente si no hay un perfil así creado por otra persona.
+     * @throws ErrorUsuario.PerfilYaVinculado si el perfil ya es de una cuenta.
+     * @throws ErrorUsuario.ReclamoPendiente si la cuenta tiene un perfil reservado sin responder.
+     */
+    suspend fun pedirPerfil(cuenta: Cuenta, nombre: String): PedidoDeReclamo
+
+    /** El pedido que la [cuenta] tiene sin resolver, o `null`. Consulta al servidor. */
+    suspend fun buscarPedidoPropio(cuenta: Cuenta): PedidoDeReclamo?
+
+    /** Sigue el pedido de la [cuenta]: emite `null` cuando deja de existir, lo acepten o lo rechacen. */
+    fun observarPedidoPropio(cuenta: Cuenta): Flow<PedidoDeReclamo?>
+
+    /** La [cuenta] desiste de su pedido. */
+    suspend fun cancelarPedido(cuenta: Cuenta)
+
+    /** Los pedidos sin resolver sobre perfiles que creó [creador]. Emite de nuevo cuando cambian. */
+    fun observarPedidosRecibidos(creador: Cuenta): Flow<List<PedidoDeReclamo>>
+
+    /**
+     * [creador] confirma que quien hizo el [pedido] es el dueño del perfil: lo deja reservado
+     * para el mail del pedido, en lugar del que tuviera, y esa persona ya puede aceptarlo.
+     *
+     * @throws ErrorUsuario.PerfilYaVinculado si entretanto el perfil pasó a ser de una cuenta.
+     * @throws ErrorUsuario.MailConPerfil si ese mail ya tiene una cuenta o un perfil reservado.
+     */
+    suspend fun aceptarPedido(pedido: PedidoDeReclamo, creador: Cuenta, nombreCreador: String)
+
+    /** Quien creó el perfil dice que quien hizo el [pedido] no es su dueño. */
+    suspend fun rechazarPedido(pedido: PedidoDeReclamo)
 
     /** Registra la amistad en ambos sentidos. */
     suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador)

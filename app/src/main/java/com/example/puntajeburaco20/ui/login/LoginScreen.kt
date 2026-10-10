@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.EstadoSesion
+import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
@@ -111,6 +112,12 @@ fun LoginScreen(
                         cargando = cargando,
                         alAceptar = viewModel::aceptarReclamo,
                         alRechazar = viewModel::rechazarReclamo,
+                        alSalir = viewModel::salir,
+                    )
+                    is EstadoReclamo.Esperando -> PasoEspera(
+                        pedido = estado.pedido,
+                        cargando = cargando,
+                        alElegirNombreNuevo = viewModel::cancelarPedido,
                         alSalir = viewModel::salir,
                     )
                     EstadoReclamo.Ninguno -> {
@@ -417,6 +424,44 @@ private fun PasoReclamo(
     }
 }
 
+/**
+ * Pidió un perfil que le creó otra persona: hasta que esa persona lo confirme no puede entrar
+ * con él. Mientras tanto puede desistir y elegir un nombre nuevo.
+ */
+@Composable
+private fun PasoEspera(
+    pedido: PedidoDeReclamo,
+    cargando: Boolean,
+    alElegirNombreNuevo: () -> Unit,
+    alSalir: () -> Unit,
+) {
+    var confirmandoCancelar by rememberSaveable { mutableStateOf(false) }
+
+    TituloPaso(stringResource(R.string.espera_titulo), stringResource(R.string.espera_detalle, pedido.perfil.nombre))
+    Spacer(Modifier.height(4.dp))
+    BotonSecundario(
+        texto = stringResource(R.string.accion_nombre_nuevo),
+        alTocar = { confirmandoCancelar = true },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnNombreNuevo"),
+        habilitado = !cargando,
+    )
+    BotonDeTexto(
+        texto = stringResource(R.string.accion_usar_otra_cuenta),
+        alTocar = alSalir,
+        habilitado = !cargando,
+        tag = "btnOtraCuenta",
+    )
+    if (confirmandoCancelar) {
+        DialogoConfirmacion(
+            mensaje = R.string.dialogo_cancelar_pedido,
+            alConfirmar = alElegirNombreNuevo,
+            alCerrar = { confirmandoCancelar = false },
+        )
+    }
+}
+
 /** Mail verificado: falta elegir el nombre con el que la van a buscar los demás. */
 @Composable
 private fun PasoNombre(
@@ -464,8 +509,9 @@ private fun PasoNombre(
 }
 
 /**
- * Para quien ya usaba la app antes de las cuentas con mail: en lugar de elegir un nombre nuevo,
- * recupera su perfil con el usuario y la contraseña que tenía.
+ * Para quien ya tenía un perfil: en lugar de elegir un nombre nuevo lo recupera. Si usaba la app
+ * antes de las cuentas con mail, con el usuario y la contraseña que tenía; si se lo creó otra
+ * persona, solo con el usuario, y queda esperando a que esa persona lo confirme.
  */
 @Composable
 private fun PasoPerfilAnterior(

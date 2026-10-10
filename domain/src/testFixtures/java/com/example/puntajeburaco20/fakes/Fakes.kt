@@ -9,6 +9,7 @@ import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
+import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Usuario
@@ -56,6 +57,9 @@ class FakeUsuarioRepository : UsuarioRepository {
 
     /** Reclamos por mail. */
     private val reservas = MutableStateFlow<Map<String, Reserva>>(emptyMap())
+
+    /** Pedidos sin resolver, por el uid de quien los hizo. */
+    private val pedidos = MutableStateFlow<Map<String, PedidoDeReclamo>>(emptyMap())
 
     /** Mails que ya son de una cuenta con perfil. */
     private val mailsConCuenta = mutableSetOf<String>()
@@ -164,6 +168,44 @@ class FakeUsuarioRepository : UsuarioRepository {
     override suspend fun eliminarAmistad(usuario: Jugador, amigo: Jugador) {
         modificar(usuario.id) { it - amigo.id }
         modificar(amigo.id) { it - usuario.id }
+    }
+
+    override suspend fun pedirPerfil(cuenta: Cuenta, nombre: String): PedidoDeReclamo {
+        if (cuenta.mail in reservas.value) throw ErrorUsuario.ReclamoPendiente
+        val id = Usuario.claveDeNombre(nombre)
+        val perfil = perfiles.value[id] ?: throw ErrorUsuario.UsuarioInexistente
+        if (perfil.uid != null) throw ErrorUsuario.PerfilYaVinculado
+        if (perfil.creadoPor == null) throw ErrorUsuario.UsuarioInexistente
+        val pedido = PedidoDeReclamo(cuenta.uid, cuenta.mail, Jugador(id, perfil.nombre))
+        pedidos.value += cuenta.uid to pedido
+        return pedido
+    }
+
+    override suspend fun buscarPedidoPropio(cuenta: Cuenta): PedidoDeReclamo? = pedidos.value[cuenta.uid]
+
+    override fun observarPedidoPropio(cuenta: Cuenta): Flow<PedidoDeReclamo?> = pedidos.map { it[cuenta.uid] }
+
+    override suspend fun cancelarPedido(cuenta: Cuenta) {
+        pedidos.value -= cuenta.uid
+    }
+
+    override fun observarPedidosRecibidos(creador: Cuenta): Flow<List<PedidoDeReclamo>> =
+        pedidos.map { actuales -> actuales.values.filter { creadorDe(it.perfil.id) == creador.uid } }
+
+    override suspend fun aceptarPedido(pedido: PedidoDeReclamo, creador: Cuenta, nombreCreador: String) {
+        val id = pedido.perfil.id
+        if (tieneLogin(id)) {
+            pedidos.value -= pedido.uid
+            throw ErrorUsuario.PerfilYaVinculado
+        }
+        if (mailReservadoPara(id) != pedido.mail) {
+            reservarPara(PerfilACargo(pedido.perfil, mailReservadoPara(id)), pedido.mail, creador, nombreCreador)
+        }
+        pedidos.value -= pedido.uid
+    }
+
+    override suspend fun rechazarPedido(pedido: PedidoDeReclamo) {
+        pedidos.value -= pedido.uid
     }
 
     private fun exigirMailLibre(mail: String) {

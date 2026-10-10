@@ -127,11 +127,12 @@ class SesionUseCasesTest {
         sesionAnterior.nombre = "ana"
         val cuenta = cuentaVerificadaSinPerfil()
 
-        val vinculado = vincularPerfilAnterior("ANA", "1234")
+        val pedido = vincularPerfilAnterior("ANA", "1234")
 
-        assertEquals(jugador("Ana"), vinculado)
-        assertEquals(EstadoSesion.Completa(cuenta, vinculado.id), observarSesion().first())
-        assertEquals(listOf(jugador("Beto")), usuarios.obtener(vinculado.id)?.amigos)
+        // Queda vinculado en el momento: no hay nada que esperar.
+        assertNull(pedido)
+        assertEquals(EstadoSesion.Completa(cuenta, jugador("Ana").id), observarSesion().first())
+        assertEquals(listOf(jugador("Beto")), usuarios.obtener(jugador("Ana").id)?.amigos)
         assertNull(sesionAnterior.nombre)
     }
 
@@ -155,8 +156,6 @@ class SesionUseCasesTest {
     @Test
     fun `solo se vincula un perfil anterior que todavia no es de nadie`() = runTest {
         usuarios.registrar("Beto")
-        usuarios.registrar("Caro")
-        usuarios.crearAmigoSinMail("Dani", creador = cuentaDe("Caro"), amigoDe = jugador("Caro"))
 
         esperarError<ErrorUsuario.SinSesion> { vincularPerfilAnterior("Beto", "1234") }
         registrarCuenta("ana@test.com", "clave123")
@@ -166,7 +165,6 @@ class SesionUseCasesTest {
 
         esperarError<ErrorUsuario.UsuarioInexistente> { vincularPerfilAnterior("Zoe", "1234") }
         esperarError<ErrorUsuario.PerfilYaVinculado> { vincularPerfilAnterior("Beto", "1234") }
-        esperarError<ErrorUsuario.PerfilCreadoPorOtro> { vincularPerfilAnterior("Dani", "1234") }
     }
 
     @Test

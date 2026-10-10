@@ -43,7 +43,7 @@
     <string name="accion_continuar">Continuar</string>
     <string name="accion_ya_tenia_perfil">Ya tenía un perfil</string>
     <string name="perfil_anterior_titulo">Recuperá tu perfil</string>
-    <string name="perfil_anterior_detalle">Escribí el usuario y la contraseña con los que entrabas antes. Conservás tus amigos y tus partidas.</string>
+    <string name="perfil_anterior_detalle">Escribí el usuario y la contraseña con los que entrabas antes. Si el perfil te lo creó otra persona, dejá la contraseña vacía: le pedimos que confirme que sos vos.</string>
     <string name="hint_password_anterior">Contraseña anterior</string>
     <string name="accion_vincular_perfil">Recuperar perfil</string>
     <string name="accion_perfil_nuevo">Crear un perfil nuevo</string>
@@ -57,6 +57,11 @@
     </plurals>
     <string name="accion_aceptar_reclamo">Sí, es mío</string>
     <string name="accion_rechazar_reclamo">No es mío</string>
+    <string name="espera_titulo">Falta que te confirmen</string>
+    <string name="espera_detalle">Le pedimos a quien creó el perfil %1$s que confirme que sos vos. Lo va a ver cuando abra la app; después vas a poder entrar.</string>
+    <string name="accion_nombre_nuevo">Elegir un nombre nuevo</string>
+    <string name="dialogo_cancelar_pedido">Se cancela el pedido y empezás sin las partidas de ese perfil.</string>
+    <string name="mensaje_pedido_rechazado">No confirmaron que ese perfil sea tuyo</string>
     <string name="dialogo_rechazar_reclamo">Vas a elegir un nombre nuevo y empezar sin las partidas de ese perfil.</string>
     <string name="mensaje_verificacion_enviada">Te enviamos el mail de verificación</string>
     <string name="mensaje_recuperacion_enviada">Si ese mail tiene cuenta, te enviamos un enlace para cambiar la contraseña</string>
@@ -168,6 +173,13 @@
     <string name="mensaje_amigo_agregado">Amigo agregado</string>
     <string name="mensaje_amigo_eliminado">Amigo quitado</string>
     <string name="mensaje_usuario_amigo_creado">Usuario creado</string>
+
+    <!-- Pedidos de perfiles creados para otros -->
+    <string name="pedido_titulo">Te piden un perfil</string>
+    <string name="pedido_detalle">%1$s dice ser %2$s, el usuario que creaste. Si es esa persona, el perfil queda reservado para ese mail y va a poder entrar.</string>
+    <string name="accion_aceptar_pedido">Sí, es</string>
+    <string name="accion_rechazar_pedido">No es</string>
+    <string name="accion_despues">Después</string>
 
     <!-- Historial -->
     <string name="titulo_estadisticas">Estadísticas</string>

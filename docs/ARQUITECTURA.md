@@ -65,6 +65,7 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     ├── login/                Acceso: ingresar, crear cuenta, verificar el mail, y elegir nombre,
     │                         recuperar el perfil que ya se tenía o aceptar el que creó otro
     ├── nuevapartida/         Pantalla principal: elegir jugadores
+    ├── pedidos/              Aviso de que alguien pide un perfil que el usuario creó para otro
     ├── perfil/               Datos de la cuenta, tema claro u oscuro, cerrar sesión
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
     ├── amigos/               Agregar / eliminar amigos, crear usuarios para otros y cargarles
@@ -138,6 +139,11 @@ Un perfil sin login se crea **reservado para el mail** de esa persona (un `Recla
 corregirles el mail. Cuando la persona se registra con ese mail, el acceso le ofrece el perfil
 antes de pedirle un nombre: si lo acepta queda vinculado a su cuenta, y si dice que no es suyo
 elige un nombre como cualquier cuenta nueva.
+
+Si esa persona se registra con **otro mail**, lo recupera desde "Ya tenía un perfil" con el
+usuario y sin contraseña. Eso crea un `PedidoDeReclamo` y la deja esperando. Quien creó el perfil
+ve el pedido al abrir la app (`PedidosRecibidos`, sobre cualquier pantalla): si lo confirma, el
+perfil queda reservado para el mail del pedido y la persona lo recibe como en el caso anterior.
 
 Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfil, su nombre
 reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos
@@ -283,7 +289,8 @@ habla con Firebase.
   (incluido el formato anterior); `app/src/test` los ViewModels.
 - **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren ingresar, crear una cuenta
   (verificar el mail y elegir nombre), recuperar un perfil anterior, aceptar uno creado por otro,
-  crear un usuario para otro y corregirle el mail, anotar y deshacer rondas,
+  pedirlo cuando el mail no coincide y confirmar ese pedido, crear un usuario para otro y
+  corregirle el mail, anotar y deshacer rondas,
   terminar una partida y verla en "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule`
   reemplaza a `DataModule`, así que no tocan Firebase. Los elementos se buscan por `testTag`.
 - **De reglas de seguridad** (`scripts/firestore/reglas`, Node + emulador de Firestore): prueban

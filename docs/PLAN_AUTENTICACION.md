@@ -11,8 +11,8 @@ Las fases 1 a 3 se desarrollan y prueban contra el emulador de Firebase, sin toc
 reales. La fase 4 migra los datos y es la única publicación obligada (**el corte**). Las fases
 5 a 7 se publican después, cada una por separado.
 
-**Estado al 10/10/2026**: fases 0 a 5 hechas, con el corte aplicado y las reglas de la fase 5
-publicadas en el proyecto real. Faltan las fases 6 y 7. El APK se reparte cuando estén todas.
+**Estado al 10/10/2026**: fases 0 a 6 hechas, con el corte aplicado y las reglas hasta la fase 6
+publicadas en el proyecto real. Falta la fase 7. El APK se reparte cuando estén todas.
 
 ## Conceptos
 
@@ -60,9 +60,12 @@ perfiles/{idPerfil}/amigos/{idAmigo}
   nombre: "Zoe"
   desde: <fecha>
 
-perfiles/{idPerfil}/pedidosReclamo/{uid}     (fase 6)
-  mail: "juan.perez@gmail.com"
-  fecha: <fecha>
+pedidosReclamo/{uid}                     a lo sumo uno por cuenta, con su uid como id
+  perfil: "{idPerfil}"
+  nombre: "Juan"                         el del perfil
+  mail: "juan.perez@gmail.com"           el de quien lo pide
+  creador: "pQ9…"                        uid de quien creó el perfil
+  fecha: <fecha del servidor>
 
 nombres/{nombreEnMinusculas}             reserva el nombre de usuario
   perfil: "{idPerfil}"
@@ -139,6 +142,7 @@ A cada conteo se le suma lo que haya en `estadisticasPrevias/`.
 | `cuentas/{uid}` | Esa cuenta | Esa cuenta |
 | `mails/{mail}` | El dueño de ese mail y quien creó el reclamo. Que un mail está libre lo ve cualquier usuario verificado | El registro de una cuenta, su dueño. Un reclamo lo crea y lo borra quien creó el perfil; el dueño del mail lo acepta (pasa a ser el registro de su cuenta) o lo borra. Un mail existente no se puede pisar |
 | `estadisticasPrevias/` | Cualquier usuario verificado | Nadie |
+| `pedidosReclamo/{uid}` | Esa cuenta y quien creó el perfil pedido | Lo crea esa cuenta, si no tiene perfil. Lo borran ella o quien creó el perfil. Nadie lo modifica |
 | `credencialesViejas/` | Nadie | Nadie |
 | `users/` y `doubles/` (esquema viejo) | Nadie | Nadie |
 
@@ -398,20 +402,41 @@ de la fase 4 no cambian nada.
 
 Cubre el mail mal escrito. Se puede publicar sola.
 
-- [ ] "Ya tenía un perfil" acepta también perfiles creados por otro: en lugar de pedir
-      contraseña, crea un pedido en `perfiles/{idPerfil}/pedidosReclamo/{uid}`.
-- [ ] Quien creó el perfil ve el pedido al abrir la app ("juan.perez@gmail.com dice ser Juan.
-      ¿Es él?"). Aceptar equivale a corregir el mail del reclamo; rechazar borra el pedido.
-- [ ] Pantalla de espera para quien pidió, con la opción de elegir un nombre nuevo (sin heredar
-      el historial).
-- [ ] Reglas: el pedido lo crea quien lo pide con su mail verificado; lo lee y lo resuelve quien
-      creó el perfil.
+- [x] "Ya tenía un perfil" acepta también perfiles creados por otro: con el usuario y sin
+      contraseña, crea un pedido en `pedidosReclamo/{uid}`. Va en una colección propia y no
+      debajo del perfil: así la cuenta que lo hizo lo encuentra por su uid, y quien creó el
+      perfil lista los suyos con una sola consulta.
+- [x] Quien creó el perfil ve el pedido al abrir la app, en un aviso sobre cualquier pantalla
+      ("juan.perez@gmail.com dice ser Juan, el usuario que creaste"). Puede confirmarlo, negarlo
+      o dejarlo para después. Aceptar equivale a corregir el mail del reclamo; rechazar borra el
+      pedido.
+- [x] Pantalla de espera para quien pidió, con la opción de elegir un nombre nuevo (sin heredar
+      el historial). Si se lo confirman con la app abierta, pasa sola a ofrecerle el perfil; si
+      se lo niegan, le avisa y vuelve a elegir.
+- [x] Reglas: el pedido lo crea una cuenta sin perfil, con su mail verificado, para un perfil sin
+      dueño creado por otro; lo leen ella y quien creó el perfil; lo borra cualquiera de los dos.
+- [x] Una cuenta sin perfil que volvía a ingresar, o que reabría la app, se quedaba en la
+      pantalla de ingreso: Firestore no avisa cuando el servidor confirma que un documento sigue
+      sin existir. Es el caso de quien espera que le confirmen un pedido. Corregido.
+
+**Listo cuando**: en el emulador alguien se registra con un mail distinto del reservado, pide el
+perfil, quien lo creó lo confirma desde la app y esa persona entra con él.
+Comprobado el 10/10/2026 en un emulador de Android contra los emuladores de Auth y Firestore:
+pedir el perfil, que se lo nieguen con la app abierta, pedirlo de nuevo, que quien lo creó lo
+confirme desde el aviso, y volver a ingresar y aceptar el perfil.
+
+**Publicación**: las reglas se publicaron el 10/10/2026; el APK todavía no se repartió.
 
 **Implicaciones**
 
 - No hay notificaciones push: el pedido se ve recién cuando el creador abre la app.
 - No se pueden fusionar dos perfiles. Quien elige un nombre nuevo pierde el historial del
   perfil que le habían creado.
+- Quien creó el perfil ve el mail de quien lo pide: es lo único que tiene para saber si es esa
+  persona.
+- Cada cuenta puede tener un solo pedido a la vez. Para pedir otro perfil tiene que desistir.
+- Cualquier cuenta verificada puede pedir cualquier perfil creado para otro; depende de que
+  quien lo creó no confirme a un desconocido.
 
 ## Fase 7 — Renombrar y borrar perfiles
 

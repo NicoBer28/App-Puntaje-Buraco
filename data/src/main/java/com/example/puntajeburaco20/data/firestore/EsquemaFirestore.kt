@@ -14,6 +14,9 @@ import java.security.MessageDigest
  * mails/{mail}                           perfil, uid    un mail no puede tener dos perfiles
  *                                        perfil, creadoPor, nombreCreador    si es un reclamo
  *
+ * pedidosReclamo/{uid}                   perfil, nombre, mail, creador, fecha    alguien sin perfil
+ *                                        pide uno que creó otra persona
+ *
  * partidas/{idPartida}                   equipoUno, equipoDos, jugadores, nombres, equipos,
  *                                        enfrentamiento, equipoGanador, empieza, rondas, fecha,
  *                                        creadaPor
@@ -42,6 +45,7 @@ internal object EsquemaFirestore {
     const val CUENTAS = "cuentas"
     const val MAILS = "mails"
     const val AMIGOS = "amigos"
+    const val PEDIDOS = "pedidosReclamo"
     const val PARTIDAS = "partidas"
     const val ESTADISTICAS_PREVIAS = "estadisticasPrevias"
     const val RIVALES = "rivales"
@@ -50,6 +54,8 @@ internal object EsquemaFirestore {
     const val UID = "uid"
     const val CREADO_POR = "creadoPor"
     const val NOMBRE_CREADOR = "nombreCreador"
+    const val MAIL = "mail"
+    const val CREADOR = "creador"
     const val PERFIL = "perfil"
     const val PRUEBA_CLAVE_VIEJA = "pruebaClaveVieja"
     const val DESDE = "desde"

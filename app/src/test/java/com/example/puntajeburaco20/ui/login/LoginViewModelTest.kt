@@ -3,14 +3,18 @@ package com.example.puntajeburaco20.ui.login
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.EstadoSesion
+import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
 import com.example.puntajeburaco20.domain.usecase.AceptarReclamoUseCase
+import com.example.puntajeburaco20.domain.usecase.CancelarPedidoUseCase
 import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
+import com.example.puntajeburaco20.domain.usecase.ConsultarPedidoPropioUseCase
 import com.example.puntajeburaco20.domain.usecase.ConsultarReclamoUseCase
 import com.example.puntajeburaco20.domain.usecase.CrearPerfilUseCase
 import com.example.puntajeburaco20.domain.usecase.IniciarSesionUseCase
+import com.example.puntajeburaco20.domain.usecase.ObservarPedidoPropioUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.RecuperarContrasenaUseCase
 import com.example.puntajeburaco20.domain.usecase.RechazarReclamoUseCase
@@ -65,6 +69,9 @@ class LoginViewModelTest {
             consultarReclamo = ConsultarReclamoUseCase(auth, usuarios, FakePartidasJugadasRepository()),
             aceptarReclamoUseCase = AceptarReclamoUseCase(auth, usuarios),
             rechazarReclamoUseCase = RechazarReclamoUseCase(auth, usuarios),
+            consultarPedidoPropio = ConsultarPedidoPropioUseCase(auth, usuarios),
+            observarPedidoPropio = ObservarPedidoPropioUseCase(auth, usuarios),
+            cancelarPedidoUseCase = CancelarPedidoUseCase(auth, usuarios),
             cerrarSesion = CerrarSesionUseCase(auth, partidaEnCurso),
             auth = auth,
             sesionAnterior = sesionAnterior,
@@ -311,6 +318,72 @@ class LoginViewModelTest {
         assertEquals(listOf(mensaje(R.string.error_reclamo_pendiente)), eventos)
         assertTrue(viewModel.reclamo.value is EstadoReclamo.Pendiente)
         assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
+    }
+
+    /** Beto le creó a Ana un perfil llamado Anita, reservado para un mail que no es el de ella. */
+    private suspend fun betoLeCreaUnPerfilAAnaConOtroMail() {
+        usuarios.registrar("Beto")
+        usuarios.crearAmigoSinLogin("Anita", "otro@test.com", creador = cuentaDe("Beto"), amigoDe = jugador("Beto"))
+    }
+
+    private fun pedidoDeAna() = PedidoDeReclamo(auth.cuenta.value!!.uid, "ana@test.com", jugador("Anita"))
+
+    @Test
+    fun `quien pide un perfil creado por otro queda esperando, y si se lo confirman se le ofrece`() = runTest {
+        betoLeCreaUnPerfilAAnaConOtroMail()
+        val eventos = eventosTrasRegistrar(verificada = true)
+        prepararEleccionDePerfil()
+
+        viewModel.vincularPerfil("Anita", "")
+        assertEquals(EstadoReclamo.Esperando(pedidoDeAna()), viewModel.reclamo.value)
+
+        usuarios.aceptarPedido(pedidoDeAna(), creador = cuentaDe("Beto"), nombreCreador = "Beto")
+        assertEquals(
+            EstadoReclamo.Pendiente(Reclamo(jugador("Anita"), nombreCreador = "Beto", partidas = 0)),
+            viewModel.reclamo.value,
+        )
+
+        viewModel.aceptarReclamo()
+        assertEquals(jugador("Anita").id, (observarSesion().first() as EstadoSesion.Completa).idPerfil)
+        assertTrue(eventos.isEmpty())
+    }
+
+    @Test
+    fun `si no le confirman el perfil que pidio, se le avisa y pasa a elegir`() = runTest {
+        betoLeCreaUnPerfilAAnaConOtroMail()
+        val eventos = eventosTrasRegistrar(verificada = true)
+        prepararEleccionDePerfil()
+        viewModel.vincularPerfil("Anita", "")
+
+        usuarios.rechazarPedido(pedidoDeAna())
+
+        assertEquals(EstadoReclamo.Ninguno, viewModel.reclamo.value)
+        assertEquals(listOf(mensaje(R.string.mensaje_pedido_rechazado)), eventos)
+    }
+
+    @Test
+    fun `desistir del pedido lleva a elegir un nombre nuevo, sin avisos`() = runTest {
+        betoLeCreaUnPerfilAAnaConOtroMail()
+        val eventos = eventosTrasRegistrar(verificada = true)
+        prepararEleccionDePerfil()
+        viewModel.vincularPerfil("Anita", "")
+
+        viewModel.cancelarPedido()
+
+        assertEquals(EstadoReclamo.Ninguno, viewModel.reclamo.value)
+        assertNull(usuarios.buscarPedidoPropio(auth.cuenta.value!!))
+        assertTrue(eventos.isEmpty())
+    }
+
+    @Test
+    fun `al volver a abrir la app con un pedido sin resolver sigue esperando`() = runTest {
+        betoLeCreaUnPerfilAAnaConOtroMail()
+        eventosTrasRegistrar(verificada = true)
+        usuarios.pedirPerfil(auth.cuenta.value!!, "Anita")
+
+        prepararEleccionDePerfil()
+
+        assertEquals(EstadoReclamo.Esperando(pedidoDeAna()), viewModel.reclamo.value)
     }
 
     @Test

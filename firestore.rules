@@ -213,6 +213,35 @@ service cloud.firestore {
         && (resource.data.creadoPor == request.auth.uid || request.auth.token.email == mail);
     }
 
+    // Alguien sin perfil dice ser el dueño de uno que otra persona creó, pero no se registró
+    // con el mail para el que estaba reservado. Quien lo creó decide: si le cree, reserva el
+    // perfil para el mail del pedido (un reclamo, más arriba). Cada cuenta tiene a lo sumo un
+    // pedido, que lleva su uid como id.
+    match /pedidosReclamo/{uid} {
+      allow get: if verificado()
+        && (request.auth.uid == uid || (resource != null && resource.data.creador == request.auth.uid));
+
+      // Quien creó perfiles para otros lista los pedidos que le hicieron.
+      allow list: if verificado() && resource.data.creador == request.auth.uid;
+
+      // Lo crea una cuenta que todavía no tiene perfil, con su propio mail verificado, y para un
+      // perfil sin dueño. El nombre y el creador del perfil se copian para mostrar el pedido sin
+      // más lecturas.
+      allow create: if verificado()
+        && request.auth.uid == uid
+        && camposExactos(['perfil', 'nombre', 'mail', 'creador', 'fecha'])
+        && request.resource.data.mail == request.auth.token.email
+        && request.resource.data.fecha == request.time
+        && !exists(/databases/$(database)/documents/cuentas/$(uid))
+        && !('uid' in perfilAntes(request.resource.data.perfil))
+        && perfilAntes(request.resource.data.perfil).creadoPor == request.resource.data.creador
+        && perfilAntes(request.resource.data.perfil).nombre == request.resource.data.nombre;
+
+      // Lo borra quien lo hizo, si desiste, o quien creó el perfil, al aceptarlo o rechazarlo.
+      allow delete: if verificado()
+        && (request.auth.uid == uid || resource.data.creador == request.auth.uid);
+    }
+
     // Una partida terminada, compartida por todos sus jugadores. La crea quien la anotó, que
     // puede no haber jugado, y después nadie la modifica ni la borra. Las estadísticas se
     // calculan contándolas: por eso se exige que los campos por los que se consulta (jugadores,

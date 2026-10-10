@@ -6,14 +6,18 @@ import androidx.lifecycle.viewModelScope
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Cuenta
+import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.SesionAnteriorRepository
 import com.example.puntajeburaco20.domain.usecase.AceptarReclamoUseCase
+import com.example.puntajeburaco20.domain.usecase.CancelarPedidoUseCase
 import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
+import com.example.puntajeburaco20.domain.usecase.ConsultarPedidoPropioUseCase
 import com.example.puntajeburaco20.domain.usecase.ConsultarReclamoUseCase
 import com.example.puntajeburaco20.domain.usecase.CrearPerfilUseCase
 import com.example.puntajeburaco20.domain.usecase.IniciarSesionUseCase
+import com.example.puntajeburaco20.domain.usecase.ObservarPedidoPropioUseCase
 import com.example.puntajeburaco20.domain.usecase.RecuperarContrasenaUseCase
 import com.example.puntajeburaco20.domain.usecase.RechazarReclamoUseCase
 import com.example.puntajeburaco20.domain.usecase.RegistrarCuentaUseCase
@@ -22,10 +26,12 @@ import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.common.aMensaje
 import com.example.puntajeburaco20.ui.common.intentar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -46,6 +52,9 @@ class LoginViewModel @Inject constructor(
     private val consultarReclamo: ConsultarReclamoUseCase,
     private val aceptarReclamoUseCase: AceptarReclamoUseCase,
     private val rechazarReclamoUseCase: RechazarReclamoUseCase,
+    private val consultarPedidoPropio: ConsultarPedidoPropioUseCase,
+    private val observarPedidoPropio: ObservarPedidoPropioUseCase,
+    private val cancelarPedidoUseCase: CancelarPedidoUseCase,
     private val cerrarSesion: CerrarSesionUseCase,
     private val auth: AuthRepository,
     sesionAnterior: SesionAnteriorRepository,
@@ -55,11 +64,18 @@ class LoginViewModel @Inject constructor(
         data class Mensaje(val texto: UiText) : Evento
     }
 
-    /** Si alguien dejó un perfil reservado para el mail de la cuenta, que todavía no tiene perfil. */
+    /** Qué tiene por delante la cuenta que todavía no tiene perfil, antes de elegir uno. */
     sealed interface EstadoReclamo {
         data object Buscando : EstadoReclamo
+
+        /** Nada: elige un nombre o recupera el perfil que ya tenía. */
         data object Ninguno : EstadoReclamo
+
+        /** Alguien le dejó un perfil reservado para su mail: tiene que decir si es suyo. */
         data class Pendiente(val reclamo: Reclamo) : EstadoReclamo
+
+        /** Pidió un perfil que creó otra persona y espera que esa persona lo confirme. */
+        data class Esperando(val pedido: PedidoDeReclamo) : EstadoReclamo
     }
 
     private val _cargando = MutableStateFlow(false)
@@ -81,6 +97,9 @@ class LoginViewModel @Inject constructor(
 
     /** Uid de la cuenta para la que ya se buscó un perfil reservado. */
     private var cuentaConsultada: String? = null
+
+    /** Mientras hay un pedido sin resolver, espera a que quien creó el perfil responda. */
+    private var esperaDeRespuesta: Job? = null
 
     init {
         viewModelScope.launch { _usuarioAnterior.value = sesionAnterior.nombreDeUsuario() }
@@ -118,14 +137,52 @@ class LoginViewModel @Inject constructor(
         buscarReclamo()
     }
 
-    private fun buscarReclamo() {
+    /** @param pedidoResuelto `true` si se busca porque el pedido que esperaba dejó de existir. */
+    private fun buscarReclamo(pedidoResuelto: Boolean = false) {
         _reclamo.value = EstadoReclamo.Buscando
+        esperaDeRespuesta?.cancel()
         viewModelScope.launch {
-            // Si la búsqueda falla se sigue como si no hubiera ninguno: crear o recuperar un
-            // perfil lo vuelve a comprobar, y avisa con ReclamoPendiente.
-            val encontrado = intentar { consultarReclamo() }.getOrNull()
-            _reclamo.value = encontrado?.let(EstadoReclamo::Pendiente) ?: EstadoReclamo.Ninguno
+            // Si la búsqueda falla se sigue como si no hubiera nada: crear o recuperar un perfil
+            // lo vuelve a comprobar, y avisa con ReclamoPendiente.
+            val reclamo = intentar { consultarReclamo() }.getOrNull()
+            val pedido = if (reclamo == null) intentar { consultarPedidoPropio() }.getOrNull() else null
+            when {
+                reclamo != null -> _reclamo.value = EstadoReclamo.Pendiente(reclamo)
+                pedido != null -> esperar(pedido)
+                else -> {
+                    _reclamo.value = EstadoReclamo.Ninguno
+                    // El pedido se fue sin que le reservaran el perfil: se lo rechazaron.
+                    if (pedidoResuelto) _eventos.send(Evento.Mensaje(UiText.de(R.string.mensaje_pedido_rechazado)))
+                }
+            }
         }
+    }
+
+    /**
+     * Queda a la espera de la respuesta al [pedido]. Cuando deja de existir vuelve a buscar: si
+     * lo aceptaron, ahora tiene el perfil reservado para su mail.
+     */
+    private fun esperar(pedido: PedidoDeReclamo) {
+        _reclamo.value = EstadoReclamo.Esperando(pedido)
+        esperaDeRespuesta?.cancel()
+        esperaDeRespuesta = viewModelScope.launch {
+            observarPedidoPropio().first { it == null }
+            buscarReclamo(pedidoResuelto = true)
+        }
+    }
+
+    /** Desiste del perfil que había pedido y pasa a elegir un nombre como cualquier cuenta nueva. */
+    fun cancelarPedido() = ejecutar {
+        val pedido = (_reclamo.value as? EstadoReclamo.Esperando)?.pedido ?: return@ejecutar
+        // Se deja de esperar antes de borrarlo: que desaparezca no es que se lo hayan rechazado.
+        esperaDeRespuesta?.cancel()
+        try {
+            cancelarPedidoUseCase()
+        } catch (e: Exception) {
+            esperar(pedido)
+            throw e
+        }
+        _reclamo.value = EstadoReclamo.Ninguno
     }
 
     fun aceptarReclamo() = ejecutar { aceptarReclamoUseCase() }
@@ -138,14 +195,18 @@ class LoginViewModel @Inject constructor(
 
     fun elegirNombre(nombre: String) = ejecutar { crearPerfil(nombre) }
 
-    /** En lugar de elegir un nombre nuevo, se queda con el perfil que ya usaba. */
+    /**
+     * En lugar de elegir un nombre nuevo, se queda con el perfil que ya usaba. Si ese perfil se
+     * lo creó otra persona, queda esperando a que lo confirme.
+     */
     fun vincularPerfil(nombre: String, passwordAnterior: String) = ejecutar {
-        vincularPerfilAnterior(nombre, passwordAnterior)
-        _usuarioAnterior.value = null
+        val pedido = vincularPerfilAnterior(nombre, passwordAnterior)
+        if (pedido == null) _usuarioAnterior.value = null else esperar(pedido)
     }
 
     /** Cierra la sesión para poder entrar con otra cuenta. */
     fun salir() = ejecutar {
+        esperaDeRespuesta?.cancel()
         cerrarSesion()
         cuentaConsultada = null
     }
