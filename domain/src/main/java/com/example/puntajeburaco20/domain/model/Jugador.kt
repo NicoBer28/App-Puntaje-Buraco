@@ -1,20 +1,12 @@
 package com.example.puntajeburaco20.domain.model
 
-import java.util.Locale
-
 /**
  * Persona que participa de una partida.
  *
- * El nombre se muestra tal cual fue registrado, pero la identidad se determina por [id]
- * (el nombre sin distinguir mayúsculas), que es también el identificador de su cuenta.
+ * La identidad la da el [id] de su perfil. El [nombre] es solo lo que se muestra: dos jugadores
+ * con el mismo id son la misma persona aunque el nombre haya cambiado.
  */
-data class Jugador(val nombre: String) {
-
-    val id: String get() = idDesdeNombre(nombre)
+data class Jugador(val id: String, val nombre: String) {
 
     fun esMismaPersona(otro: Jugador): Boolean = id == otro.id
-
-    companion object {
-        fun idDesdeNombre(nombre: String): String = nombre.lowercase(Locale.ROOT)
-    }
 }

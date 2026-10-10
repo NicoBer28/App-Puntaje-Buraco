@@ -57,7 +57,6 @@ import com.example.puntajeburaco20.ui.tema.TemaBuraco
 @Composable
 fun PerfilScreen(
     alVolver: () -> Unit,
-    alCerrarSesion: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -67,7 +66,6 @@ fun PerfilScreen(
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {
             is PerfilViewModel.Evento.Mensaje -> mensajero.mostrar(evento.texto)
-            PerfilViewModel.Evento.SesionCerrada -> alCerrarSesion()
         }
     }
 

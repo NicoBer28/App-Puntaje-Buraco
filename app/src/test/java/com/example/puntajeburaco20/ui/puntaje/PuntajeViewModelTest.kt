@@ -12,6 +12,7 @@ import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
+import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.puntaje.PuntajeViewModel.Evento
 import com.example.puntajeburaco20.ui.puntaje.PuntajeViewModel.RondaIngresada
@@ -34,8 +35,8 @@ class PuntajeViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
     private val repositorio = FakePartidaEnCursoRepository(Partida.nueva(listOf(ana, beto)))
     private val estadisticas = FakeEstadisticasRepository()
     private val partidasJugadas = FakePartidasJugadasRepository()

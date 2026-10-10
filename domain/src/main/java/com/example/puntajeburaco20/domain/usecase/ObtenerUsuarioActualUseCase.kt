@@ -1,19 +1,19 @@
 package com.example.puntajeburaco20.domain.usecase
 
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
+import com.example.puntajeburaco20.domain.model.EstadoSesion
 import com.example.puntajeburaco20.domain.model.Usuario
-import com.example.puntajeburaco20.domain.repository.SesionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class ObtenerUsuarioActualUseCase @Inject constructor(
     private val usuarios: UsuarioRepository,
-    private val sesion: SesionRepository,
+    private val observarSesion: ObservarSesionUseCase,
 ) {
-    /** @throws ErrorUsuario.SinSesion si nadie inició sesión. */
+    /** @throws ErrorUsuario.SinSesion si nadie inició sesión o la cuenta todavía no tiene perfil. */
     suspend operator fun invoke(): Usuario {
-        val id = sesion.usuarioActualId.first() ?: throw ErrorUsuario.SinSesion
-        return usuarios.obtener(id) ?: throw ErrorUsuario.UsuarioInexistente
+        val sesion = observarSesion().first() as? EstadoSesion.Completa ?: throw ErrorUsuario.SinSesion
+        return usuarios.obtener(sesion.idPerfil) ?: throw ErrorUsuario.UsuarioInexistente
     }
 }

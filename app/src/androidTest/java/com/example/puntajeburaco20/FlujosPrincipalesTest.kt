@@ -10,17 +10,19 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.ModoTema
+import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
-import com.example.puntajeburaco20.fakes.FakeSesionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
+import com.example.puntajeburaco20.fakes.cuentaDe
+import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -48,7 +50,7 @@ class FlujosPrincipalesTest {
     lateinit var usuarios: FakeUsuarioRepository
 
     @Inject
-    lateinit var sesion: FakeSesionRepository
+    lateinit var auth: FakeAuthRepository
 
     @Inject
     lateinit var partidasJugadas: FakePartidasJugadasRepository
@@ -59,14 +61,20 @@ class FlujosPrincipalesTest {
     @Before
     fun preparar() {
         hilt.inject()
-        usuarios.registrar("Ana", "clave")
-        usuarios.registrar("Beto", "clave")
-        runBlocking { usuarios.agregarAmistad(Jugador("Ana"), Jugador("Beto")) }
+        usuarios.registrar("Ana")
+        usuarios.registrar("Beto")
+        auth.registrarCuenta(cuentaDe("Ana"), password = CLAVE)
+        runBlocking { usuarios.agregarAmistad(jugador("Ana"), jugador("Beto")) }
     }
 
     private fun abrirApp() = ActivityScenario.launch(MainActivity::class.java)
 
-    private fun iniciarSesionComoAna() = runBlocking { sesion.iniciar("ana") }
+    private fun iniciarSesionComoAna() = runBlocking { auth.iniciarSesion(cuentaDe("Ana").mail, CLAVE) }
+
+    private fun escribir(tag: String, texto: String) {
+        esperar(tag)
+        compose.onNodeWithTag(tag).performScrollTo().performTextReplacement(texto)
+    }
 
     private fun texto(@StringRes id: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
@@ -88,7 +96,7 @@ class FlujosPrincipalesTest {
 
     private fun elegir(posicion: Int, nombre: String) {
         tocarDesplazando("jugador_$posicion")
-        tocarDesplazando("opcion_${Jugador(nombre).id}")
+        tocarDesplazando("opcion_${jugador(nombre).id}")
     }
 
     private fun confirmarDialogo() {
@@ -113,18 +121,43 @@ class FlujosPrincipalesTest {
     }
 
     @Test
-    fun sinSesionSeMuestraElLoginYAlIngresarSeVuelveALaPantallaPrincipal() {
+    fun sinSesionSeMuestraElLoginYAlIngresarSeVaALaPantallaPrincipal() {
         abrirApp().use {
-            esperar("usuario")
-            compose.onNodeWithTag("usuario").performTextReplacement("ana")
-            compose.onNodeWithTag("password").performTextReplacement("clave")
+            escribir("mail", "ana@test.com")
+            escribir("password", CLAVE)
             // Con el teclado abierto el botón puede quedar fuera de la parte visible.
             tocarDesplazando("btnLogin")
 
             // El nombre está dentro del acceso al perfil, que agrupa su contenido para los lectores de pantalla.
             esperar("btnPerfil")
             compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Ana")
-            assertEquals("ana", sesion.usuarioActualId.value)
+            assertEquals(cuentaDe("Ana"), auth.cuenta.value)
+        }
+    }
+
+    @Test
+    fun crearUnaCuentaPideVerificarElMailYElegirNombreAntesDeEntrar() {
+        abrirApp().use {
+            escribir("mail", "caro@test.com")
+            escribir("password", CLAVE)
+            tocarDesplazando("btnCrear")
+
+            // Hasta que no se abre el enlace del mail no se puede avanzar.
+            esperar("btnYaVerifique")
+            assertEquals(listOf("caro@test.com"), auth.verificacionesEnviadas)
+            tocarDesplazando("btnYaVerifique")
+            compose.waitForIdle()
+            compose.onNodeWithTag("btnYaVerifique").assertIsDisplayed()
+
+            auth.verificarMail("caro@test.com")
+            tocarDesplazando("btnYaVerifique")
+
+            escribir("usuarioNuevo", "Caro")
+            // Se confirma desde el teclado: mientras se abre, el botón todavía se está moviendo.
+            compose.onNodeWithTag("usuarioNuevo").performImeAction()
+
+            esperar("btnPerfil")
+            compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Caro")
         }
     }
 
@@ -178,7 +211,7 @@ class FlujosPrincipalesTest {
 
             esperar("btnLogin")
             compose.onNodeWithTag("btnLogin").assertIsDisplayed()
-            assertEquals(null, sesion.usuarioActualId.value)
+            assertEquals(null, auth.cuenta.value)
         }
     }
 
@@ -201,5 +234,6 @@ class FlujosPrincipalesTest {
 
     private companion object {
         const val TIEMPO_MAXIMO_MS = 5_000L
+        const val CLAVE = "clave123"
     }
 }

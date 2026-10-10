@@ -3,18 +3,18 @@ package com.example.puntajeburaco20.di
 import android.graphics.Bitmap
 import com.example.puntajeburaco20.data.vision.DetectorFichas
 import com.example.puntajeburaco20.domain.model.FichaDetectada
+import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
-import com.example.puntajeburaco20.domain.repository.SesionRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
+import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
-import com.example.puntajeburaco20.fakes.FakeSesionRepository
 import com.example.puntajeburaco20.fakes.FakeSincronizacionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import dagger.Module
@@ -38,7 +38,7 @@ object RepositoriosEnMemoriaModule {
 
     @Provides
     @Singleton
-    fun sesion() = FakeSesionRepository()
+    fun auth() = FakeAuthRepository()
 
     @Provides
     @Singleton
@@ -60,7 +60,7 @@ object RepositoriosEnMemoriaModule {
     fun usuarioRepository(fake: FakeUsuarioRepository): UsuarioRepository = fake
 
     @Provides
-    fun sesionRepository(fake: FakeSesionRepository): SesionRepository = fake
+    fun authRepository(fake: FakeAuthRepository): AuthRepository = fake
 
     @Provides
     fun partidaEnCursoRepository(fake: FakePartidaEnCursoRepository): PartidaEnCursoRepository = fake

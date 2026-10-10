@@ -15,8 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,16 +38,12 @@ fun AmigosScreen(
     val mensajero = rememberMensajero()
     var amigo by rememberSaveable { mutableStateOf("") }
     var usuarioNuevo by rememberSaveable { mutableStateOf("") }
-    var passwordNueva by rememberSaveable { mutableStateOf("") }
 
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {
             is AmigosViewModel.Evento.Mensaje -> mensajero.mostrar(evento.texto)
             AmigosViewModel.Evento.LimpiarAmigo -> amigo = ""
-            AmigosViewModel.Evento.LimpiarNuevoUsuario -> {
-                usuarioNuevo = ""
-                passwordNueva = ""
-            }
+            AmigosViewModel.Evento.LimpiarNuevoUsuario -> usuarioNuevo = ""
         }
     }
 
@@ -112,22 +106,12 @@ fun AmigosScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("usuarioCrear"),
-                teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
-            )
-            CampoTexto(
-                valor = passwordNueva,
-                alCambiar = { passwordNueva = it },
-                etiqueta = stringResource(R.string.hint_password),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("passwordCrear"),
-                teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                acciones = KeyboardActions(onDone = { viewModel.crearUsuario(usuarioNuevo, passwordNueva) }),
-                transformacion = PasswordVisualTransformation(),
+                teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Done),
+                acciones = KeyboardActions(onDone = { viewModel.crearUsuario(usuarioNuevo) }),
             )
             BotonPrincipal(
                 texto = stringResource(R.string.accion_crear_usuario),
-                alTocar = { viewModel.crearUsuario(usuarioNuevo, passwordNueva) },
+                alTocar = { viewModel.crearUsuario(usuarioNuevo) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("btnCrearUsuario"),

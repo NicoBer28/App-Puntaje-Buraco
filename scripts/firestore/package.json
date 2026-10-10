@@ -2,14 +2,19 @@
   "name": "puntaje-buraco-firestore",
   "private": true,
   "type": "module",
-  "description": "Scripts de mantenimiento de la base de datos (respaldo y migración).",
+  "description": "Scripts de mantenimiento de la base de datos y tests de las reglas de seguridad.",
   "scripts": {
-    "respaldar": "node respaldar.mjs"
+    "respaldar": "node respaldar.mjs",
+    "reglas": "node --test \"reglas/*.test.mjs\""
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "firebase-admin": "^14.5.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.0.0"
   }
 }

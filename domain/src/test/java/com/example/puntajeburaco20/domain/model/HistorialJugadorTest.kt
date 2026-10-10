@@ -1,5 +1,6 @@
 package com.example.puntajeburaco20.domain.model
 
+import com.example.puntajeburaco20.fakes.jugador
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -8,8 +9,8 @@ import org.junit.Test
 
 class HistorialJugadorTest {
 
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
 
     /** Partida de Ana contra Beto, con un único puntaje final para cada uno. */
     private fun jugada(fecha: Long, puntosAna: Int, puntosBeto: Int, ganador: LadoEquipo) = PartidaJugada(
@@ -39,7 +40,7 @@ class HistorialJugadorTest {
         )
 
         val deAna = HistorialJugador(ana, partidas)
-        val deBeto = HistorialJugador(Jugador("BETO"), partidas)
+        val deBeto = HistorialJugador(jugador("BETO"), partidas)
 
         assertEquals(4, deAna.jugadas)
         assertEquals(3, deAna.ganadas)

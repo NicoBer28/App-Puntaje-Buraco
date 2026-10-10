@@ -1,15 +1,17 @@
 package com.example.puntajeburaco20.ui.perfil
 
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
+import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarUsuarioActualUseCase
+import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
-import com.example.puntajeburaco20.fakes.FakeSesionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
+import com.example.puntajeburaco20.fakes.cuentaDe
+import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.perfil.PerfilViewModel.Evento
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -32,14 +34,14 @@ class PerfilViewModelTest {
         registrar("Ana")
         registrar("Beto")
     }
-    private val sesion = FakeSesionRepository(usuarioInicial = "ana")
+    private val auth = FakeAuthRepository(cuentaDe("Ana"))
     private val partidaEnCurso = FakePartidaEnCursoRepository()
     private val preferencias = FakePreferenciasRepository()
 
     private fun crearViewModel() = PerfilViewModel(
         preferencias = preferencias,
-        cerrarSesionUseCase = CerrarSesionUseCase(sesion, partidaEnCurso),
-        observarUsuarioActual = ObservarUsuarioActualUseCase(usuarios, sesion),
+        cerrarSesionUseCase = CerrarSesionUseCase(auth, partidaEnCurso),
+        observarUsuarioActual = ObservarUsuarioActualUseCase(usuarios, ObservarSesionUseCase(auth, usuarios)),
     )
 
     private fun TestScope.eventosDe(viewModel: PerfilViewModel): List<Evento> {
@@ -54,7 +56,7 @@ class PerfilViewModelTest {
         assertEquals("Ana", viewModel.estado.value.nombreUsuario)
         assertEquals(0, viewModel.estado.value.cantidadAmigos)
 
-        usuarios.agregarAmistad(Jugador("Ana"), Jugador("Beto"))
+        usuarios.agregarAmistad(jugador("Ana"), jugador("Beto"))
         assertEquals(1, viewModel.estado.value.cantidadAmigos)
     }
 
@@ -70,16 +72,16 @@ class PerfilViewModelTest {
     }
 
     @Test
-    fun `cerrar sesion descarta la partida en curso y avisa a la pantalla`() = runTest {
-        partidaEnCurso.partida = Partida.nueva(listOf(Jugador("Ana"), Jugador("Beto")))
+    fun `cerrar sesion descarta la partida en curso, sin avisar nada a la pantalla`() = runTest {
+        partidaEnCurso.partida = Partida.nueva(listOf(jugador("Ana"), jugador("Beto")))
         val viewModel = crearViewModel()
         val eventos = eventosDe(viewModel)
 
         viewModel.cerrarSesion()
 
-        assertNull(sesion.usuarioActualId.value)
+        assertNull(auth.cuenta.value)
         assertNull(partidaEnCurso.partida)
-        assertEquals(listOf(Evento.SesionCerrada), eventos)
+        assertEquals(emptyList<Evento>(), eventos)
         // Mientras se sale de la pantalla se sigue viendo a quien cerró la sesión.
         assertEquals("Ana", viewModel.estado.value.nombreUsuario)
     }

@@ -1,7 +1,7 @@
 package com.example.puntajeburaco20.ui.common
 
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.ModoJuego
+import com.example.puntajeburaco20.fakes.jugador
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -10,10 +10,10 @@ import org.junit.Test
 
 class SeleccionJugadoresTest {
 
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
-    private val caro = Jugador("Caro")
-    private val dani = Jugador("Dani")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
+    private val caro = jugador("Caro")
+    private val dani = jugador("Dani")
     private val todos = listOf(ana, beto, caro, dani)
 
     @Test

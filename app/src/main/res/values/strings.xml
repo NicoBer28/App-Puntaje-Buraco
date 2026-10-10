@@ -26,12 +26,23 @@
     <string name="login_marca">Buraco</string>
     <string name="login_bajada">Anotador de partidas</string>
     <string name="login_titulo">Hola de nuevo</string>
-    <string name="login_subtitulo">Ingresá con tu usuario o creá uno nuevo.</string>
+    <string name="login_subtitulo">Ingresá con tu mail o creá una cuenta nueva.</string>
+    <string name="hint_mail">Mail</string>
     <string name="hint_usuario">Usuario</string>
     <string name="hint_password">Contraseña</string>
-    <string name="accion_crear_usuario">Crear usuario</string>
     <string name="accion_login">Ingresar</string>
-    <string name="mensaje_usuario_creado">Usuario creado con éxito</string>
+    <string name="accion_crear_cuenta">Crear cuenta</string>
+    <string name="accion_olvide_contrasena">Olvidé mi contraseña</string>
+    <string name="accion_usar_otra_cuenta">Usar otra cuenta</string>
+    <string name="verificacion_titulo">Revisá tu correo</string>
+    <string name="verificacion_detalle">Te enviamos un mail a %1$s. Abrí el enlace que trae y volvé a la app. Si no lo ves, fijate en el correo no deseado.</string>
+    <string name="accion_ya_verifique">Ya lo abrí</string>
+    <string name="accion_reenviar_mail">Reenviar mail</string>
+    <string name="nombre_titulo">Elegí tu nombre de usuario</string>
+    <string name="nombre_detalle">Con este nombre te van a buscar tus amigos. De 3 a 8 letras o números.</string>
+    <string name="accion_continuar">Continuar</string>
+    <string name="mensaje_verificacion_enviada">Te enviamos el mail de verificación</string>
+    <string name="mensaje_recuperacion_enviada">Si ese mail tiene cuenta, te enviamos un enlace para cambiar la contraseña</string>
 
     <!-- Nueva partida -->
     <string name="saludo">Hola,</string>
@@ -122,8 +133,9 @@
     <string name="subtitulo_amigos">Sumá a tus compañeros de mesa para elegirlos en las partidas.</string>
     <string name="seccion_agregar_amigo">Agregar o quitar</string>
     <string name="seccion_agregar_amigo_detalle">Escribí el usuario de tu amigo.</string>
-    <string name="seccion_crear_cuenta">Crear cuenta para un amigo</string>
-    <string name="seccion_crear_cuenta_detalle">Si todavía no tiene usuario, creáselo acá y queda agregado.</string>
+    <string name="seccion_crear_cuenta">Crear usuario para un amigo</string>
+    <string name="seccion_crear_cuenta_detalle">Si no usa la app, creale un usuario acá y queda agregado.</string>
+    <string name="accion_crear_usuario">Crear usuario</string>
     <string name="hint_usuario_amigo">Usuario del amigo</string>
     <string name="accion_agregar_amigo">Agregar</string>
     <string name="accion_eliminar_amigo">Quitar</string>
@@ -181,17 +193,26 @@
     <string name="error_campo_vacio">Completá el campo</string>
     <string name="error_complete_campos">Completá todos los campos</string>
     <plurals name="error_longitud_minima">
-        <item quantity="one">El usuario y la contraseña deben tener al menos %1$d caracter</item>
-        <item quantity="other">El usuario y la contraseña deben tener al menos %1$d caracteres</item>
+        <item quantity="one">El usuario debe tener al menos %1$d caracter</item>
+        <item quantity="other">El usuario debe tener al menos %1$d caracteres</item>
     </plurals>
     <plurals name="error_longitud_maxima">
-        <item quantity="one">El usuario y la contraseña pueden tener hasta %1$d caracter</item>
-        <item quantity="other">El usuario y la contraseña pueden tener hasta %1$d caracteres</item>
+        <item quantity="one">El usuario puede tener hasta %1$d caracter</item>
+        <item quantity="other">El usuario puede tener hasta %1$d caracteres</item>
     </plurals>
     <string name="error_caracteres_invalidos">Solo se permiten letras y números</string>
     <string name="error_nombre_en_uso">Ese nombre ya está en uso</string>
     <string name="error_usuario_inexistente">Ese usuario no existe</string>
-    <string name="error_contrasena_incorrecta">Contraseña incorrecta</string>
+    <string name="error_mail_invalido">Ese mail no es válido</string>
+    <string name="error_mail_en_uso">Ese mail ya tiene una cuenta. Probá ingresar.</string>
+    <string name="error_mail_sin_verificar">Todavía no verificaste tu mail</string>
+    <plurals name="error_contrasena_corta">
+        <item quantity="one">La contraseña debe tener al menos %1$d caracter</item>
+        <item quantity="other">La contraseña debe tener al menos %1$d caracteres</item>
+    </plurals>
+    <string name="error_credenciales_incorrectas">Mail o contraseña incorrectos</string>
+    <string name="error_demasiados_intentos">Demasiados intentos. Probá de nuevo más tarde.</string>
+    <string name="error_sin_conexion">No hay conexión. Revisá tu internet y probá de nuevo.</string>
     <string name="error_sin_sesion">No hay una sesión iniciada</string>
     <string name="error_es_usuario_actual">Ese usuario sos vos :)</string>
     <string name="error_ya_es_amigo">Ya es tu amigo</string>

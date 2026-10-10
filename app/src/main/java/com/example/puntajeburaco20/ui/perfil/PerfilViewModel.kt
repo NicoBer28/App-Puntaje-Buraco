@@ -38,7 +38,6 @@ class PerfilViewModel @Inject constructor(
 
     sealed interface Evento {
         data class Mensaje(val texto: UiText) : Evento
-        data object SesionCerrada : Evento
     }
 
     private val _estado = MutableStateFlow(Estado())
@@ -77,12 +76,11 @@ class PerfilViewModel @Inject constructor(
         if (_estado.value.cerrandoSesion) return
         viewModelScope.launch {
             _estado.update { it.copy(cerrandoSesion = true) }
-            intentar { cerrarSesionUseCase() }
-                .onSuccess { _eventos.send(Evento.SesionCerrada) }
-                .onFailure { error ->
-                    _estado.update { it.copy(cerrandoSesion = false) }
-                    _eventos.send(Evento.Mensaje(error.aMensaje(R.string.error_inesperado)))
-                }
+            // Si sale bien no hay nada más que hacer: sin sesión, la app pasa sola al acceso.
+            intentar { cerrarSesionUseCase() }.onFailure { error ->
+                _estado.update { it.copy(cerrandoSesion = false) }
+                _eventos.send(Evento.Mensaje(error.aMensaje(R.string.error_inesperado)))
+            }
         }
     }
 }

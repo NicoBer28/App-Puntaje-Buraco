@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,44 +46,84 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.puntajeburaco20.R
+import com.example.puntajeburaco20.domain.model.EstadoSesion
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
 import com.example.puntajeburaco20.ui.common.CampoTexto
 import com.example.puntajeburaco20.ui.common.Ficha
+import com.example.puntajeburaco20.ui.common.Mensajero
 import com.example.puntajeburaco20.ui.common.RecolectarEventos
 import com.example.puntajeburaco20.ui.common.rememberMensajero
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
 import kotlin.math.abs
 
+/**
+ * Acceso a la app. Según el estado de la [sesion] muestra el ingreso, el aviso para verificar el
+ * mail o la elección del nombre de usuario; cuando la sesión queda completa, deja de mostrarse.
+ */
 @Composable
 fun LoginScreen(
-    alIniciarSesion: () -> Unit,
+    sesion: EstadoSesion,
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val cargando by viewModel.cargando.collectAsStateWithLifecycle()
     val mensajero = rememberMensajero()
     val actividad = LocalActivity.current
-    var usuario by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
 
     // Sin sesión no hay a dónde volver: atrás cierra la app.
     BackHandler { actividad?.finish() }
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {
             is LoginViewModel.Evento.Mensaje -> mensajero.mostrar(evento.texto)
-            LoginViewModel.Evento.SesionIniciada -> alIniciarSesion()
         }
     }
 
+    MarcoAcceso(mensajero) {
+        when (sesion) {
+            is EstadoSesion.SinVerificar -> PasoVerificacion(
+                mail = sesion.cuenta.mail,
+                cargando = cargando,
+                alComprobar = viewModel::comprobarVerificacion,
+                alReenviar = viewModel::reenviarVerificacion,
+                alSalir = viewModel::salir,
+            )
+            is EstadoSesion.SinPerfil -> PasoNombre(
+                cargando = cargando,
+                alElegir = viewModel::elegirNombre,
+                alSalir = viewModel::salir,
+            )
+            else -> PasoIngreso(
+                cargando = cargando,
+                alIngresar = viewModel::ingresar,
+                alRegistrarse = viewModel::registrarse,
+                alRecuperar = viewModel::recuperarContrasena,
+            )
+        }
+    }
+}
+
+/** Fondo de la app mientras todavía no se sabe si hay una sesión iniciada. */
+@Composable
+fun FondoAcceso(modifier: Modifier = Modifier) {
     val colores = TemaBuraco.colores
-    BoxWithConstraints(
-        Modifier
+    Box(
+        modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(colores.encabezadoArriba, colores.encabezadoAbajo))),
-    ) {
+    )
+}
+
+/** La marca arriba y, abajo, una hoja con el contenido del paso actual. */
+@Composable
+private fun MarcoAcceso(mensajero: Mensajero, paso: @Composable ColumnScope.() -> Unit) {
+    val colores = TemaBuraco.colores
+    BoxWithConstraints(Modifier.fillMaxSize()) {
         val altoPantalla = maxHeight
+        FondoAcceso()
         Column(
             Modifier
                 .fillMaxSize()
@@ -122,53 +164,8 @@ fun LoginScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 24.dp, vertical = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Column {
-                        Text(stringResource(R.string.login_titulo), style = MaterialTheme.typography.headlineMedium)
-                        Text(
-                            stringResource(R.string.login_subtitulo),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    CampoTexto(
-                        valor = usuario,
-                        alCambiar = { usuario = it },
-                        etiqueta = stringResource(R.string.hint_usuario),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("usuario"),
-                        teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
-                    )
-                    CampoTexto(
-                        valor = password,
-                        alCambiar = { password = it },
-                        etiqueta = stringResource(R.string.hint_password),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("password"),
-                        teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        acciones = KeyboardActions(onDone = { viewModel.ingresar(usuario, password) }),
-                        transformacion = PasswordVisualTransformation(),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    BotonPrincipal(
-                        texto = stringResource(R.string.accion_login),
-                        alTocar = { viewModel.ingresar(usuario, password) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("btnLogin"),
-                        cargando = cargando,
-                    )
-                    BotonSecundario(
-                        texto = stringResource(R.string.accion_crear_usuario),
-                        alTocar = { viewModel.registrarse(usuario, password) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("btnCrear"),
-                        habilitado = !cargando,
-                    )
-                }
+                    content = paso,
+                )
             }
         }
         SnackbarHost(
@@ -186,6 +183,170 @@ fun LoginScreen(
             )
         }
     }
+}
+
+@Composable
+private fun TituloPaso(titulo: String, detalle: String) {
+    Column {
+        Text(titulo, style = MaterialTheme.typography.headlineMedium)
+        Text(
+            detalle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun BotonDeTexto(texto: String, alTocar: () -> Unit, habilitado: Boolean, tag: String) {
+    TextButton(
+        onClick = alTocar,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(tag),
+        enabled = habilitado,
+    ) {
+        Text(texto, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** Ingresar con una cuenta existente o crear una nueva, con los mismos dos campos. */
+@Composable
+private fun PasoIngreso(
+    cargando: Boolean,
+    alIngresar: (mail: String, password: String) -> Unit,
+    alRegistrarse: (mail: String, password: String) -> Unit,
+    alRecuperar: (mail: String) -> Unit,
+) {
+    var mail by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+
+    TituloPaso(stringResource(R.string.login_titulo), stringResource(R.string.login_subtitulo))
+    CampoTexto(
+        valor = mail,
+        alCambiar = { mail = it },
+        etiqueta = stringResource(R.string.hint_mail),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("mail"),
+        teclado = KeyboardOptions(
+            keyboardType = KeyboardType.Email,
+            autoCorrectEnabled = false,
+            imeAction = ImeAction.Next,
+        ),
+    )
+    CampoTexto(
+        valor = password,
+        alCambiar = { password = it },
+        etiqueta = stringResource(R.string.hint_password),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("password"),
+        teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+        acciones = KeyboardActions(onDone = { alIngresar(mail, password) }),
+        transformacion = PasswordVisualTransformation(),
+    )
+    Spacer(Modifier.height(4.dp))
+    BotonPrincipal(
+        texto = stringResource(R.string.accion_login),
+        alTocar = { alIngresar(mail, password) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnLogin"),
+        cargando = cargando,
+    )
+    BotonSecundario(
+        texto = stringResource(R.string.accion_crear_cuenta),
+        alTocar = { alRegistrarse(mail, password) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnCrear"),
+        habilitado = !cargando,
+    )
+    BotonDeTexto(
+        texto = stringResource(R.string.accion_olvide_contrasena),
+        alTocar = { alRecuperar(mail) },
+        habilitado = !cargando,
+        tag = "btnOlvide",
+    )
+}
+
+/** La cuenta existe pero falta abrir el enlace que se envió por mail. */
+@Composable
+private fun PasoVerificacion(
+    mail: String,
+    cargando: Boolean,
+    alComprobar: (avisar: Boolean) -> Unit,
+    alReenviar: () -> Unit,
+    alSalir: () -> Unit,
+) {
+    // El mail se verifica fuera de la app: al volver se comprueba sola, sin tocar nada.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { alComprobar(false) }
+
+    TituloPaso(
+        stringResource(R.string.verificacion_titulo),
+        stringResource(R.string.verificacion_detalle, mail),
+    )
+    Spacer(Modifier.height(4.dp))
+    BotonPrincipal(
+        texto = stringResource(R.string.accion_ya_verifique),
+        alTocar = { alComprobar(true) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnYaVerifique"),
+        cargando = cargando,
+    )
+    BotonSecundario(
+        texto = stringResource(R.string.accion_reenviar_mail),
+        alTocar = alReenviar,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnReenviar"),
+        habilitado = !cargando,
+    )
+    BotonDeTexto(
+        texto = stringResource(R.string.accion_usar_otra_cuenta),
+        alTocar = alSalir,
+        habilitado = !cargando,
+        tag = "btnOtraCuenta",
+    )
+}
+
+/** Mail verificado: falta elegir el nombre con el que la van a buscar los demás. */
+@Composable
+private fun PasoNombre(
+    cargando: Boolean,
+    alElegir: (nombre: String) -> Unit,
+    alSalir: () -> Unit,
+) {
+    var nombre by rememberSaveable { mutableStateOf("") }
+
+    TituloPaso(stringResource(R.string.nombre_titulo), stringResource(R.string.nombre_detalle))
+    CampoTexto(
+        valor = nombre,
+        alCambiar = { nombre = it },
+        etiqueta = stringResource(R.string.hint_usuario),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("usuarioNuevo"),
+        teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Done),
+        acciones = KeyboardActions(onDone = { alElegir(nombre) }),
+    )
+    Spacer(Modifier.height(4.dp))
+    BotonPrincipal(
+        texto = stringResource(R.string.accion_continuar),
+        alTocar = { alElegir(nombre) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnContinuar"),
+        cargando = cargando,
+    )
+    BotonDeTexto(
+        texto = stringResource(R.string.accion_usar_otra_cuenta),
+        alTocar = alSalir,
+        habilitado = !cargando,
+        tag = "btnOtraCuenta",
+    )
 }
 
 /** Cuatro fichas abiertas en abanico, una de cada color del juego. */

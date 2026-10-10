@@ -20,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +65,6 @@ import com.example.puntajeburaco20.ui.tema.TemaBuraco
  */
 @Composable
 fun NuevaPartidaScreen(
-    irALogin: () -> Unit,
     irAPartida: () -> Unit,
     irAAmigos: () -> Unit,
     irAEstadisticas: () -> Unit,
@@ -78,9 +76,6 @@ fun NuevaPartidaScreen(
     val actividad = LocalActivity.current
     var confirmarSalida by remember { mutableStateOf(false) }
 
-    LaunchedEffect(estado.sinSesion) {
-        if (estado.sinSesion) irALogin()
-    }
     BackHandler { confirmarSalida = true }
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {

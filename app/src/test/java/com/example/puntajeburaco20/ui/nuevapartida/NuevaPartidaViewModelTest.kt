@@ -1,13 +1,15 @@
 package com.example.puntajeburaco20.ui.nuevapartida
 
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.Partida
+import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarUsuarioActualUseCase
+import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
-import com.example.puntajeburaco20.fakes.FakeSesionRepository
 import com.example.puntajeburaco20.fakes.FakeSincronizacionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
+import com.example.puntajeburaco20.fakes.cuentaDe
+import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.nuevapartida.NuevaPartidaViewModel.Evento
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -34,14 +36,13 @@ class NuevaPartidaViewModelTest {
         registrar("Ana")
         registrar("Beto")
     }
-    private val sesion = FakeSesionRepository(usuarioInicial = "ana")
+    private val auth = FakeAuthRepository(cuentaDe("Ana"))
     private val partidaEnCurso = FakePartidaEnCursoRepository()
     private val sincronizacion = FakeSincronizacionRepository()
 
     private fun crearViewModel() = NuevaPartidaViewModel(
-        sesion = sesion,
         partidaEnCurso = partidaEnCurso,
-        observarUsuarioActual = ObservarUsuarioActualUseCase(usuarios, sesion),
+        observarUsuarioActual = ObservarUsuarioActualUseCase(usuarios, ObservarSesionUseCase(auth, usuarios)),
         sincronizacion = sincronizacion,
     )
 
@@ -52,30 +53,28 @@ class NuevaPartidaViewModelTest {
     }
 
     @Test
-    fun `con sesion muestra al usuario y sin sesion lo indica`() = runTest {
+    fun `muestra al usuario de la sesion y lo ofrece como jugador junto a sus amigos`() = runTest {
+        usuarios.agregarAmistad(jugador("Ana"), jugador("Beto"))
+
         val viewModel = crearViewModel()
 
-        assertFalse(viewModel.estado.value.sinSesion)
         assertEquals("Ana", viewModel.estado.value.nombreUsuario)
-
-        sesion.cerrar()
-        assertTrue(viewModel.estado.value.sinSesion)
+        assertEquals(listOf(jugador("Ana"), jugador("Beto")), viewModel.estado.value.seleccion.disponibles)
     }
 
     @Test
     fun `al cerrarse la sesion se vacia la seleccion`() = runTest {
         val viewModel = crearViewModel()
-        viewModel.elegirJugador(0, Jugador("Ana"))
+        viewModel.elegirJugador(0, jugador("Ana"))
 
-        sesion.cerrar()
+        auth.cerrarSesion()
 
-        assertTrue(viewModel.estado.value.sinSesion)
         assertNull(viewModel.estado.value.seleccion.elegido(0))
     }
 
     @Test
     fun `si quedo una partida en curso se vuelve a ella`() = runTest {
-        partidaEnCurso.partida = Partida.nueva(listOf(Jugador("Ana"), Jugador("Beto")))
+        partidaEnCurso.partida = Partida.nueva(listOf(jugador("Ana"), jugador("Beto")))
         val viewModel = crearViewModel()
 
         assertEquals(listOf(Evento.IrAPartida), eventosDe(viewModel))

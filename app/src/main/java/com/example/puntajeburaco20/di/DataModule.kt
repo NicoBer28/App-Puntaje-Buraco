@@ -1,19 +1,19 @@
 package com.example.puntajeburaco20.di
 
+import com.example.puntajeburaco20.data.auth.FirebaseAuthRepository
 import com.example.puntajeburaco20.data.firestore.FirestoreEstadisticasRepository
 import com.example.puntajeburaco20.data.firestore.FirestorePartidasJugadasRepository
 import com.example.puntajeburaco20.data.firestore.FirestoreSincronizacionRepository
 import com.example.puntajeburaco20.data.firestore.FirestoreUsuarioRepository
 import com.example.puntajeburaco20.data.local.DataStorePartidaEnCursoRepository
 import com.example.puntajeburaco20.data.local.DataStorePreferenciasRepository
-import com.example.puntajeburaco20.data.local.DataStoreSesionRepository
 import com.example.puntajeburaco20.data.vision.DetectorFichas
 import com.example.puntajeburaco20.data.vision.TfliteDetectorFichas
+import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
-import com.example.puntajeburaco20.domain.repository.SesionRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import dagger.Binds
@@ -43,7 +43,7 @@ abstract class DataModule {
     abstract fun sincronizacionRepository(impl: FirestoreSincronizacionRepository): SincronizacionRepository
 
     @Binds
-    abstract fun sesionRepository(impl: DataStoreSesionRepository): SesionRepository
+    abstract fun authRepository(impl: FirebaseAuthRepository): AuthRepository
 
     @Binds
     abstract fun partidaEnCursoRepository(impl: DataStorePartidaEnCursoRepository): PartidaEnCursoRepository

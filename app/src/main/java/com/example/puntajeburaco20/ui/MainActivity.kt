@@ -10,13 +10,13 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.puntajeburaco20.ui.navegacion.NavegacionApp
+import com.example.puntajeburaco20.ui.navegacion.RaizApp
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
 import com.example.puntajeburaco20.ui.tema.TemaViewModel
 import com.example.puntajeburaco20.ui.tema.esOscuro
 import dagger.hilt.android.AndroidEntryPoint
 
-/** Única actividad: aloja la navegación entre las pantallas, todas hechas con Compose. */
+/** Única actividad: aloja el acceso y la navegación entre las pantallas, todo hecho con Compose. */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
                 val oscuro = modo.esOscuro()
                 LaunchedEffect(oscuro) { ajustarBarraDeNavegacion(oscuro) }
                 TemaBuraco(oscuro) {
-                    NavegacionApp()
+                    RaizApp()
                 }
             }
         }

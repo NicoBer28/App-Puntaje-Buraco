@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Agregar o quitar amigos, y crear cuentas para quienes todavía no tienen una. */
+/** Agregar o quitar amigos, y crear usuarios para quienes no usan la app. */
 @HiltViewModel
 class AmigosViewModel @Inject constructor(
     private val agregarAmigo: AgregarAmigoUseCase,
@@ -52,10 +52,11 @@ class AmigosViewModel @Inject constructor(
         campoUnico = true,
     ) { eliminarAmigo(nombreAmigo) }
 
-    fun crearUsuario(nombre: String, password: String) = ejecutar(
+    fun crearUsuario(nombre: String) = ejecutar(
         exito = R.string.mensaje_usuario_amigo_creado,
         limpiar = Evento.LimpiarNuevoUsuario,
-    ) { crearUsuarioAmigo(nombre, password) }
+        campoUnico = true,
+    ) { crearUsuarioAmigo(nombre) }
 
     private fun ejecutar(
         @StringRes exito: Int,

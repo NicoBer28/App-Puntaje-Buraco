@@ -2,12 +2,12 @@ package com.example.puntajeburaco20.domain.usecase
 
 import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Estadisticas
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
+import com.example.puntajeburaco20.fakes.jugador
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -18,8 +18,8 @@ class EstadisticasUseCasesTest {
     private val repositorio = FakeEstadisticasRepository()
     private val partidasJugadas = FakePartidasJugadasRepository()
     private val registrarResultado = RegistrarResultadoPartidaUseCase(repositorio, partidasJugadas)
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
 
     @Test
     fun `registrar el resultado pasa ganador y perdedor segun el lado elegido`() = runTest {

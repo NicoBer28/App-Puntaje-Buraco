@@ -152,26 +152,32 @@ No cambia nada en la app.
 
 Registro e ingreso con mail verificado, sobre las colecciones nuevas.
 
-- [ ] `AuthRepository` en `domain` y su implementación con Firebase en `data`: registrar, iniciar
+- [x] `AuthRepository` en `domain` y su implementación con Firebase en `data`: registrar, iniciar
       y cerrar sesión, enviar verificación, recargar el estado y recuperar contraseña. La rama
       `feature/copia-inicial` tiene un `AuthRepository.java` que sirve de referencia.
-- [ ] `Jugador` pasa a tener un id propio, separado del nombre. `Jugador.idDesdeNombre` queda solo
-      para normalizar nombres de usuario.
-- [ ] `SesionRepository` pasa a derivarse de la cuenta de Auth y de `cuentas/{uid}`, en lugar de
-      DataStore.
-- [ ] `ValidadorCredenciales`: validar formato de mail y contraseña de 6 caracteres o más. Las
+- [x] `Jugador` pasa a tener un id propio, separado del nombre. Los nombres de usuario se
+      normalizan con `Usuario.claveDeNombre`.
+- [x] La sesión se deriva de la cuenta de Auth y de `cuentas/{uid}`, en lugar de DataStore.
+      `SesionRepository` desaparece: lo reemplaza `ObservarSesionUseCase`.
+- [x] `ValidadorCredenciales`: validar formato de mail y contraseña de 6 caracteres o más. Las
       reglas del nombre de usuario no cambian.
-- [ ] Pantallas: ingreso con mail y contraseña, registro, "revisá tu correo" (reenviar y
+- [x] Pantallas: ingreso con mail y contraseña, registro, "revisá tu correo" (reenviar y
       "ya verifiqué"), elegir nombre de usuario y "olvidé mi contraseña".
-- [ ] Navegación con cuatro estados: sin sesión, sin verificar, verificado sin perfil y completo.
-- [ ] Al elegir nombre se crean, en una sola operación, `perfiles/{id}`, `nombres/{nombre}`,
+- [x] Navegación con cuatro estados: sin sesión, sin verificar, verificado sin perfil y completo.
+      La decide la raíz de la app (`RaizApp`) según la sesión; ya no existe una ruta de login.
+- [x] Al elegir nombre se crean, en una sola operación, `perfiles/{id}`, `nombres/{nombre}`,
       `cuentas/{uid}` y `mails/{mail}`. Si el nombre ya está reservado, falla.
-- [ ] Reglas y tests de reglas para `perfiles/`, `nombres/`, `cuentas/` y `mails/`.
-- [ ] Actualizar los fakes (`domain/src/testFixtures`), los tests de sesión y de validación, y
+- [x] Reglas y tests de reglas para `perfiles/`, `nombres/`, `cuentas/` y `mails/`.
+- [x] Actualizar los fakes (`domain/src/testFixtures`), los tests de sesión y de validación, y
       los tests de UI de login.
 
 **Listo cuando**: en el emulador se puede registrar una cuenta, verificarla, elegir nombre,
 cerrar sesión y volver a entrar. Amigos y partidas siguen rotos hasta las fases 2 y 3.
+Comprobado el 9/10/2026 en un emulador de Android contra los emuladores de Auth y Firestore.
+
+Dos tareas de fases posteriores se adelantaron porque el cambio de `Jugador` obligaba a tocarlas:
+el dominio y la pantalla de "crear usuario para otro" ya no piden contraseña (fase 2) y la
+partida en curso ya guarda los ids de los jugadores (fase 3).
 
 **Implicaciones**
 
@@ -188,7 +194,8 @@ cerrar sesión y volver a entrar. Amigos y partidas siguen rotos hasta las fases
 - [ ] Agregar y quitar amigos escribe los dos lados en una sola operación, como hoy.
 - [ ] **Crear cuenta para otro**: `CrearUsuarioAmigoUseCase` deja de pedir contraseña. Crea un
       perfil sin login con `creadoPor`, reserva su nombre y lo agrega como amigo. El mail llega
-      en la fase 5.
+      en la fase 5. El caso de uso y la pantalla ya están (fase 1); falta
+      `FirestoreUsuarioRepository.crearSinLogin`.
 - [ ] Reglas y tests de reglas para `amigos/` y para los perfiles sin login.
 - [ ] Actualizar los tests de amigos y el flujo de UI correspondiente.
 
@@ -203,8 +210,9 @@ un tercero y lo ve en su lista.
       `estadisticasPrevias/`. Desaparece `registrarResultado`: `RegistrarResultadoPartidaUseCase`
       solo guarda la partida.
 - [ ] Índice compuesto para "Mis partidas" (`jugadores` + `fecha`) en `firestore.indexes.json`.
-- [ ] Partida en curso (`PartidaGuardada`): guardar los ids además de los nombres. Una partida
-      empezada con la versión anterior se recupera buscando los nombres, o se descarta.
+- [ ] Partida en curso (`PartidaGuardada`): ya guarda los ids (fase 1). Falta decidir qué pasa
+      con una partida empezada con la versión anterior: recuperarla buscando los nombres, o
+      descartarla. Hoy se lee usando el nombre en minúsculas como id.
 - [ ] Pantalla de estadísticas: estado para cuando no hay conexión.
 - [ ] Reglas y tests de reglas para `partidas/` y `estadisticasPrevias/`.
 - [ ] Actualizar los tests de puntaje, historial, estadísticas y "Mis partidas".

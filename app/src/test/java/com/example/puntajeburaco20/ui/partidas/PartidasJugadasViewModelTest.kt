@@ -1,15 +1,17 @@
 package com.example.puntajeburaco20.ui.partidas
 
 import com.example.puntajeburaco20.R
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.usecase.ConsultarHistorialJugadorUseCase
+import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObtenerUsuarioActualUseCase
+import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
-import com.example.puntajeburaco20.fakes.FakeSesionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
+import com.example.puntajeburaco20.fakes.cuentaDe
+import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.partidas.PartidasJugadasViewModel.Evento
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,15 +31,15 @@ class PartidasJugadasViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
     private val usuarios = FakeUsuarioRepository().apply { registrar("Ana") }
     private val partidasJugadas = FakePartidasJugadasRepository()
 
     private fun crearViewModel() = PartidasJugadasViewModel(
         ConsultarHistorialJugadorUseCase(
             partidasJugadas,
-            ObtenerUsuarioActualUseCase(usuarios, FakeSesionRepository(usuarioInicial = "ana")),
+            ObtenerUsuarioActualUseCase(usuarios, ObservarSesionUseCase(FakeAuthRepository(cuentaDe("Ana")), usuarios)),
         ),
     )
 

@@ -19,7 +19,7 @@ data class Equipo(val jugadores: List<Jugador>) {
     fun incluye(jugador: Jugador): Boolean = jugadores.any { it.esMismaPersona(jugador) }
 
     companion object {
-        /** No puede aparecer en un nombre de usuario (solo admiten letras y números). */
+        /** No puede aparecer en el id de un perfil (solo tienen letras y números). */
         const val SEPARADOR_IDS = "|"
     }
 }

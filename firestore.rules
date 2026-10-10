@@ -1,18 +1,93 @@
 rules_version = '2';
 
+// Reglas de seguridad. El esquema está descripto en docs/PLAN_AUTENTICACION.md.
+//
+// No publicar hasta el corte de la fase 4: las colecciones nuevas todavía no tienen datos reales.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
+    function conSesion() {
+      return request.auth != null;
+    }
+
+    // Sin mail verificado una cuenta no puede hacer nada, salvo ver si ya tiene perfil.
+    function verificado() {
+      return conSesion() && request.auth.token.email_verified == true;
+    }
+
+    function camposExactos(campos) {
+      return request.resource.data.keys().toSet() == campos.toSet();
+    }
+
+    // Los documentos tal como quedan después de la escritura: permite exigir que el perfil, su
+    // nombre, su cuenta y su mail se creen juntos y sean coherentes entre sí.
+    function perfilDespues(idPerfil) {
+      return getAfter(/databases/$(database)/documents/perfiles/$(idPerfil)).data;
+    }
+
+    function esMiPerfilDespues(idPerfil) {
+      return perfilDespues(idPerfil).uid == request.auth.uid;
+    }
+
+    // Las mismas reglas que ValidadorCredenciales: de 3 a 8 letras o números.
+    function nombreValido(nombre) {
+      return nombre is string && nombre.matches('[a-zA-Z0-9]{3,8}');
+    }
+
+    match /perfiles/{idPerfil} {
+      allow get: if verificado();
+
+      // Una cuenta crea su propio perfil, y solo uno: cuentas/{uid} no se puede cambiar una
+      // vez creado, así que un segundo perfil nunca cumple la condición.
+      allow create: if verificado()
+        && camposExactos(['nombre', 'uid'])
+        && request.resource.data.uid == request.auth.uid
+        && nombreValido(request.resource.data.nombre)
+        && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombre.lower())).data.perfil == idPerfil
+        && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
+        && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil;
+    }
+
+    // Reserva de nombres de usuario. El id es el nombre en minúsculas.
+    match /nombres/{nombre} {
+      allow get: if verificado();
+
+      allow create: if verificado()
+        && camposExactos(['perfil'])
+        && esMiPerfilDespues(request.resource.data.perfil)
+        && perfilDespues(request.resource.data.perfil).nombre.lower() == nombre;
+    }
+
+    // Perfil vinculado a cada cuenta de acceso.
+    match /cuentas/{uid} {
+      allow get: if conSesion() && request.auth.uid == uid;
+
+      allow create: if verificado()
+        && request.auth.uid == uid
+        && camposExactos(['perfil'])
+        && esMiPerfilDespues(request.resource.data.perfil);
+    }
+
+    // Un documento por mail: impide que un mail quede asociado a dos perfiles.
+    match /mails/{mail} {
+      allow get: if verificado() && request.auth.token.email == mail;
+
+      allow create: if verificado()
+        && request.auth.token.email == mail
+        && camposExactos(['perfil', 'uid'])
+        && request.resource.data.uid == request.auth.uid
+        && esMiPerfilDespues(request.resource.data.perfil);
+    }
+
+    // Esquema anterior. Sigue abierto, igual que hasta ahora, mientras lo use la versión
+    // publicada de la app. En el corte de la fase 4 pasa a estar bloqueado.
+    match /users/{documento=**} {
+      allow read, write: if request.time < timestamp.date(2036, 3, 8);
+    }
+    match /doubles/{documento=**} {
+      allow read, write: if request.time < timestamp.date(2036, 3, 8);
+    }
+    match /users_v2/{documento=**} {
       allow read, write: if request.time < timestamp.date(2036, 3, 8);
     }
   }

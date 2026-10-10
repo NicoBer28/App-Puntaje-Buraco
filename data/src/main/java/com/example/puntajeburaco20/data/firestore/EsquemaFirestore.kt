@@ -3,12 +3,21 @@ package com.example.puntajeburaco20.data.firestore
 import com.example.puntajeburaco20.domain.model.Equipo
 
 /**
- * Nombres de colecciones y campos en Firestore. Los de usuarios y estadísticas son los mismos que
- * usaba la versión anterior de la app, por lo que los datos existentes siguen siendo compatibles.
+ * Nombres de colecciones y campos en Firestore.
+ *
+ * Los perfiles y las cuentas usan el esquema nuevo (ver docs/PLAN_AUTENTICACION.md):
  *
  * ```
- * users/{idUsuario}                                 Nombre, Password, Amigos, AmigosNombre,
- *                                                   Partidas Jugadas, Partidas Ganadas
+ * perfiles/{idPerfil}       nombre, uid (ausente si no tiene login), creadoPor
+ * nombres/{nombre}          perfil            reserva el nombre de usuario, en minúsculas
+ * cuentas/{uid}             perfil            perfil vinculado a la cuenta de acceso
+ * mails/{mail}              perfil, uid       un mail no puede quedar asociado a dos perfiles
+ * ```
+ *
+ * Las estadísticas y las partidas siguen en el esquema anterior hasta que se migren:
+ *
+ * ```
+ * users/{idUsuario}                                 Partidas Jugadas, Partidas Ganadas
  * users/{idUsuario}/statistics/{idRival}            Partidas Jugadas, Partidas Ganadas
  * users/{idUsuario}/partidas/{idPartida}            EquipoUno, EquipoDos, Empieza, Rondas,
  *                                                   Ganador, Fecha
@@ -20,16 +29,23 @@ import com.example.puntajeburaco20.domain.model.Equipo
  * sin separador ([idParejaAnterior]); esos documentos se siguen leyendo pero ya no se escriben.
  */
 internal object EsquemaFirestore {
+    const val PERFILES = "perfiles"
+    const val NOMBRES = "nombres"
+    const val CUENTAS = "cuentas"
+    const val MAILS = "mails"
+
+    const val NOMBRE = "nombre"
+    const val UID = "uid"
+    const val CREADO_POR = "creadoPor"
+    const val PERFIL = "perfil"
+
+    // Esquema anterior
     const val USUARIOS = "users"
     const val ESTADISTICAS_INDIVIDUALES = "statistics"
     const val PAREJAS = "doubles"
     const val ESTADISTICAS_PAREJAS = "statisticsDoubles"
     const val PARTIDAS = "partidas"
 
-    const val NOMBRE = "Nombre"
-    const val PASSWORD = "Password"
-    const val AMIGOS_IDS = "Amigos"
-    const val AMIGOS_NOMBRES = "AmigosNombre"
     const val PARTIDAS_JUGADAS = "Partidas Jugadas"
     const val PARTIDAS_GANADAS = "Partidas Ganadas"
 

@@ -1,113 +1,95 @@
 package com.example.puntajeburaco20.data.firestore
 
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.AMIGOS_IDS
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.AMIGOS_NOMBRES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.CUENTAS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.MAILS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRE
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PASSWORD
-import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.USUARIOS
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFIL
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFILES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.UID
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
+import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.channels.awaitClose
+import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Perfiles en el esquema nuevo (ver [EsquemaFirestore]).
+ *
+ * Las amistades y los perfiles sin login todavía no están: llegan con la fase 2 de
+ * docs/PLAN_AUTENTICACION.md, junto con sus reglas de seguridad.
+ */
 @Singleton
 class FirestoreUsuarioRepository @Inject constructor(
     private val db: FirebaseFirestore,
-    private val sincronizacion: FirestoreSincronizacionRepository,
 ) : UsuarioRepository {
 
-    private fun documento(id: String) = db.collection(USUARIOS).document(id)
+    private fun perfil(id: String) = db.collection(PERFILES).document(id)
 
-    override fun observar(id: String): Flow<Usuario?> = callbackFlow {
-        val registro = documento(id).addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-            } else {
-                trySend(snapshot?.aUsuario())
-            }
-        }
-        awaitClose { registro.remove() }
+    override fun observar(id: String): Flow<Usuario?> = perfil(id).snapshots().map { it.aUsuario() }
+
+    override suspend fun obtener(id: String): Usuario? = perfil(id).get().await().aUsuario()
+
+    override suspend fun buscarPorNombre(nombre: String): Usuario? {
+        val reserva = db.collection(NOMBRES).document(Usuario.claveDeNombre(nombre)).get().await()
+        return reserva.getString(PERFIL)?.let { obtener(it) }
     }
 
-    override suspend fun obtener(id: String): Usuario? =
-        documento(id).get().await().aUsuario()
-
-    override suspend fun autenticar(nombre: String, password: String): Usuario {
-        val snapshot = documento(Jugador.idDesdeNombre(nombre)).get().await()
-        val usuario = snapshot.aUsuario() ?: throw ErrorUsuario.UsuarioInexistente
-        if (snapshot.getString(PASSWORD) != password) throw ErrorUsuario.ContrasenaIncorrecta
-        return usuario
-    }
+    override fun observarIdDeCuenta(uid: String): Flow<String?> =
+        db.collection(CUENTAS).document(uid).snapshots()
+            // Sin conexión y sin copia local, Firestore informa que el documento no existe: eso
+            // no alcanza para decir que la cuenta no tiene perfil.
+            .filter { it.exists() || !it.metadata.isFromCache }
+            .map { it.getString(PERFIL) }
 
     /**
-     * Usa una transacción: si otro dispositivo crea la misma cuenta entre la lectura y la
-     * escritura, Firestore reintenta y la segunda vez encuentra el nombre ocupado. Las
-     * transacciones necesitan conexión.
+     * Usa una transacción: si otro dispositivo reserva el mismo nombre entre la lectura y la
+     * escritura, Firestore reintenta y la segunda vez lo encuentra ocupado. Las transacciones
+     * necesitan conexión.
+     *
+     * El perfil, el nombre, la cuenta y el mail se escriben juntos porque las reglas de seguridad
+     * exigen que sean coherentes entre sí.
      */
-    override suspend fun crear(nombre: String, password: String): Usuario {
-        val usuario = Usuario(Jugador(nombre), amigos = emptyList())
-        val referencia = documento(usuario.id)
-        val datos = mapOf(
-            NOMBRE to nombre,
-            PASSWORD to password,
-            AMIGOS_IDS to emptyList<String>(),
-            AMIGOS_NOMBRES to emptyList<String>(),
-        )
-        val creada = db.runTransaction { transaccion ->
-            if (transaccion.get(referencia).exists()) {
+    override suspend fun crear(cuenta: Cuenta, nombre: String): Usuario {
+        val referencia = db.collection(PERFILES).document()
+        val reservaNombre = db.collection(NOMBRES).document(Usuario.claveDeNombre(nombre))
+        val creado = db.runTransaction { transaccion ->
+            if (transaccion.get(reservaNombre).exists()) {
                 false
             } else {
-                transaccion.set(referencia, datos)
+                val apuntaAlPerfil = mapOf(PERFIL to referencia.id)
+                transaccion.set(referencia, mapOf(NOMBRE to nombre, UID to cuenta.uid))
+                transaccion.set(reservaNombre, apuntaAlPerfil)
+                transaccion.set(db.collection(CUENTAS).document(cuenta.uid), apuntaAlPerfil)
+                transaccion.set(db.collection(MAILS).document(cuenta.mail), apuntaAlPerfil + (UID to cuenta.uid))
                 true
             }
         }.await()
-        if (!creada) throw ErrorUsuario.NombreEnUso
-        return usuario
+        if (!creado) throw ErrorUsuario.NombreEnUso
+        return Usuario(Jugador(referencia.id, nombre), amigos = emptyList())
     }
 
-    override suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador) {
-        modificarAmistad(usuario, amigo) { FieldValue.arrayUnion(it) }
-    }
+    override suspend fun crearSinLogin(nombre: String, creador: Cuenta): Usuario = pendienteFase2()
 
-    override suspend fun eliminarAmistad(usuario: Jugador, amigo: Jugador) {
-        modificarAmistad(usuario, amigo) { FieldValue.arrayRemove(it) }
-    }
+    override suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador): Unit = pendienteFase2()
 
-    /** Aplica la misma operación de lista en ambos usuarios, de forma atómica. */
-    private fun modificarAmistad(
-        usuario: Jugador,
-        amigo: Jugador,
-        operacion: (Any) -> FieldValue,
-    ) {
-        sincronizacion.enviar(
-            db.batch().apply {
-                update(
-                    documento(usuario.id),
-                    AMIGOS_IDS, operacion(amigo.id),
-                    AMIGOS_NOMBRES, operacion(amigo.nombre),
-                )
-                update(
-                    documento(amigo.id),
-                    AMIGOS_IDS, operacion(usuario.id),
-                    AMIGOS_NOMBRES, operacion(usuario.nombre),
-                )
-            },
-        )
-    }
+    override suspend fun eliminarAmistad(usuario: Jugador, amigo: Jugador): Unit = pendienteFase2()
+
+    private fun pendienteFase2(): Nothing =
+        throw UnsupportedOperationException("Los amigos se migran al esquema nuevo en la fase 2")
 
     private fun DocumentSnapshot.aUsuario(): Usuario? {
         if (!exists()) return null
         val nombre = getString(NOMBRE) ?: return null
-        val amigos = (get(AMIGOS_NOMBRES) as? List<*>).orEmpty().filterIsInstance<String>()
-        return Usuario(Jugador(nombre), amigos.map(::Jugador))
+        return Usuario(Jugador(id, nombre), amigos = emptyList())
     }
 }

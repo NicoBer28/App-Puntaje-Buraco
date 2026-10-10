@@ -14,6 +14,9 @@ class PartidaGuardadaTest {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    // Con ids distintos del nombre, como los perfiles reales.
+    private fun jugador(nombre: String) = Jugador(id = "id-de-$nombre", nombre = nombre)
+
     private fun idaYVuelta(partida: Partida): Partida {
         val texto = json.encodeToString(PartidaGuardada.serializer(), PartidaGuardada.desde(partida))
         return json.decodeFromString(PartidaGuardada.serializer(), texto).aDominio()
@@ -21,7 +24,7 @@ class PartidaGuardadaTest {
 
     @Test
     fun `una partida en curso se recupera tal cual se guardo`() {
-        val partida = Partida.nueva(listOf("Ana", "Beto", "Caro", "Dani").map(::Jugador))
+        val partida = Partida.nueva(listOf("Ana", "Beto", "Caro", "Dani").map(::jugador))
             .registrarRonda(PuntajeRonda(100, 35), PuntajeRonda(-50, 10))
 
         assertEquals(partida, idaYVuelta(partida))
@@ -29,7 +32,7 @@ class PartidaGuardadaTest {
 
     @Test
     fun `una partida terminada conserva al ganador`() {
-        val partida = Partida.nueva(listOf(Jugador("Ana"), Jugador("Beto"))).finalizar(LadoEquipo.UNO)
+        val partida = Partida.nueva(listOf(jugador("Ana"), jugador("Beto"))).finalizar(LadoEquipo.UNO)
 
         assertEquals(partida, idaYVuelta(partida))
     }
@@ -48,7 +51,7 @@ class PartidaGuardadaTest {
         assertEquals(530, partida.totalUno)
         assertEquals(-20, partida.totalDos)
         assertEquals(Ronda(PuntajeRonda(100, 30), PuntajeRonda(0, -20)), partida.ultimaRonda)
-        assertEquals(Jugador("Ana"), partida.empieza)
+        assertEquals(Jugador(id = "ana", nombre = "Ana"), partida.empieza)
         assertNull(partida.ganador)
     }
 
@@ -62,6 +65,21 @@ class PartidaGuardadaTest {
 
         val partida = json.decodeFromString(PartidaGuardada.serializer(), texto).aDominio()
 
-        assertEquals(Partida.nueva(listOf(Jugador("Ana"), Jugador("Beto"))), partida)
+        assertEquals(Partida.nueva(listOf(Jugador("ana", "Ana"), Jugador("beto", "Beto"))), partida)
+    }
+
+    @Test
+    fun `una partida guardada solo con nombres usa el nombre en minusculas como id`() {
+        // Formato anterior: jugadores identificados por nombre, con las rondas completas.
+        val texto = """
+            {"equipoUno":["Ana","Caro"],"equipoDos":["Beto","Dani"],"empieza":"Beto",
+             "rondas":[{"equipoUno":{"base":100,"puntos":30},"equipoDos":{"base":0,"puntos":-20}}]}
+        """.trimIndent()
+
+        val partida = json.decodeFromString(PartidaGuardada.serializer(), texto).aDominio()
+
+        assertEquals(listOf("ana", "caro"), partida.equipoUno.jugadores.map { it.id })
+        assertEquals(Jugador("beto", "Beto"), partida.empieza)
+        assertEquals(130, partida.totalUno)
     }
 }

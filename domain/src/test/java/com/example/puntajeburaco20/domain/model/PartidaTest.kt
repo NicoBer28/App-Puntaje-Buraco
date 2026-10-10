@@ -1,5 +1,6 @@
 package com.example.puntajeburaco20.domain.model
 
+import com.example.puntajeburaco20.fakes.jugador
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -9,10 +10,10 @@ import org.junit.Test
 
 class PartidaTest {
 
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
-    private val caro = Jugador("Caro")
-    private val dani = Jugador("Dani")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
+    private val caro = jugador("Caro")
+    private val dani = jugador("Dani")
 
     @Test
     fun `una partida de 2 enfrenta a los dos jugadores y empieza el primero`() {
@@ -38,7 +39,7 @@ class PartidaTest {
     fun `solo se puede jugar de a 2 o de a 4 y sin repetir jugadores`() {
         assertThrows(IllegalArgumentException::class.java) { Partida.nueva(listOf(ana)) }
         assertThrows(IllegalArgumentException::class.java) { Partida.nueva(listOf(ana, beto, caro)) }
-        assertThrows(IllegalArgumentException::class.java) { Partida.nueva(listOf(ana, Jugador("ANA"))) }
+        assertThrows(IllegalArgumentException::class.java) { Partida.nueva(listOf(ana, jugador("ANA"))) }
     }
 
     @Test
@@ -124,8 +125,8 @@ class PartidaTest {
     fun `se sabe en que lado juega cada jugador`() {
         val partida = Partida.nueva(listOf(ana, beto, caro, dani))
 
-        assertEquals(LadoEquipo.UNO, partida.ladoDe(Jugador("BETO")))
+        assertEquals(LadoEquipo.UNO, partida.ladoDe(jugador("BETO")))
         assertEquals(LadoEquipo.DOS, partida.ladoDe(caro))
-        assertNull(partida.ladoDe(Jugador("Eva")))
+        assertNull(partida.ladoDe(jugador("Eva")))
     }
 }

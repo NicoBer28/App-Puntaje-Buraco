@@ -22,18 +22,18 @@ módulo Kotlin/JVM sin dependencias de Android, `:data` es una librería Android
 ```
 
 Hilt (`app/.../di/`) conecta las capas: es el único lugar que sabe qué implementación usa cada
-interfaz. Los SDKs que solo usa la capa de datos (Firestore, DataStore) los provee el propio
-`:data` (`data/di/InfraestructuraDatosModule.kt`).
+interfaz. Los SDKs que solo usa la capa de datos (Firebase Auth, Firestore, DataStore) los
+provee el propio `:data` (`data/di/InfraestructuraDatosModule.kt`).
 
 ## Estructura
 
 ```
 domain/   (módulo :domain, paquete com.example.puntajeburaco20.domain)
-├── model/                    Jugador, Usuario, Equipo, Partida (con sus rondas), Estadisticas,
-│                             PartidaJugada, HistorialJugador, FichaDetectada, ModoTema…
-├── error/ErrorUsuario.kt     Errores de negocio (nombre en uso, ya es amigo, …)
-├── repository/               Interfaces: UsuarioRepository, EstadisticasRepository,
-│                             PartidasJugadasRepository, SesionRepository,
+├── model/                    Jugador, Usuario, Cuenta, EstadoSesion, Equipo, Partida (con sus
+│                             rondas), Estadisticas, PartidaJugada, HistorialJugador, ModoTema…
+├── error/ErrorUsuario.kt     Errores de negocio (nombre en uso, mail sin verificar, …)
+├── repository/               Interfaces: AuthRepository, UsuarioRepository,
+│                             EstadisticasRepository, PartidasJugadasRepository,
 │                             PartidaEnCursoRepository, SincronizacionRepository,
 │                             PreferenciasRepository
 ├── service/                  ValidadorCredenciales, CalculadoraPuntosFichas
@@ -41,10 +41,11 @@ domain/   (módulo :domain, paquete com.example.puntajeburaco20.domain)
     (src/testFixtures: repositorios en memoria que usan los tests de todas las capas)
 
 data/     (módulo :data, paquete com.example.puntajeburaco20.data)
-├── di/                       Firestore, DataStore, Json
-├── firestore/                Usuarios, estadísticas, partidas jugadas, sincronización
+├── di/                       Firebase Auth, Firestore, DataStore, Json
+├── auth/                     Cuentas de acceso con Firebase Authentication
+├── firestore/                Perfiles, estadísticas, partidas jugadas, sincronización
 │                             + EsquemaFirestore
-├── local/                    Sesión, partida en curso y preferencias (DataStore)
+├── local/                    Partida en curso y preferencias (DataStore)
 └── vision/                   DetectorFichas (interfaz) y TfliteDetectorFichas (YOLO sobre LiteRT)
 
 app/      (módulo :app, paquete com.example.puntajeburaco20)
@@ -54,15 +55,16 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
 │   └── DataModule.kt         Interfaz → implementación de cada repositorio
 └── ui/
     ├── MainActivity.kt       Activa edge-to-edge, aplica el tema elegido y aloja la navegación
-    ├── navegacion/           Rutas y grafo de navegación (Navigation Compose)
+    ├── navegacion/           Raíz de la app y grafo de navegación (Navigation Compose)
+    ├── sesion/               Estado de la sesión para toda la app
     ├── tema/                 Colores, tipografía (Barlow) y formas: TemaBuraco; tema elegido
     ├── common/               Componentes compartidos (encabezado, tarjetas, selector de
     │                         jugador, tabla de rondas), UiText, mensajes de error
-    ├── login/                Iniciar sesión / registrarse
+    ├── login/                Acceso: ingresar, crear cuenta, verificar el mail, elegir nombre
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── perfil/               Datos de la cuenta, tema claro u oscuro, cerrar sesión
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
-    ├── amigos/               Agregar / eliminar amigos, crear cuentas
+    ├── amigos/               Agregar / eliminar amigos, crear usuarios para otros
     ├── historial/            Estadísticas por jugador o pareja
     └── partidas/             "Mis partidas": historial ronda por ronda, racha y promedio
 ```
@@ -75,8 +77,8 @@ Ejemplo: el usuario toca **Agregar amigo**.
 2. El ViewModel ejecuta `AgregarAmigoUseCase` en una corrutina.
 3. El caso de uso aplica las reglas (no vacío, no uno mismo, existe, no es amigo ya) usando
    `UsuarioRepository` (interfaz) y lanza un `ErrorUsuario` si alguna falla.
-4. `FirestoreUsuarioRepository` escribe en Firestore (un batch atómico para ambos usuarios).
-   No espera al servidor: Firestore guarda la escritura en el dispositivo y la sube cuando hay
+4. `FirestoreUsuarioRepository` escribe en Firestore. Las escrituras que no necesitan leer antes
+   no esperan al servidor: Firestore las guarda en el dispositivo y las sube cuando hay
    conexión. Mientras tanto `SincronizacionRepository` informa que hay cambios pendientes y la
    pantalla principal lo avisa.
 5. El ViewModel emite un `Evento.Mensaje` con un `UiText`. La pantalla lo muestra en un
@@ -103,31 +105,50 @@ guarda en el dispositivo (`PreferenciasRepository`) y `MainActivity` la aplica a
 El dominio y la UI no conocen Firestore. Para migrar (por ejemplo a Supabase, Room o una API
 propia):
 
-1. Escribir nuevas clases que implementen `UsuarioRepository` y `EstadisticasRepository`.
+1. Escribir nuevas clases que implementen `UsuarioRepository`, `EstadisticasRepository` y
+   `PartidasJugadasRepository`.
 2. Enlazarlas en `di/DataModule.kt` en lugar de las de Firestore.
 
-No hay que tocar ninguna pantalla ni regla de negocio. Lo mismo vale para la sesión y la partida
-en curso (hoy en DataStore) o para el detector de fichas.
+No hay que tocar ninguna pantalla ni regla de negocio. Lo mismo vale para las cuentas de acceso
+(`AuthRepository`, hoy con Firebase Authentication), la partida en curso (hoy en DataStore) o el
+detector de fichas.
+
+## Cuentas, perfiles y sesión
+
+El plan completo de este cambio, con sus fases, está en
+[PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md).
+
+- Una **cuenta** (`Cuenta`) es el mail y la contraseña con los que alguien entra. Las maneja
+  `AuthRepository`.
+- Un **perfil** (`Usuario`) es el jugador: su nombre de usuario y sus amigos. Tiene un id propio,
+  distinto del nombre y del de la cuenta, y lo maneja `UsuarioRepository`.
+- `ObservarSesionUseCase` combina ambos en un `EstadoSesion`: sin sesión, sin verificar el mail,
+  sin perfil (todavía no eligió nombre) o completa.
+
+Las reglas de seguridad (`firestore.rules`) exigen mail verificado y que el perfil, su nombre
+reservado, su cuenta y su mail se creen juntos. Sus tests están en `scripts/firestore/reglas/`.
 
 ## Compatibilidad con datos anteriores
 
 - **Preferencias**: la primera vez que arranca, DataStore migra el archivo de SharedPreferences de
-  versiones anteriores (`SharedPreferencesMigration`), así que la sesión no se cierra.
-- **Partida en curso**: las versiones anteriores guardaban solo la última ronda y los totales.
-  `PartidaGuardada` los sigue leyendo (las rondas previas a la última se agrupan en una).
+  versiones anteriores (`SharedPreferencesMigration`).
+- **Partida en curso**: las versiones anteriores guardaban solo la última ronda y los totales, e
+  identificaban a los jugadores por su nombre. `PartidaGuardada` sigue leyendo ambos formatos
+  (las rondas previas a la última se agrupan en una, y el id es el nombre en minúsculas).
 - **Parejas**: el id pasó de `"anazoe"` a `"ana|zoe"` para evitar choques. Se escribe solo en el
   documento nuevo, y al leer se suman el nuevo y el del formato anterior.
 
 ## Navegación
 
-`ui/navegacion/NavegacionApp.kt` arranca siempre en `NuevaPartidaScreen` (navegación
-condicional, como recomienda Google). Esa pantalla redirige:
+`RaizApp` (`ui/navegacion/NavegacionApp.kt`) decide qué se muestra según el estado de la sesión:
 
-- al **login** si no hay sesión (al iniciar sesión, el login se cierra y se vuelve);
-- a la **partida en curso** si la app se cerró en medio de una.
+- sin sesión completa, el **acceso** (`LoginScreen`), que a su vez muestra el paso que
+  corresponda: ingresar o crear la cuenta, verificar el mail o elegir el nombre de usuario;
+- con sesión completa, el grafo de **pantallas** (`NavegacionApp`), que arranca siempre en
+  `NuevaPartidaScreen` y lleva a la partida en curso si la app se cerró en medio de una.
 
-La sesión se cierra desde el **perfil**, que navega al login dejando debajo solo la pantalla
-principal.
+Ninguna pantalla navega al acceso ni vuelve de él: alcanza con que cambie la sesión. Por eso
+cerrar sesión desde el **perfil** es solo cerrar la sesión.
 
 ## Compilar
 
@@ -143,6 +164,9 @@ principal.
 ./gradlew lintDebug                     # análisis estático
 ./gradlew connectedDebugAndroidTest     # tests de UI (necesita un emulador o dispositivo)
 ./gradlew assembleRelease               # APK de release (minificado con R8)
+
+# tests de las reglas de seguridad de Firestore (la primera vez: npm install en scripts/firestore)
+firebase emulators:exec --only firestore "npm --prefix scripts/firestore run reglas"
 ```
 
 ### Emuladores de Firebase
@@ -200,9 +224,12 @@ habla con Firebase.
 - **Unitarios** (JVM, sin emulador): `domain/src/test` cubre las reglas de la partida, el
   historial, las validaciones y los casos de uso; `data/src/test` la serialización de la partida
   (incluido el formato anterior); `app/src/test` los ViewModels.
-- **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren login, anotar y deshacer rondas,
-  terminar una partida y verla en "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule`
-  reemplaza a `DataModule`, así que no tocan Firestore. Los elementos se buscan por `testTag`.
+- **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren ingresar, crear una cuenta
+  (verificar el mail y elegir nombre), anotar y deshacer rondas, terminar una partida y verla en
+  "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule` reemplaza a `DataModule`, así
+  que no tocan Firebase. Los elementos se buscan por `testTag`.
+- **De reglas de seguridad** (`scripts/firestore/reglas`, Node + emulador de Firestore): prueban
+  `firestore.rules` haciendo de distintas cuentas, verificadas o no.
 
 Todos usan los mismos repositorios en memoria, publicados por `:domain` como *test fixtures*
 (`domain/src/testFixtures`).

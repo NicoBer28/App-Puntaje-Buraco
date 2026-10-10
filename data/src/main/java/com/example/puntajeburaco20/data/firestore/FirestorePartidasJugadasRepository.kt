@@ -20,6 +20,7 @@ import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.model.Ronda
+import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -85,9 +86,9 @@ class FirestorePartidasJugadasRepository @Inject constructor(
         val fecha = getTimestamp(FECHA, DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
         PartidaJugada(
             partida = Partida(
-                equipoUno = Equipo(nombres(EQUIPO_UNO).map(::Jugador)),
-                equipoDos = Equipo(nombres(EQUIPO_DOS).map(::Jugador)),
-                empieza = Jugador(requireNotNull(getString(EMPIEZA))),
+                equipoUno = Equipo(nombres(EQUIPO_UNO).map(::jugadorPorNombre)),
+                equipoDos = Equipo(nombres(EQUIPO_DOS).map(::jugadorPorNombre)),
+                empieza = jugadorPorNombre(requireNotNull(getString(EMPIEZA))),
                 rondas = (get(RONDAS) as? List<*>).orEmpty().map { aRonda(it as Map<*, *>) },
                 ganador = LadoEquipo.valueOf(requireNotNull(getString(GANADOR))),
             ),
@@ -97,6 +98,10 @@ class FirestorePartidasJugadasRepository @Inject constructor(
         Log.w(TAG, "Partida $id inválida; se omite", e)
         null
     }
+
+    // El esquema anterior solo guarda nombres, que además eran el id de cada jugador. Las partidas
+    // pasan a guardar los ids de perfil en la fase 3 de docs/PLAN_AUTENTICACION.md.
+    private fun jugadorPorNombre(nombre: String) = Jugador(id = Usuario.claveDeNombre(nombre), nombre = nombre)
 
     private fun DocumentSnapshot.nombres(campo: String): List<String> =
         (get(campo) as List<*>).map { it as String }

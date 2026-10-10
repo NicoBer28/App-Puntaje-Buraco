@@ -2,14 +2,16 @@ package com.example.puntajeburaco20.ui.historial
 
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.Estadisticas
-import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.ModoJuego
 import com.example.puntajeburaco20.domain.usecase.ConsultarEstadisticasUseCase
+import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarUsuarioActualUseCase
+import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
-import com.example.puntajeburaco20.fakes.FakeSesionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
+import com.example.puntajeburaco20.fakes.cuentaDe
+import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.historial.HistorialViewModel.Evento
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,17 +30,17 @@ class HistorialViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val ana = Jugador("Ana")
-    private val beto = Jugador("Beto")
-    private val caro = Jugador("Caro")
-    private val dani = Jugador("Dani")
+    private val ana = jugador("Ana")
+    private val beto = jugador("Beto")
+    private val caro = jugador("Caro")
+    private val dani = jugador("Dani")
 
     private val usuarios = FakeUsuarioRepository()
     private val estadisticas = FakeEstadisticasRepository()
 
     private fun crearViewModel(): HistorialViewModel {
         listOf(ana, beto, caro, dani).forEach { usuarios.registrar(it.nombre) }
-        val sesion = FakeSesionRepository(usuarioInicial = "ana")
+        val sesion = ObservarSesionUseCase(FakeAuthRepository(cuentaDe("Ana")), usuarios)
         return HistorialViewModel(
             observarUsuarioActual = ObservarUsuarioActualUseCase(usuarios, sesion),
             consultarEstadisticas = ConsultarEstadisticasUseCase(estadisticas),
