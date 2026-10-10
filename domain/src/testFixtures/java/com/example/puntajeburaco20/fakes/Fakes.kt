@@ -9,6 +9,8 @@ import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
+import com.example.puntajeburaco20.domain.model.PerfilACargo
+import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
@@ -21,6 +23,7 @@ import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /** Jugador de prueba: su id es el nombre en minúsculas, como los perfiles de [FakeUsuarioRepository]. */
@@ -46,12 +49,25 @@ class FakeUsuarioRepository : UsuarioRepository {
         val passwordAnterior: String? = null,
     )
 
+    /** Perfil reservado para un mail: a quién se le ofrece, quién lo creó y con qué nombre. */
+    private data class Reserva(val idPerfil: String, val creadoPor: String, val nombreCreador: String)
+
     private val perfiles = MutableStateFlow<Map<String, Perfil>>(emptyMap())
+
+    /** Reclamos por mail. */
+    private val reservas = MutableStateFlow<Map<String, Reserva>>(emptyMap())
+
+    /** Mails que ya son de una cuenta con perfil. */
+    private val mailsConCuenta = mutableSetOf<String>()
 
     /** Deja registrado un perfil vinculado a la cuenta de [cuentaDe]. */
     fun registrar(nombre: String, uid: String? = cuentaDe(nombre).uid) {
         perfiles.value += Usuario.claveDeNombre(nombre) to Perfil(nombre, uid, creadoPor = null, amigos = emptyList())
+        if (uid != null) mailsConCuenta += cuentaDe(nombre).mail
     }
+
+    /** Mail para el que está reservado el perfil, o `null` si no lo está para ninguno. */
+    fun mailReservadoPara(id: String): String? = reservas.value.entries.firstOrNull { it.value.idPerfil == id }?.key
 
     /** Deja un perfil anterior a las cuentas con mail: sin cuenta, con la contraseña que tenía. */
     fun registrarAnterior(nombre: String, password: String) {
@@ -74,12 +90,15 @@ class FakeUsuarioRepository : UsuarioRepository {
         perfiles.map { actuales -> actuales.entries.firstOrNull { it.value.uid == uid }?.key }
 
     override suspend fun crear(cuenta: Cuenta, nombre: String): Usuario {
+        if (cuenta.mail in reservas.value) throw ErrorUsuario.ReclamoPendiente
         val id = idLibre(nombre)
         perfiles.value += id to Perfil(nombre, cuenta.uid, creadoPor = null, amigos = emptyList())
+        mailsConCuenta += cuenta.mail
         return aUsuario(id)!!
     }
 
     override suspend fun vincularAnterior(cuenta: Cuenta, nombre: String, passwordAnterior: String): Jugador {
+        if (cuenta.mail in reservas.value) throw ErrorUsuario.ReclamoPendiente
         val id = Usuario.claveDeNombre(nombre)
         val perfil = perfiles.value[id] ?: throw ErrorUsuario.UsuarioInexistente
         when {
@@ -88,15 +107,53 @@ class FakeUsuarioRepository : UsuarioRepository {
             perfil.passwordAnterior != passwordAnterior -> throw ErrorUsuario.ContrasenaAnteriorIncorrecta
         }
         perfiles.value += id to perfil.copy(uid = cuenta.uid)
+        mailsConCuenta += cuenta.mail
         return Jugador(id, perfil.nombre)
     }
 
-    override suspend fun crearAmigoSinLogin(nombre: String, creador: Cuenta, amigoDe: Jugador): Jugador {
+    override suspend fun crearAmigoSinLogin(nombre: String, mail: String, creador: Cuenta, amigoDe: Jugador): Jugador {
+        exigirMailLibre(mail)
         val id = idLibre(nombre)
         perfiles.value += id to Perfil(nombre, uid = null, creadoPor = creador.uid, amigos = emptyList())
         val nuevo = aJugador(id)!!
         agregarAmistad(amigoDe, nuevo)
+        reservas.value += mail to Reserva(id, creador.uid, amigoDe.nombre)
         return nuevo
+    }
+
+    /** Como [crearAmigoSinLogin] antes de que se pidiera el mail: el perfil no queda reservado para nadie. */
+    suspend fun crearAmigoSinMail(nombre: String, creador: Cuenta, amigoDe: Jugador) {
+        val id = idLibre(nombre)
+        perfiles.value += id to Perfil(nombre, uid = null, creadoPor = creador.uid, amigos = emptyList())
+        agregarAmistad(amigoDe, aJugador(id)!!)
+    }
+
+    override fun observarPerfilesACargo(creador: Cuenta): Flow<List<PerfilACargo>> =
+        combine(perfiles, reservas) { actuales, _ ->
+            actuales
+                .filterValues { it.creadoPor == creador.uid && it.uid == null }
+                .map { (id, perfil) -> PerfilACargo(Jugador(id, perfil.nombre), mailReservadoPara(id)) }
+        }
+
+    override suspend fun reservarPara(perfil: PerfilACargo, mail: String, creador: Cuenta, nombreCreador: String) {
+        exigirMailLibre(mail)
+        reservas.value = reservas.value - listOfNotNull(perfil.mail).toSet() +
+            (mail to Reserva(perfil.jugador.id, creador.uid, nombreCreador))
+    }
+
+    override suspend fun buscarReclamo(cuenta: Cuenta): Reclamo? =
+        reservas.value[cuenta.mail]?.let { Reclamo(aJugador(it.idPerfil)!!, it.nombreCreador) }
+
+    override suspend fun aceptarReclamo(cuenta: Cuenta): Jugador {
+        val reserva = reservas.value[cuenta.mail] ?: throw ErrorUsuario.ReclamoNoDisponible
+        perfiles.value += reserva.idPerfil to perfiles.value.getValue(reserva.idPerfil).copy(uid = cuenta.uid)
+        reservas.value -= cuenta.mail
+        mailsConCuenta += cuenta.mail
+        return aJugador(reserva.idPerfil)!!
+    }
+
+    override suspend fun rechazarReclamo(cuenta: Cuenta) {
+        reservas.value -= cuenta.mail
     }
 
     override suspend fun agregarAmistad(usuario: Jugador, amigo: Jugador) {
@@ -107,6 +164,10 @@ class FakeUsuarioRepository : UsuarioRepository {
     override suspend fun eliminarAmistad(usuario: Jugador, amigo: Jugador) {
         modificar(usuario.id) { it - amigo.id }
         modificar(amigo.id) { it - usuario.id }
+    }
+
+    private fun exigirMailLibre(mail: String) {
+        if (mail in mailsConCuenta || mail in reservas.value) throw ErrorUsuario.MailConPerfil
     }
 
     private fun idLibre(nombre: String): String {
@@ -253,6 +314,11 @@ class FakePartidasJugadasRepository : PartidasJugadasRepository {
     override suspend fun guardar(partida: Partida) {
         error?.let { throw it }
         guardadas += PartidaJugada(partida, fecha = guardadas.size.toLong())
+    }
+
+    override suspend fun contarDe(jugador: Jugador): Long {
+        error?.let { throw it }
+        return guardadas.count { it.partida.ladoDe(jugador) != null }.toLong()
     }
 
     override suspend fun obtenerDe(jugador: Jugador, limite: Int): List<PartidaJugada> {

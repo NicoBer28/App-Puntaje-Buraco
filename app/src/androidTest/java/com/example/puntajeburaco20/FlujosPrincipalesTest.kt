@@ -33,6 +33,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -86,8 +87,8 @@ class FlujosPrincipalesTest {
         compose.onNodeWithTag(tag).performScrollTo().performTextReplacement(texto)
     }
 
-    private fun texto(@StringRes id: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
+    private fun texto(@StringRes id: Int, vararg argumentos: Any): String =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(id, *argumentos)
 
     private fun esperar(tag: String) {
         compose.waitUntil(TIEMPO_MAXIMO_MS) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
@@ -222,6 +223,32 @@ class FlujosPrincipalesTest {
     }
 
     @Test
+    fun aQuienLeCrearonUnPerfilSeLeOfreceAlRegistrarseConEseMail() {
+        // Dani no usaba la app: Ana le creó un perfil y lo dejó reservado para su mail.
+        runBlocking {
+            usuarios.crearAmigoSinLogin("Dani", "dani@test.com", creador = cuentaDe("Ana"), amigoDe = jugador("Ana"))
+        }
+        abrirApp().use {
+            escribir("mail", "dani@test.com")
+            escribir("password", CLAVE)
+            tocarDesplazando("btnCrear")
+            esperar("btnYaVerifique")
+            auth.verificarMail("dani@test.com")
+            tocarDesplazando("btnYaVerifique")
+
+            // No se le pide un nombre: se le ofrece el perfil, diciendo quién se lo creó.
+            esperar("btnAceptarReclamo")
+            compose.onNodeWithText(texto(R.string.reclamo_detalle, "Ana", "Dani")).assertIsDisplayed()
+            tocarDesplazando("btnAceptarReclamo")
+
+            esperar("btnPerfil")
+            compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Dani")
+            assertTrue(usuarios.tieneLogin("dani"))
+            assertEquals(listOf(jugador("Ana")), runBlocking { usuarios.obtener("dani")!!.amigos })
+        }
+    }
+
+    @Test
     fun agregarUnAmigoYCrearUnUsuarioParaOtroLosDejaElegibles() {
         usuarios.registrar("Caro")
         iniciarSesionComoAna()
@@ -234,13 +261,24 @@ class FlujosPrincipalesTest {
             compose.waitUntil(TIEMPO_MAXIMO_MS) { amigosDeAna().any { it.nombre == "Caro" } }
 
             escribir("usuarioCrear", "Dani")
-            compose.onNodeWithTag("usuarioCrear").performImeAction()
+            escribir("mailCrear", "dani@test.com")
+            compose.onNodeWithTag("mailCrear").performImeAction()
             compose.waitUntil(TIEMPO_MAXIMO_MS) { amigosDeAna().any { it.nombre == "Dani" } }
-            // Dani no usa la app: su perfil no tiene cuenta y queda a cargo de Ana.
+            // Dani no usa la app: su perfil no tiene cuenta, queda a cargo de Ana y reservado
+            // para el mail de Dani.
             assertFalse(usuarios.tieneLogin("dani"))
             assertEquals(cuentaDe("Ana").uid, usuarios.creadorDe("dani"))
+            assertEquals("dani@test.com", usuarios.mailReservadoPara("dani"))
 
-            tocar("btnVolver")
+            // Ana se equivocó de mail: lo corrige desde la lista de usuarios que creó.
+            tocarDesplazando("btnMail_dani")
+            esperar("mailACargo")
+            compose.onNodeWithTag("mailACargo").performTextReplacement("daniel@test.com")
+            tocar("btnGuardarMail")
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { usuarios.mailReservadoPara("dani") == "daniel@test.com" }
+
+            // El encabezado se desplaza con el contenido, y la lista está al final de la pantalla.
+            tocarDesplazando("btnVolver")
             tocarDesplazando("jugador_0")
             esperar("opcion_caro")
             esperar("opcion_dani")

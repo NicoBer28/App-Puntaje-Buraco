@@ -3,23 +3,29 @@ package com.example.puntajeburaco20.ui.login
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.EstadoSesion
+import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
+import com.example.puntajeburaco20.domain.usecase.AceptarReclamoUseCase
 import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
+import com.example.puntajeburaco20.domain.usecase.ConsultarReclamoUseCase
 import com.example.puntajeburaco20.domain.usecase.CrearPerfilUseCase
 import com.example.puntajeburaco20.domain.usecase.IniciarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.RecuperarContrasenaUseCase
+import com.example.puntajeburaco20.domain.usecase.RechazarReclamoUseCase
 import com.example.puntajeburaco20.domain.usecase.RegistrarCuentaUseCase
 import com.example.puntajeburaco20.domain.usecase.VincularPerfilAnteriorUseCase
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
+import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakeSesionAnteriorRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
 import com.example.puntajeburaco20.fakes.cuentaDe
 import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.common.UiText
+import com.example.puntajeburaco20.ui.login.LoginViewModel.EstadoReclamo
 import com.example.puntajeburaco20.ui.login.LoginViewModel.Evento
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -56,6 +62,9 @@ class LoginViewModelTest {
             recuperarContrasenaUseCase = RecuperarContrasenaUseCase(auth, validador),
             crearPerfil = CrearPerfilUseCase(auth, usuarios, validador),
             vincularPerfilAnterior = VincularPerfilAnteriorUseCase(auth, usuarios, sesionAnterior, validador),
+            consultarReclamo = ConsultarReclamoUseCase(auth, usuarios, FakePartidasJugadasRepository()),
+            aceptarReclamoUseCase = AceptarReclamoUseCase(auth, usuarios),
+            rechazarReclamoUseCase = RechazarReclamoUseCase(auth, usuarios),
             cerrarSesion = CerrarSesionUseCase(auth, partidaEnCurso),
             auth = auth,
             sesionAnterior = sesionAnterior,
@@ -234,6 +243,74 @@ class LoginViewModelTest {
         )
         assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
         assertEquals("ana", viewModel.usuarioAnterior.value)
+    }
+
+    /** Beto le creó un perfil a Ana y lo dejó reservado para el mail con el que ella se registra. */
+    private suspend fun betoLeCreaUnPerfilAAna() {
+        usuarios.registrar("Beto")
+        usuarios.crearAmigoSinLogin("Ana", "ana@test.com", creador = cuentaDe("Beto"), amigoDe = jugador("Beto"))
+    }
+
+    private fun prepararEleccionDePerfil() = viewModel.prepararEleccionDePerfil(auth.cuenta.value!!)
+
+    @Test
+    fun `a quien le crearon un perfil se le ofrece y al aceptarlo completa la sesion`() = runTest {
+        betoLeCreaUnPerfilAAna()
+        val eventos = eventosTrasRegistrar(verificada = true)
+
+        prepararEleccionDePerfil()
+        assertEquals(
+            EstadoReclamo.Pendiente(Reclamo(jugador("Ana"), nombreCreador = "Beto", partidas = 0)),
+            viewModel.reclamo.value,
+        )
+
+        viewModel.aceptarReclamo()
+
+        val sesion = observarSesion().first() as EstadoSesion.Completa
+        assertEquals(jugador("Ana").id, sesion.idPerfil)
+        assertTrue(usuarios.tieneLogin("ana"))
+        assertTrue(eventos.isEmpty())
+    }
+
+    @Test
+    fun `si rechaza el perfil que le crearon pasa a elegir un nombre nuevo`() = runTest {
+        betoLeCreaUnPerfilAAna()
+        eventosTrasRegistrar(verificada = true)
+        prepararEleccionDePerfil()
+
+        viewModel.rechazarReclamo()
+        assertEquals(EstadoReclamo.Ninguno, viewModel.reclamo.value)
+        viewModel.elegirNombre("Anita")
+
+        val sesion = observarSesion().first() as EstadoSesion.Completa
+        assertEquals(jugador("Anita"), usuarios.obtener(sesion.idPerfil)?.jugador)
+        assertFalse(usuarios.tieneLogin("ana"))
+    }
+
+    @Test
+    fun `sin un perfil reservado se pasa directo a elegir nombre`() = runTest {
+        eventosTrasRegistrar(verificada = true)
+        assertEquals(EstadoReclamo.Buscando, viewModel.reclamo.value)
+
+        prepararEleccionDePerfil()
+
+        assertEquals(EstadoReclamo.Ninguno, viewModel.reclamo.value)
+    }
+
+    @Test
+    fun `si le reservan un perfil despues de la busqueda, se le ofrece al querer crear otro`() = runTest {
+        val eventos = eventosTrasRegistrar(verificada = true)
+        prepararEleccionDePerfil()
+        betoLeCreaUnPerfilAAna()
+        // Para la misma cuenta no se vuelve a buscar solo.
+        prepararEleccionDePerfil()
+        assertEquals(EstadoReclamo.Ninguno, viewModel.reclamo.value)
+
+        viewModel.elegirNombre("Anita")
+
+        assertEquals(listOf(mensaje(R.string.error_reclamo_pendiente)), eventos)
+        assertTrue(viewModel.reclamo.value is EstadoReclamo.Pendiente)
+        assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
     }
 
     @Test

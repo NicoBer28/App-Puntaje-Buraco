@@ -1,8 +1,17 @@
 // Reglas de las amistades y de los perfiles sin login (fase 2 de docs/PLAN_AUTENTICACION.md).
 import { after, beforeEach, describe, test } from "node:test";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { serverTimestamp } from "firebase/firestore";
-import { altaDePerfil, comoPersona, crearEntorno, persona } from "./comun.mjs";
+import {
+    altaDePerfil,
+    altaSinLogin,
+    amistad,
+    amistadCon,
+    comoPersona,
+    crearEntorno,
+    escribir,
+    persona,
+    rutaAmistad,
+} from "./comun.mjs";
 
 const entorno = await crearEntorno();
 const ana = persona("Ana");
@@ -17,33 +26,7 @@ beforeEach(async () => {
 });
 after(() => entorno.cleanup());
 
-const rutaAmistad = (de, con) => `perfiles/${de.idPerfil}/amigos/${con.idPerfil}`;
-const amistadCon = (amigo) => ({ nombre: amigo.nombre, desde: serverTimestamp() });
-
-/** Escribe juntos los documentos indicados; `null` borra. */
-function escribir(db, documentos) {
-    const lote = db.batch();
-    for (const [ruta, datos] of Object.entries(documentos)) {
-        if (datos === null) lote.delete(db.doc(ruta));
-        else lote.set(db.doc(ruta), datos);
-    }
-    return lote.commit();
-}
-
-/** Los dos lados de una amistad, como los escribe la app. */
-const amistad = (uno, otro) => ({
-    [rutaAmistad(uno, otro)]: amistadCon(otro),
-    [rutaAmistad(otro, uno)]: amistadCon(uno),
-});
 const sinAmistad = (uno, otro) => ({ [rutaAmistad(uno, otro)]: null, [rutaAmistad(otro, uno)]: null });
-
-/** Lo que la app escribe al crear un usuario para alguien que no usa la app. */
-const altaSinLogin = (creador, nuevo, cambios = {}) => ({
-    [`perfiles/${nuevo.idPerfil}`]: { nombre: nuevo.nombre, creadoPor: creador.uid },
-    [`nombres/${nuevo.nombre.toLowerCase()}`]: { perfil: nuevo.idPerfil },
-    ...amistad(creador, nuevo),
-    ...cambios,
-});
 
 describe("agregar un amigo", () => {
     test("cualquiera de los dos crea la amistad en ambas listas, sin que el otro acepte", async () => {

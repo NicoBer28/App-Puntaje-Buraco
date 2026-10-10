@@ -28,6 +28,14 @@ sealed class ErrorUsuario : Exception() {
     data object PerfilCreadoPorOtro : ErrorUsuario()
     data object ContrasenaAnteriorIncorrecta : ErrorUsuario()
 
+    // Perfil que otra persona creó y dejó reservado para un mail
+    /** Ese mail ya tiene una cuenta, o ya hay un perfil reservado para él. */
+    data object MailConPerfil : ErrorUsuario()
+
+    /** La cuenta tiene un perfil reservado: antes de hacer otra cosa tiene que aceptarlo o rechazarlo. */
+    data object ReclamoPendiente : ErrorUsuario()
+    data object ReclamoNoDisponible : ErrorUsuario()
+
     // Amistades
     data object EsElUsuarioActual : ErrorUsuario()
     data object YaEsAmigo : ErrorUsuario()

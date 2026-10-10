@@ -28,6 +28,7 @@ import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.model.Ronda
 import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -84,6 +85,9 @@ class FirestorePartidasJugadasRepository @Inject constructor(
             .await()
             .documents
             .mapNotNull { it.aPartidaJugada() }
+
+    override suspend fun contarDe(jugador: Jugador): Long =
+        partidas.whereArrayContains(JUGADORES, jugador.id).count().get(AggregateSource.SERVER).await().count
 
     private fun Equipo.ids(): List<String> = jugadores.map { it.id }
 

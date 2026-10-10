@@ -12,6 +12,7 @@ import java.security.MessageDigest
  * nombres/{nombre}                       perfil    reserva el nombre de usuario, en minúsculas
  * cuentas/{uid}                          perfil, pruebaClaveVieja    perfil vinculado a la cuenta
  * mails/{mail}                           perfil, uid    un mail no puede tener dos perfiles
+ *                                        perfil, creadoPor, nombreCreador    si es un reclamo
  *
  * partidas/{idPartida}                   equipoUno, equipoDos, jugadores, nombres, equipos,
  *                                        enfrentamiento, equipoGanador, empieza, rondas, fecha,
@@ -25,6 +26,10 @@ import java.security.MessageDigest
  * "|". Las estadísticas no se guardan: se cuentan las partidas, y para eso cada una repite sus
  * equipos en los campos por los que se consulta (`equipos`, `enfrentamiento`, `equipoGanador`).
  * `estadisticasPrevias` tiene los resultados anteriores a que existiera el detalle por partida.
+ *
+ * Un perfil creado para alguien que no usa la app no tiene `uid`, sino `creadoPor`. Queda
+ * reservado para el mail de esa persona con un reclamo en `mails/`, que pasa a ser el registro
+ * de su cuenta cuando se registra con ese mail y lo acepta.
  *
  * Los perfiles anteriores a las cuentas con mail los creó la migración, sin `uid`. Para cada uno
  * dejó en `credencialesViejas/{idPerfil}` un hash de la contraseña que tenía: la app no puede
@@ -44,6 +49,7 @@ internal object EsquemaFirestore {
     const val NOMBRE = "nombre"
     const val UID = "uid"
     const val CREADO_POR = "creadoPor"
+    const val NOMBRE_CREADOR = "nombreCreador"
     const val PERFIL = "perfil"
     const val PRUEBA_CLAVE_VIEJA = "pruebaClaveVieja"
     const val DESDE = "desde"

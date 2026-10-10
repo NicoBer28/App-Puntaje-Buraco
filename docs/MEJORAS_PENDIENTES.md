@@ -6,10 +6,9 @@ Están ordenados por prioridad.
 
 ## Seguridad y datos (prioridad alta)
 
-1. **Terminar el plan de cuentas.** Faltan las fases 5 a 7 de
-   [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md): mail obligatorio al crear un usuario para otro
-   y reclamo de ese perfil, pedidos de reclamo cuando el mail no coincide, y renombrar y borrar
-   perfiles.
+1. **Terminar el plan de cuentas.** De [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md) faltan las
+   fases 6 y 7: pedidos de reclamo cuando el mail no coincide, y renombrar y borrar perfiles.
+   Después, repartir el APK.
 2. **Borrar el esquema anterior.** `users/`, `doubles/` y `users_v2/` siguen en la base como
    respaldo de la migración, con las contraseñas viejas sin hashear. Las reglas los bloquean
    para todos, pero conviene borrarlos cuando el esquema nuevo lleve un tiempo funcionando bien
@@ -40,14 +39,15 @@ Están ordenados por prioridad.
 
 ## Hecho
 
-Se resolvieron en la rama `feature/cuentas-y-esquema-nuevo` (fases 0 a 4 de
+Se resolvieron en la rama `feature/cuentas-y-esquema-nuevo` (fases 0 a 5 de
 [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md)):
 
 - Cuentas con Firebase Authentication: mail verificado, contraseña de 6 caracteres o más y
   recuperación por mail. La app ya no guarda ni compara contraseñas.
 - Reglas de seguridad de Firestore, con tests.
 - Cada jugador tiene un id de perfil propio, separado del nombre.
-- "Crear usuario para un amigo" crea un perfil sin cuenta, a cargo de quien lo creó.
+- "Crear usuario para un amigo" crea un perfil sin cuenta, a cargo de quien lo creó y reservado
+  para el mail de esa persona, que lo recibe cuando se registra con ese mail.
 - Una partida es un solo documento y las estadísticas se calculan contándolas.
 - Migración de los datos anteriores al esquema nuevo. Quien ya usaba la app recupera su perfil
   con la contraseña que tenía.

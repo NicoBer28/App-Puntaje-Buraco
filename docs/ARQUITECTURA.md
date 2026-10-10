@@ -62,12 +62,13 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     ├── common/               Componentes compartidos (encabezado, tarjetas, campos de texto y
     │                         de contraseña, selector de jugador, tabla de rondas), UiText,
     │                         mensajes de error
-    ├── login/                Acceso: ingresar, crear cuenta, verificar el mail, elegir nombre
-    │                         o recuperar el perfil que ya se tenía
+    ├── login/                Acceso: ingresar, crear cuenta, verificar el mail, y elegir nombre,
+    │                         recuperar el perfil que ya se tenía o aceptar el que creó otro
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── perfil/               Datos de la cuenta, tema claro u oscuro, cerrar sesión
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
-    ├── amigos/               Agregar / eliminar amigos, crear usuarios para otros
+    ├── amigos/               Agregar / eliminar amigos, crear usuarios para otros y cargarles
+    │                         el mail
     ├── historial/            Estadísticas por jugador o pareja
     └── partidas/             "Mis partidas": historial ronda por ronda, racha y promedio
 ```
@@ -131,6 +132,12 @@ El plan completo de este cambio, con sus fases, está en
 Hay perfiles **sin login**: los crea un usuario para alguien que no usa la app, y quedan a su
 cargo. Las amistades son siempre de a dos (cada una figura en la lista de ambos perfiles) y no
 necesitan que el otro acepte; la lista de amigos de cada uno es privada.
+
+Un perfil sin login se crea **reservado para el mail** de esa persona (un `Reclamo`, guardado en
+`mails/`). Quien lo creó ve en la pantalla Amigos los que tiene a cargo (`PerfilACargo`) y puede
+corregirles el mail. Cuando la persona se registra con ese mail, el acceso le ofrece el perfil
+antes de pedirle un nombre: si lo acepta queda vinculado a su cuenta, y si dice que no es suyo
+elige un nombre como cualquier cuenta nueva.
 
 Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfil, su nombre
 reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos
@@ -275,7 +282,8 @@ habla con Firebase.
   historial, las validaciones y los casos de uso; `data/src/test` la serialización de la partida
   (incluido el formato anterior); `app/src/test` los ViewModels.
 - **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren ingresar, crear una cuenta
-  (verificar el mail y elegir nombre), recuperar un perfil anterior, anotar y deshacer rondas,
+  (verificar el mail y elegir nombre), recuperar un perfil anterior, aceptar uno creado por otro,
+  crear un usuario para otro y corregirle el mail, anotar y deshacer rondas,
   terminar una partida y verla en "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule`
   reemplaza a `DataModule`, así que no tocan Firebase. Los elementos se buscan por `testTag`.
 - **De reglas de seguridad** (`scripts/firestore/reglas`, Node + emulador de Firestore): prueban

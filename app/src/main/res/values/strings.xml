@@ -47,6 +47,17 @@
     <string name="hint_password_anterior">Contraseña anterior</string>
     <string name="accion_vincular_perfil">Recuperar perfil</string>
     <string name="accion_perfil_nuevo">Crear un perfil nuevo</string>
+    <string name="reclamo_buscando_titulo">Un momento</string>
+    <string name="reclamo_buscando_detalle">Estamos viendo si ya tenés un perfil.</string>
+    <string name="reclamo_titulo">¿Este perfil es tuyo?</string>
+    <string name="reclamo_detalle">%1$s creó el perfil %2$s para vos.</string>
+    <plurals name="reclamo_detalle_con_partidas">
+        <item quantity="one">%1$s creó el perfil %2$s para vos. Ya tiene %3$d partida anotada.</item>
+        <item quantity="other">%1$s creó el perfil %2$s para vos. Ya tiene %3$d partidas anotadas.</item>
+    </plurals>
+    <string name="accion_aceptar_reclamo">Sí, es mío</string>
+    <string name="accion_rechazar_reclamo">No es mío</string>
+    <string name="dialogo_rechazar_reclamo">Vas a elegir un nombre nuevo y empezar sin las partidas de ese perfil.</string>
     <string name="mensaje_verificacion_enviada">Te enviamos el mail de verificación</string>
     <string name="mensaje_recuperacion_enviada">Si ese mail tiene cuenta, te enviamos un enlace para cambiar la contraseña</string>
 
@@ -140,7 +151,16 @@
     <string name="seccion_agregar_amigo">Agregar o quitar</string>
     <string name="seccion_agregar_amigo_detalle">Escribí el usuario de tu amigo.</string>
     <string name="seccion_crear_cuenta">Crear usuario para un amigo</string>
-    <string name="seccion_crear_cuenta_detalle">Si no usa la app, creale un usuario acá y queda agregado.</string>
+    <string name="seccion_crear_cuenta_detalle">Si no usa la app, creale un usuario acá y queda agregado. Cuando se registre con ese mail, el perfil pasa a ser suyo.</string>
+    <string name="hint_mail_amigo">Mail del amigo</string>
+    <string name="seccion_perfiles_a_cargo">Usuarios que creaste</string>
+    <string name="seccion_perfiles_a_cargo_detalle">Cada uno espera a que su dueño se registre con el mail que le cargaste.</string>
+    <string name="perfil_a_cargo_sin_mail">Sin mail</string>
+    <string name="accion_cargar_mail">Cargar mail</string>
+    <string name="accion_cambiar_mail">Cambiar mail</string>
+    <string name="dialogo_mail_titulo">Mail de %1$s</string>
+    <string name="accion_guardar">Guardar</string>
+    <string name="mensaje_mail_guardado">Mail guardado</string>
     <string name="accion_crear_usuario">Crear usuario</string>
     <string name="hint_usuario_amigo">Usuario del amigo</string>
     <string name="accion_agregar_amigo">Agregar</string>
@@ -226,6 +246,9 @@
     <string name="error_perfil_ya_vinculado">Ese perfil ya es de una cuenta</string>
     <string name="error_perfil_creado_por_otro">Ese perfil lo creó otra persona y no tiene contraseña</string>
     <string name="error_contrasena_anterior_incorrecta">La contraseña anterior no coincide</string>
+    <string name="error_mail_con_perfil">Ese mail ya tiene un perfil. Agregá a esa persona con su nombre de usuario.</string>
+    <string name="error_reclamo_pendiente">Primero respondé si el perfil que te crearon es tuyo</string>
+    <string name="error_reclamo_no_disponible">Ese perfil ya no está reservado para tu mail</string>
     <string name="error_es_usuario_actual">Ese usuario sos vos :)</string>
     <string name="error_ya_es_amigo">Ya es tu amigo</string>
     <string name="error_no_es_amigo">No está entre tus amigos</string>

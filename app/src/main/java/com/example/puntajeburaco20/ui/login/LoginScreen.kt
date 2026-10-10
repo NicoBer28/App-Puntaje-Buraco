@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -31,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,6 +43,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,14 +54,17 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.EstadoSesion
+import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
 import com.example.puntajeburaco20.ui.common.CampoContrasena
 import com.example.puntajeburaco20.ui.common.CampoTexto
+import com.example.puntajeburaco20.ui.common.DialogoConfirmacion
 import com.example.puntajeburaco20.ui.common.Ficha
 import com.example.puntajeburaco20.ui.common.Mensajero
 import com.example.puntajeburaco20.ui.common.RecolectarEventos
 import com.example.puntajeburaco20.ui.common.rememberMensajero
+import com.example.puntajeburaco20.ui.login.LoginViewModel.EstadoReclamo
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
 import kotlin.math.abs
 
@@ -74,6 +80,7 @@ fun LoginScreen(
 ) {
     val cargando by viewModel.cargando.collectAsStateWithLifecycle()
     val usuarioAnterior by viewModel.usuarioAnterior.collectAsStateWithLifecycle()
+    val reclamo by viewModel.reclamo.collectAsStateWithLifecycle()
     val mensajero = rememberMensajero()
     val actividad = LocalActivity.current
 
@@ -95,28 +102,42 @@ fun LoginScreen(
                 alSalir = viewModel::salir,
             )
             is EstadoSesion.SinPerfil -> {
-                // Quien ya entraba en este dispositivo con una versión anterior arranca
-                // recuperando su perfil: si eligiera un nombre nuevo perdería su historial.
-                var eligioRecuperar by rememberSaveable { mutableStateOf<Boolean?>(null) }
-                if (eligioRecuperar ?: (usuarioAnterior != null)) {
-                    PasoPerfilAnterior(
-                        usuarioAnterior = usuarioAnterior,
+                LaunchedEffect(sesion.cuenta.uid) { viewModel.prepararEleccionDePerfil(sesion.cuenta) }
+                when (val estado = reclamo) {
+                    EstadoReclamo.Buscando -> PasoBuscando()
+                    // Si alguien le creó un perfil, primero tiene que decir si es suyo.
+                    is EstadoReclamo.Pendiente -> PasoReclamo(
+                        reclamo = estado.reclamo,
                         cargando = cargando,
-                        alVincular = { nombre, passwordAnterior ->
-                            // Al vincular, el usuario anterior se olvida: sin esto el paso
-                            // cambiaría mientras el acceso se desvanece.
-                            eligioRecuperar = true
-                            viewModel.vincularPerfil(nombre, passwordAnterior)
-                        },
-                        alCrearNuevo = { eligioRecuperar = false },
-                    )
-                } else {
-                    PasoNombre(
-                        cargando = cargando,
-                        alElegir = viewModel::elegirNombre,
-                        alRecuperar = { eligioRecuperar = true },
+                        alAceptar = viewModel::aceptarReclamo,
+                        alRechazar = viewModel::rechazarReclamo,
                         alSalir = viewModel::salir,
                     )
+                    EstadoReclamo.Ninguno -> {
+                        // Quien ya entraba en este dispositivo con una versión anterior arranca
+                        // recuperando su perfil: si eligiera un nombre nuevo perdería su historial.
+                        var eligioRecuperar by rememberSaveable { mutableStateOf<Boolean?>(null) }
+                        if (eligioRecuperar ?: (usuarioAnterior != null)) {
+                            PasoPerfilAnterior(
+                                usuarioAnterior = usuarioAnterior,
+                                cargando = cargando,
+                                alVincular = { nombre, passwordAnterior ->
+                                    // Al vincular, el usuario anterior se olvida: sin esto el paso
+                                    // cambiaría mientras el acceso se desvanece.
+                                    eligioRecuperar = true
+                                    viewModel.vincularPerfil(nombre, passwordAnterior)
+                                },
+                                alCrearNuevo = { eligioRecuperar = false },
+                            )
+                        } else {
+                            PasoNombre(
+                                cargando = cargando,
+                                alElegir = viewModel::elegirNombre,
+                                alRecuperar = { eligioRecuperar = true },
+                                alSalir = viewModel::salir,
+                            )
+                        }
+                    }
                 }
             }
             else -> PasoIngreso(
@@ -329,6 +350,71 @@ private fun PasoVerificacion(
         habilitado = !cargando,
         tag = "btnOtraCuenta",
     )
+}
+
+/** Mientras se averigua si alguien dejó un perfil reservado para el mail de la cuenta. */
+@Composable
+private fun ColumnScope.PasoBuscando() {
+    TituloPaso(stringResource(R.string.reclamo_buscando_titulo), stringResource(R.string.reclamo_buscando_detalle))
+    CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
+}
+
+/** Alguien le creó un perfil cuando todavía no usaba la app: puede quedárselo o decir que no es suyo. */
+@Composable
+private fun PasoReclamo(
+    reclamo: Reclamo,
+    cargando: Boolean,
+    alAceptar: () -> Unit,
+    alRechazar: () -> Unit,
+    alSalir: () -> Unit,
+) {
+    var confirmandoRechazo by rememberSaveable { mutableStateOf(false) }
+    val partidas = reclamo.partidas?.toInt() ?: 0
+
+    TituloPaso(
+        stringResource(R.string.reclamo_titulo),
+        if (partidas > 0) {
+            pluralStringResource(
+                R.plurals.reclamo_detalle_con_partidas,
+                partidas,
+                reclamo.nombreCreador,
+                reclamo.perfil.nombre,
+                partidas,
+            )
+        } else {
+            stringResource(R.string.reclamo_detalle, reclamo.nombreCreador, reclamo.perfil.nombre)
+        },
+    )
+    Spacer(Modifier.height(4.dp))
+    BotonPrincipal(
+        texto = stringResource(R.string.accion_aceptar_reclamo),
+        alTocar = alAceptar,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnAceptarReclamo"),
+        cargando = cargando,
+    )
+    BotonSecundario(
+        texto = stringResource(R.string.accion_rechazar_reclamo),
+        alTocar = { confirmandoRechazo = true },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnRechazarReclamo"),
+        habilitado = !cargando,
+    )
+    BotonDeTexto(
+        texto = stringResource(R.string.accion_usar_otra_cuenta),
+        alTocar = alSalir,
+        habilitado = !cargando,
+        tag = "btnOtraCuenta",
+    )
+    if (confirmandoRechazo) {
+        DialogoConfirmacion(
+            mensaje = R.string.dialogo_rechazar_reclamo,
+            alConfirmar = alRechazar,
+            alCerrar = { confirmandoRechazo = false },
+        )
+    }
 }
 
 /** Mail verificado: falta elegir el nombre con el que la van a buscar los demás. */

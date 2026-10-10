@@ -60,6 +60,9 @@ service cloud.firestore {
     match /perfiles/{idPerfil} {
       allow get: if verificado();
 
+      // Cada uno puede listar los perfiles que creó para otros, para cargarles o corregirles el mail.
+      allow list: if verificado() && resource.data.creadoPor == request.auth.uid;
+
       allow create: if verificado()
         && nombreValido(request.resource.data.nombre)
         && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombre.lower())).data.perfil == idPerfil
@@ -82,15 +85,26 @@ service cloud.firestore {
           && amistadDespues(idPerfil, miPerfil());
       }
 
-      // Vincular un perfil anterior al corte con la cuenta de quien lo usaba. Lo único que cambia
-      // es que pasa a tener dueño, y la cuenta y el mail tienen que quedar apuntando a él.
+      // Una cuenta sin perfil se queda con uno que no tiene dueño. Lo único que cambia es que
+      // pasa a tenerlo, y la cuenta y el mail tienen que quedar apuntando a él. Hay dos formas de
+      // demostrar que le corresponde: la contraseña que tenía, si es anterior al corte, o que
+      // quien lo creó lo haya dejado reservado para su mail.
       allow update: if verificado()
         && !('uid' in resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
         && request.resource.data.uid == request.auth.uid
         && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
         && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil
-        && sabeLaClaveVieja(idPerfil);
+        && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.uid == request.auth.uid
+        && (loReclamaSuMail(idPerfil) || sabeLaClaveVieja(idPerfil));
+
+      // Antes de esta escritura, el mail verificado de la cuenta tiene un reclamo de este perfil.
+      function loReclamaSuMail(idPerfil) {
+        let reclamo = /databases/$(database)/documents/mails/$(request.auth.token.email);
+        return exists(reclamo)
+          && get(reclamo).data.perfil == idPerfil
+          && !('uid' in get(reclamo).data);
+      }
 
       // La persona demuestra que el perfil era suyo con la contraseña que usaba. La app no la
       // envía tal cual: guarda en la cuenta un hash de lo que la persona escribió, y el hash de
@@ -146,15 +160,57 @@ service cloud.firestore {
         && esMiPerfilDespues(request.resource.data.perfil);
     }
 
-    // Un documento por mail: impide que un mail quede asociado a dos perfiles.
+    // Un documento por mail: impide que un mail quede asociado a dos perfiles. Es el registro de
+    // la cuenta que tiene ese mail (con uid) o un reclamo: alguien creó un perfil para esa
+    // persona y lo dejó reservado para cuando se registre con ese mail.
     match /mails/{mail} {
-      allow get: if verificado() && request.auth.token.email == mail;
+      // Lo lee el dueño del mail y, si es un reclamo, quien lo creó. Que no exista lo ve
+      // cualquiera: así quien crea un usuario para otro sabe si ese mail está libre.
+      allow get: if verificado()
+        && (request.auth.token.email == mail || resource == null || esReclamoDe(resource.data));
 
-      allow create: if verificado()
+      // Cada uno puede listar los reclamos que creó.
+      allow list: if verificado() && resource.data.creadoPor == request.auth.uid;
+
+      allow create: if verificado() && (esElRegistroDeMiCuenta() || esUnReclamoNuevo());
+
+      function esElRegistroDeMiCuenta() {
+        return request.auth.token.email == mail
+          && camposExactos(['perfil', 'uid'])
+          && request.resource.data.uid == request.auth.uid
+          && esMiPerfilDespues(request.resource.data.perfil);
+      }
+
+      // Solo para un perfil sin dueño que haya creado quien hace el pedido, y con su nombre real
+      // como creador: es lo que va a leer la persona cuando se le ofrezca el perfil. El mail va
+      // en minúsculas, que es como lo deja el servicio de cuentas.
+      function esUnReclamoNuevo() {
+        return camposExactos(['perfil', 'creadoPor', 'nombreCreador'])
+          && request.resource.data.creadoPor == request.auth.uid
+          && mail == mail.lower()
+          && !('uid' in perfilDespues(request.resource.data.perfil))
+          && perfilDespues(request.resource.data.perfil).creadoPor == request.auth.uid
+          && request.resource.data.nombreCreador == perfilAntes(miPerfil()).nombre;
+      }
+
+      function esReclamoDe(datos) {
+        return !('uid' in datos) && datos.get('creadoPor', null) == request.auth.uid;
+      }
+
+      // El dueño del mail acepta el perfil: el reclamo pasa a ser el registro de su cuenta.
+      allow update: if verificado()
         && request.auth.token.email == mail
+        && !('uid' in resource.data)
         && camposExactos(['perfil', 'uid'])
+        && request.resource.data.perfil == resource.data.perfil
         && request.resource.data.uid == request.auth.uid
         && esMiPerfilDespues(request.resource.data.perfil);
+
+      // Un reclamo lo borra quien lo creó (para corregir el mail crea otro) o el dueño del
+      // mail, si dice que el perfil no es suyo. El registro de una cuenta no se borra.
+      allow delete: if verificado()
+        && !('uid' in resource.data)
+        && (resource.data.creadoPor == request.auth.uid || request.auth.token.email == mail);
     }
 
     // Una partida terminada, compartida por todos sus jugadores. La crea quien la anotó, que

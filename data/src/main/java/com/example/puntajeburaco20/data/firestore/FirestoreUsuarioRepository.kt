@@ -7,6 +7,7 @@ import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.DESDE
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.MAILS
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRE
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRE_CREADOR
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFIL
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFILES
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PRUEBA_CLAVE_VIEJA
@@ -15,6 +16,8 @@ import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.pruebaDeClave
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.Jugador
+import com.example.puntajeburaco20.domain.model.PerfilACargo
+import com.example.puntajeburaco20.domain.model.Reclamo
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import com.google.firebase.firestore.DocumentSnapshot
@@ -22,6 +25,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
 import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
@@ -45,6 +49,9 @@ class FirestoreUsuarioRepository @Inject constructor(
     private fun amigos(idPerfil: String) = perfil(idPerfil).collection(AMIGOS)
 
     private fun reservaDe(nombre: String) = db.collection(NOMBRES).document(Usuario.claveDeNombre(nombre))
+
+    /** El documento de un mail: el registro de la cuenta que lo tiene, o un reclamo. */
+    private fun registroDe(mail: String) = db.collection(MAILS).document(mail)
 
     override fun observar(id: String): Flow<Usuario?> =
         combine(perfil(id).snapshots(), amigos(id).snapshots()) { documento, amistades ->
@@ -73,16 +80,17 @@ class FirestoreUsuarioRepository @Inject constructor(
      * El perfil, el nombre, la cuenta y el mail se escriben juntos porque las reglas de seguridad
      * exigen que sean coherentes entre sí.
      */
-    override suspend fun crear(cuenta: Cuenta, nombre: String): Usuario {
+    override suspend fun crear(cuenta: Cuenta, nombre: String): Usuario = conConexion {
+        exigirSinReclamo(cuenta)
         val referencia = db.collection(PERFILES).document()
         reservandoNombre(nombre) { transaccion ->
             val apuntaAlPerfil = mapOf(PERFIL to referencia.id)
             transaccion.set(referencia, mapOf(NOMBRE to nombre, UID to cuenta.uid))
             transaccion.set(reservaDe(nombre), apuntaAlPerfil)
             transaccion.set(db.collection(CUENTAS).document(cuenta.uid), apuntaAlPerfil)
-            transaccion.set(db.collection(MAILS).document(cuenta.mail), apuntaAlPerfil + (UID to cuenta.uid))
+            transaccion.set(registroDe(cuenta.mail), apuntaAlPerfil + (UID to cuenta.uid))
         }
-        return Usuario(Jugador(referencia.id, nombre), amigos = emptyList())
+        Usuario(Jugador(referencia.id, nombre), amigos = emptyList())
     }
 
     /**
@@ -93,6 +101,7 @@ class FirestoreUsuarioRepository @Inject constructor(
      */
     override suspend fun vincularAnterior(cuenta: Cuenta, nombre: String, passwordAnterior: String): Jugador =
         try {
+            exigirSinReclamo(cuenta)
             db.runTransaction<Result<Jugador>> { transaccion ->
                 val idPerfil = transaccion.get(reservaDe(nombre)).getString(PERFIL)
                     ?: return@runTransaction Result.failure(ErrorUsuario.UsuarioInexistente)
@@ -104,12 +113,7 @@ class FirestoreUsuarioRepository @Inject constructor(
                 if (documento.contains(CREADO_POR)) return@runTransaction Result.failure(ErrorUsuario.PerfilCreadoPorOtro)
 
                 val prueba = pruebaDeClaveVieja(idPerfil, passwordAnterior)
-                transaccion.update(perfil(idPerfil), UID, cuenta.uid)
-                transaccion.set(
-                    db.collection(CUENTAS).document(cuenta.uid),
-                    mapOf(PERFIL to idPerfil, PRUEBA_CLAVE_VIEJA to prueba),
-                )
-                transaccion.set(db.collection(MAILS).document(cuenta.mail), mapOf(PERFIL to idPerfil, UID to cuenta.uid))
+                transaccion.vincular(idPerfil, cuenta, datosDeCuenta = mapOf(PRUEBA_CLAVE_VIEJA to prueba))
                 Result.success(jugador)
             }.await().getOrThrow()
         } catch (e: FirebaseFirestoreException) {
@@ -120,17 +124,79 @@ class FirestoreUsuarioRepository @Inject constructor(
             }
         }
 
-    /** El perfil nace ya con la amistad: las reglas no aceptan uno que nadie tenga en su lista. */
-    override suspend fun crearAmigoSinLogin(nombre: String, creador: Cuenta, amigoDe: Jugador): Jugador {
-        val referencia = db.collection(PERFILES).document()
-        val nuevo = Jugador(referencia.id, nombre)
-        reservandoNombre(nombre) { transaccion ->
-            transaccion.set(referencia, mapOf(NOMBRE to nombre, CREADO_POR to creador.uid))
-            transaccion.set(reservaDe(nombre), mapOf(PERFIL to referencia.id))
-            transaccion.set(amigos(nuevo.id).document(amigoDe.id), amistadCon(amigoDe))
-            transaccion.set(amigos(amigoDe.id).document(nuevo.id), amistadCon(nuevo))
+    /**
+     * El perfil nace ya con la amistad, porque las reglas no aceptan uno que nadie tenga en su
+     * lista, y con el reclamo que lo deja reservado para el [mail].
+     */
+    override suspend fun crearAmigoSinLogin(nombre: String, mail: String, creador: Cuenta, amigoDe: Jugador): Jugador =
+        conConexion {
+            exigirMailLibre(mail)
+            val referencia = db.collection(PERFILES).document()
+            val nuevo = Jugador(referencia.id, nombre)
+            reservandoNombre(nombre) { transaccion ->
+                transaccion.set(referencia, mapOf(NOMBRE to nombre, CREADO_POR to creador.uid))
+                transaccion.set(reservaDe(nombre), mapOf(PERFIL to referencia.id))
+                transaccion.set(amigos(nuevo.id).document(amigoDe.id), amistadCon(amigoDe))
+                transaccion.set(amigos(amigoDe.id).document(nuevo.id), amistadCon(nuevo))
+                transaccion.set(registroDe(mail), reclamoDe(nuevo.id, creador, amigoDe.nombre))
+            }
+            nuevo
         }
-        return nuevo
+
+    override fun observarPerfilesACargo(creador: Cuenta): Flow<List<PerfilACargo>> = combine(
+        db.collection(PERFILES).whereEqualTo(CREADO_POR, creador.uid).snapshots(),
+        db.collection(MAILS).whereEqualTo(CREADO_POR, creador.uid).snapshots(),
+    ) { perfiles, reclamos ->
+        val mailDe = reclamos.documents.associate { it.getString(PERFIL) to it.id }
+        perfiles.documents
+            // Los que ya tienen dueño dejaron de estar a cargo de quien los creó.
+            .filterNot { it.contains(UID) }
+            .mapNotNull { documento -> documento.aJugador()?.let { PerfilACargo(it, mailDe[documento.id]) } }
+            .sortedBy { it.jugador.nombre.lowercase(Locale.ROOT) }
+    }
+
+    /** El id de un reclamo es el mail: corregirlo es borrar el reclamo y crear otro, a la vez. */
+    override suspend fun reservarPara(perfil: PerfilACargo, mail: String, creador: Cuenta, nombreCreador: String) {
+        conConexion {
+            exigirMailLibre(mail)
+            db.batch().apply {
+                perfil.mail?.let { delete(registroDe(it)) }
+                set(registroDe(mail), reclamoDe(perfil.jugador.id, creador, nombreCreador))
+            }.commit().await()
+        }
+    }
+
+    override suspend fun buscarReclamo(cuenta: Cuenta): Reclamo? = conConexion {
+        val reclamo = registroDe(cuenta.mail).get(Source.SERVER).await()
+        val idPerfil = reclamo.getString(PERFIL)?.takeUnless { reclamo.contains(UID) } ?: return null
+        val documento = perfil(idPerfil).get(Source.SERVER).await()
+        val jugador = documento.aJugador()?.takeUnless { documento.contains(UID) }
+        if (jugador == null) {
+            // Quedó apuntando a un perfil que ya no se puede aceptar: mientras exista, la cuenta
+            // tampoco podría crear un perfil nuevo.
+            reclamo.reference.delete().await()
+            return null
+        }
+        Reclamo(jugador, nombreCreador = reclamo.getString(NOMBRE_CREADOR).orEmpty())
+    }
+
+    /** El reclamo pasa a ser el registro de la cuenta, en la misma operación que vincula el perfil. */
+    override suspend fun aceptarReclamo(cuenta: Cuenta): Jugador = conConexion {
+        db.runTransaction<Result<Jugador>> { transaccion ->
+            val noDisponible = Result.failure<Jugador>(ErrorUsuario.ReclamoNoDisponible)
+            val reclamo = transaccion.get(registroDe(cuenta.mail))
+            val idPerfil = reclamo.getString(PERFIL)?.takeUnless { reclamo.contains(UID) }
+                ?: return@runTransaction noDisponible
+            val documento = transaccion.get(perfil(idPerfil))
+            val jugador = documento.aJugador()?.takeUnless { documento.contains(UID) }
+                ?: return@runTransaction noDisponible
+            transaccion.vincular(idPerfil, cuenta)
+            Result.success(jugador)
+        }.await().getOrThrow()
+    }
+
+    override suspend fun rechazarReclamo(cuenta: Cuenta) {
+        conConexion { registroDe(cuenta.mail).delete().await() }
     }
 
     /** Los dos lados van en el mismo lote: las reglas rechazan una amistad a medias. */
@@ -167,6 +233,49 @@ class FirestoreUsuarioRepository @Inject constructor(
         }.await()
         if (!libre) throw ErrorUsuario.NombreEnUso
     }
+
+    /** Las escrituras con las que un perfil sin dueño pasa a ser de la [cuenta]. */
+    private fun Transaction.vincular(idPerfil: String, cuenta: Cuenta, datosDeCuenta: Map<String, Any> = emptyMap()) {
+        update(perfil(idPerfil), UID, cuenta.uid)
+        set(db.collection(CUENTAS).document(cuenta.uid), mapOf(PERFIL to idPerfil) + datosDeCuenta)
+        set(registroDe(cuenta.mail), mapOf(PERFIL to idPerfil, UID to cuenta.uid))
+    }
+
+    /**
+     * Una cuenta con un perfil reservado para su mail tiene que aceptarlo o rechazarlo antes de
+     * quedarse con otro: mientras el reclamo exista, las reglas no la dejan registrar su mail.
+     */
+    private suspend fun exigirSinReclamo(cuenta: Cuenta) {
+        if (registroDe(cuenta.mail).get(Source.SERVER).await().exists()) throw ErrorUsuario.ReclamoPendiente
+    }
+
+    /**
+     * Las reglas dejan ver que un mail está libre, pero no leer el registro de otro: que
+     * rechacen la lectura también quiere decir que está ocupado.
+     *
+     * @throws ErrorUsuario.MailConPerfil si el mail ya tiene una cuenta o un perfil reservado.
+     */
+    private suspend fun exigirMailLibre(mail: String) {
+        val ocupado = try {
+            registroDe(mail).get(Source.SERVER).await().exists()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code != FirebaseFirestoreException.Code.PERMISSION_DENIED) throw e
+            true
+        }
+        if (ocupado) throw ErrorUsuario.MailConPerfil
+    }
+
+    private fun reclamoDe(idPerfil: String, creador: Cuenta, nombreCreador: String) =
+        mapOf(PERFIL to idPerfil, CREADO_POR to creador.uid, NOMBRE_CREADOR to nombreCreador)
+
+    /** Las operaciones que necesitan al servidor fallan con [ErrorUsuario.SinConexion] si no lo alcanzan. */
+    private inline fun <T> conConexion(operacion: () -> T): T =
+        try {
+            operacion()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) throw ErrorUsuario.SinConexion
+            throw e
+        }
 
     /** Lo que guarda cada perfil sobre un amigo: su nombre, para no leer un perfil por cada uno. */
     private fun amistadCon(amigo: Jugador) = mapOf(NOMBRE to amigo.nombre, DESDE to FieldValue.serverTimestamp())

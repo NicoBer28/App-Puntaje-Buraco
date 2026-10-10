@@ -11,8 +11,8 @@ Las fases 1 a 3 se desarrollan y prueban contra el emulador de Firebase, sin toc
 reales. La fase 4 migra los datos y es la única publicación obligada (**el corte**). Las fases
 5 a 7 se publican después, cada una por separado.
 
-**Estado al 10/10/2026**: fases 0 a 4 hechas y el corte aplicado en el proyecto real. Faltan las
-fases 5 a 7.
+**Estado al 10/10/2026**: fases 0 a 5 hechas, con el corte aplicado y las reglas de la fase 5
+publicadas en el proyecto real. Faltan las fases 6 y 7. El APK se reparte cuando estén todas.
 
 ## Conceptos
 
@@ -137,7 +137,7 @@ A cada conteo se le suma lo que haya en `estadisticasPrevias/`.
 | `perfiles/{id}/amigos/` | El dueño del perfil | El dueño de cualquiera de los dos lados, y siempre los dos lados juntos |
 | `partidas/` | Cualquier usuario verificado | Las crea cualquier usuario verificado, con su `uid` en `creadaPor`. Nadie las modifica |
 | `cuentas/{uid}` | Esa cuenta | Esa cuenta |
-| `mails/{mail}` | El dueño de ese mail y quien creó el reclamo | Igual. Un mail existente no se puede pisar |
+| `mails/{mail}` | El dueño de ese mail y quien creó el reclamo. Que un mail está libre lo ve cualquier usuario verificado | El registro de una cuenta, su dueño. Un reclamo lo crea y lo borra quien creó el perfil; el dueño del mail lo acepta (pasa a ser el registro de su cuenta) o lo borra. Un mail existente no se puede pisar |
 | `estadisticasPrevias/` | Cualquier usuario verificado | Nadie |
 | `credencialesViejas/` | Nadie | Nadie |
 | `users/` y `doubles/` (esquema viejo) | Nadie | Nadie |
@@ -350,20 +350,37 @@ usuario.
 
 Se puede publicar sola.
 
-- [ ] Crear cuenta para otro pide **nombre y mail**. Además del perfil se crea `mails/{mail}`
-      como reclamo (sin `uid`).
-- [ ] Si `mails/{mail}` ya existe, la creación falla: ese mail ya tiene una cuenta o un reclamo.
+- [x] Crear cuenta para otro pide **nombre y mail**. Además del perfil se crea `mails/{mail}`
+      como reclamo (sin `uid`). El mail se guarda en minúsculas, como lo deja Firebase Auth.
+- [x] Si `mails/{mail}` ya existe, la creación falla: ese mail ya tiene una cuenta o un reclamo.
       La app avisa que esa persona ya tiene perfil y que hay que agregarla como amiga por su
       nombre de usuario.
-- [ ] Quien creó el perfil puede corregir el mail mientras nadie lo haya reclamado. Sirve también
-      para cargarle el mail a los perfiles creados antes de esta fase.
-- [ ] Después de verificar el mail, la app busca `mails/{mail}`. Si hay un reclamo, ofrece el
-      perfil ("Nico te creó el perfil Juan, con 12 partidas. ¿Es tuyo?"). Al aceptar se vincula
-      y el reclamo pasa a ser el registro de su cuenta (se le escribe `uid`); al rechazar, el
-      reclamo se borra y la persona elige un nombre nuevo.
-- [ ] Reglas: un reclamo lo crea cualquier usuario verificado si ese mail está libre; lo leen
-      quien lo creó y el dueño verificado de ese mail; lo corrige o borra quien lo creó. Vincular
+- [x] Quien creó el perfil puede corregir el mail mientras nadie lo haya reclamado, desde la
+      lista "Usuarios que creaste" de la pantalla Amigos. Sirve también para cargarle el mail a
+      los perfiles creados antes de esta fase. Corregirlo es borrar el reclamo y crear otro,
+      porque el id del reclamo es el mail.
+- [x] Después de verificar el mail, la app busca `mails/{mail}`. Si hay un reclamo, ofrece el
+      perfil ("Nico creó el perfil Juan para vos. Ya tiene 12 partidas anotadas."). Al aceptar se
+      vincula y el reclamo pasa a ser el registro de su cuenta (queda solo con `perfil` y `uid`);
+      al rechazar, el reclamo se borra y la persona elige un nombre nuevo.
+- [x] Mientras no responda, la cuenta no puede crear otro perfil ni recuperar uno anterior: la
+      app se lo vuelve a ofrecer.
+- [x] Reglas: un reclamo lo crea cualquier usuario verificado si ese mail está libre, y solo para
+      un perfil sin dueño que haya creado; lo leen quien lo creó y el dueño verificado de ese
+      mail; lo borra quien lo creó, y también el dueño del mail si dice que no es suyo. Vincular
       un perfil sin login exige que exista el reclamo para el mail verificado de la cuenta.
+
+**Listo cuando**: en el emulador alguien crea un usuario para otra persona con su mail, lo corrige,
+y esa persona se registra con ese mail y se queda con el perfil o lo rechaza.
+Comprobado el 10/10/2026 en un emulador de Android contra los emuladores de Auth y Firestore:
+crear con un mail escrito con mayúsculas, el aviso para un mail que ya tiene cuenta, corregir el
+mail, aceptar el perfil (con sus amigos y la cantidad de partidas) y rechazarlo para elegir un
+nombre nuevo.
+
+**Publicación**: las reglas se publicaron el 10/10/2026 (`firebase deploy --only firestore`); el
+APK todavía no se repartió. Tienen que ir antes que el APK: con las reglas anteriores, esta
+versión no puede saber si un mail está libre y avisa siempre que ya tiene perfil. Para la versión
+de la fase 4 no cambian nada.
 
 **Implicaciones**
 
@@ -372,6 +389,10 @@ Se puede publicar sola.
 - Mientras no exista la app para su plataforma, la persona no tiene dónde registrarse: el perfil
   queda esperando.
 - Al crear una cuenta para otro se puede deducir si un mail ya está registrado en la app.
+- Las reglas no pueden exigir el mail al crear el perfil, porque el perfil es público y no lo
+  guarda: lo exige la app. Quien siga con la versión de la fase 4 crea perfiles sin mail, y se
+  lo puede cargar después.
+- Quien creó el perfil ve el mail mientras nadie lo acepte; después deja de verlo.
 
 ## Fase 6 — "Ya tenía un perfil" para perfiles creados por otro
 

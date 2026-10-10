@@ -156,7 +156,7 @@ class SesionUseCasesTest {
     fun `solo se vincula un perfil anterior que todavia no es de nadie`() = runTest {
         usuarios.registrar("Beto")
         usuarios.registrar("Caro")
-        usuarios.crearAmigoSinLogin("Dani", creador = cuentaDe("Caro"), amigoDe = jugador("Caro"))
+        usuarios.crearAmigoSinMail("Dani", creador = cuentaDe("Caro"), amigoDe = jugador("Caro"))
 
         esperarError<ErrorUsuario.SinSesion> { vincularPerfilAnterior("Beto", "1234") }
         registrarCuenta("ana@test.com", "clave123")

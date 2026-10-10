@@ -15,4 +15,7 @@ interface PartidasJugadasRepository {
 
     /** Las últimas [limite] partidas del [jugador], de la más reciente a la más vieja. */
     suspend fun obtenerDe(jugador: Jugador, limite: Int): List<PartidaJugada>
+
+    /** Cuántas partidas terminadas tiene el [jugador]. Se cuentan en el servidor: necesita conexión. */
+    suspend fun contarDe(jugador: Jugador): Long
 }
