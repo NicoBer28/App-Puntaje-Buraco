@@ -21,3 +21,13 @@ app/google-services.json
 keystore.properties
 *.jks
 *.keystore
+
+# Scripts de mantenimiento de Firestore: dependencias, respaldos y claves de cuentas de servicio
+node_modules/
+scripts/firestore/respaldos/
+*firebase-adminsdk*.json
+
+# Firebase CLI y emuladores
+.firebase/
+*-debug.log
+.emuladores/
