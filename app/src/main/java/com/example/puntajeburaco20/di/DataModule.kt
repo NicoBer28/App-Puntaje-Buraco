@@ -7,6 +7,7 @@ import com.example.puntajeburaco20.data.firestore.FirestoreSincronizacionReposit
 import com.example.puntajeburaco20.data.firestore.FirestoreUsuarioRepository
 import com.example.puntajeburaco20.data.local.DataStorePartidaEnCursoRepository
 import com.example.puntajeburaco20.data.local.DataStorePreferenciasRepository
+import com.example.puntajeburaco20.data.local.DataStoreSesionAnteriorRepository
 import com.example.puntajeburaco20.data.vision.DetectorFichas
 import com.example.puntajeburaco20.data.vision.TfliteDetectorFichas
 import com.example.puntajeburaco20.domain.repository.AuthRepository
@@ -14,6 +15,7 @@ import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
+import com.example.puntajeburaco20.domain.repository.SesionAnteriorRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import dagger.Binds
@@ -50,6 +52,9 @@ abstract class DataModule {
 
     @Binds
     abstract fun preferenciasRepository(impl: DataStorePreferenciasRepository): PreferenciasRepository
+
+    @Binds
+    abstract fun sesionAnteriorRepository(impl: DataStoreSesionAnteriorRepository): SesionAnteriorRepository
 
     @Binds
     abstract fun detectorFichas(impl: TfliteDetectorFichas): DetectorFichas

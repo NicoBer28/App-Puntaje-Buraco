@@ -2,7 +2,11 @@ rules_version = '2';
 
 // Reglas de seguridad. El esquema está descripto en docs/PLAN_AUTENTICACION.md.
 //
-// No publicar hasta el corte de la fase 4: las colecciones nuevas todavía no tienen datos reales.
+// Publicarlas es el primer paso del corte de la fase 4: desde ese momento las versiones
+// anteriores de la app, que usan users/ y doubles/, dejan de poder leer y escribir.
+//
+// Lo que no figura acá queda bloqueado para todos: credencialesViejas/, que solo consultan estas
+// reglas, y el esquema anterior (users/, doubles/, users_v2/), que se conserva como respaldo.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -78,6 +82,28 @@ service cloud.firestore {
           && amistadDespues(idPerfil, miPerfil());
       }
 
+      // Vincular un perfil anterior al corte con la cuenta de quien lo usaba. Lo único que cambia
+      // es que pasa a tener dueño, y la cuenta y el mail tienen que quedar apuntando a él.
+      allow update: if verificado()
+        && !('uid' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
+        && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil
+        && sabeLaClaveVieja(idPerfil);
+
+      // La persona demuestra que el perfil era suyo con la contraseña que usaba. La app no la
+      // envía tal cual: guarda en la cuenta un hash de lo que la persona escribió, y el hash de
+      // ese hash tiene que ser el que dejó la migración. Un perfil sin credencial vieja (creado
+      // después del corte) no se puede vincular así.
+      function sabeLaClaveVieja(idPerfil) {
+        // toHexString() devuelve mayúsculas y el hash guardado está en minúsculas.
+        return hashing.sha256(
+            getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.pruebaClaveVieja
+          ).toHexString().lower()
+          == get(/databases/$(database)/documents/credencialesViejas/$(idPerfil)).data.hash;
+      }
+
       // Las amistades son siempre de a dos: cada una figura en la lista de los dos perfiles.
       match /amigos/{idAmigo} {
         // La lista de amigos es privada.
@@ -115,7 +141,8 @@ service cloud.firestore {
 
       allow create: if verificado()
         && request.auth.uid == uid
-        && camposExactos(['perfil'])
+        // pruebaClaveVieja solo está cuando el perfil se vinculó con la contraseña anterior.
+        && (camposExactos(['perfil']) || camposExactos(['perfil', 'pruebaClaveVieja']))
         && esMiPerfilDespues(request.resource.data.perfil);
     }
 
@@ -179,18 +206,6 @@ service cloud.firestore {
       match /rivales/{rival} {
         allow get: if verificado();
       }
-    }
-
-    // Esquema anterior. Sigue abierto, igual que hasta ahora, mientras lo use la versión
-    // publicada de la app. En el corte de la fase 4 pasa a estar bloqueado.
-    match /users/{documento=**} {
-      allow read, write: if request.time < timestamp.date(2036, 3, 8);
-    }
-    match /doubles/{documento=**} {
-      allow read, write: if request.time < timestamp.date(2036, 3, 8);
-    }
-    match /users_v2/{documento=**} {
-      allow read, write: if request.time < timestamp.date(2036, 3, 8);
     }
   }
 }

@@ -1,9 +1,11 @@
 package com.example.puntajeburaco20
 
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -20,6 +22,7 @@ import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
+import com.example.puntajeburaco20.fakes.FakeSesionAnteriorRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.cuentaDe
 import com.example.puntajeburaco20.fakes.jugador
@@ -29,6 +32,7 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -58,6 +62,9 @@ class FlujosPrincipalesTest {
 
     @Inject
     lateinit var preferencias: FakePreferenciasRepository
+
+    @Inject
+    lateinit var sesionAnterior: FakeSesionAnteriorRepository
 
     @Before
     fun preparar() {
@@ -139,6 +146,25 @@ class FlujosPrincipalesTest {
     }
 
     @Test
+    fun elOjoDejaLaContrasenaALaVistaHastaQueSeLoVuelveATocar() {
+        abrirApp().use {
+            // Para los tests el campo tiene siempre el texto real: lo que cambia es el ojo.
+            escribir("password", CLAVE)
+            val ojo = compose.onNodeWithTag("password_ver")
+            ojo.assertContentDescriptionEquals(texto(R.string.cd_mostrar_contrasena))
+
+            tocarDesplazando("password_ver")
+            ojo.assertContentDescriptionEquals(texto(R.string.cd_ocultar_contrasena))
+            // Sigue a la vista después de seguir escribiendo.
+            escribir("password", CLAVE + "4")
+            ojo.assertContentDescriptionEquals(texto(R.string.cd_ocultar_contrasena))
+
+            tocarDesplazando("password_ver")
+            ojo.assertContentDescriptionEquals(texto(R.string.cd_mostrar_contrasena))
+        }
+    }
+
+    @Test
     fun crearUnaCuentaPideVerificarElMailYElegirNombreAntesDeEntrar() {
         abrirApp().use {
             escribir("mail", "caro@test.com")
@@ -161,6 +187,37 @@ class FlujosPrincipalesTest {
 
             esperar("btnPerfil")
             compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Caro")
+        }
+    }
+
+    @Test
+    fun quienYaTeniaUnPerfilLoRecuperaConSuContrasenaAnterior() {
+        // Caro usaba la app en este dispositivo antes de que hubiera cuentas con mail.
+        usuarios.registrarAnterior("Caro", password = "1234")
+        runBlocking { usuarios.agregarAmistad(jugador("Caro"), jugador("Beto")) }
+        sesionAnterior.nombre = "caro"
+        abrirApp().use {
+            escribir("mail", "caro@test.com")
+            escribir("password", CLAVE)
+            tocarDesplazando("btnCrear")
+            esperar("btnYaVerifique")
+            auth.verificarMail("caro@test.com")
+            tocarDesplazando("btnYaVerifique")
+
+            // En lugar de pedirle un nombre nuevo le ofrece su perfil, con el usuario ya escrito.
+            esperar("usuarioAnterior")
+            compose.onNodeWithTag("usuarioAnterior").assertTextContains("caro")
+            // Puede pasar a crear un perfil nuevo, y volver.
+            tocarDesplazando("btnPerfilNuevo")
+            tocarDesplazando("btnYaTeniaPerfil")
+
+            escribir("passwordAnterior", "1234")
+            compose.onNodeWithTag("passwordAnterior").performImeAction()
+
+            esperar("btnPerfil")
+            compose.onNodeWithTag("nombreUsuario", useUnmergedTree = true).assertTextEquals("Caro")
+            assertEquals(listOf(jugador("Beto")), runBlocking { usuarios.obtener("caro")!!.amigos })
+            assertNull(sesionAnterior.nombre)
         }
     }
 

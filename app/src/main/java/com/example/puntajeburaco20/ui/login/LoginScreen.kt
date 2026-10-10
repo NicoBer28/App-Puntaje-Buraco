@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
@@ -43,7 +44,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -53,6 +53,7 @@ import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.EstadoSesion
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
+import com.example.puntajeburaco20.ui.common.CampoContrasena
 import com.example.puntajeburaco20.ui.common.CampoTexto
 import com.example.puntajeburaco20.ui.common.Ficha
 import com.example.puntajeburaco20.ui.common.Mensajero
@@ -63,7 +64,8 @@ import kotlin.math.abs
 
 /**
  * Acceso a la app. Según el estado de la [sesion] muestra el ingreso, el aviso para verificar el
- * mail o la elección del nombre de usuario; cuando la sesión queda completa, deja de mostrarse.
+ * mail o la elección del nombre de usuario (o del perfil que la persona ya tenía); cuando la
+ * sesión queda completa, deja de mostrarse.
  */
 @Composable
 fun LoginScreen(
@@ -71,6 +73,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val cargando by viewModel.cargando.collectAsStateWithLifecycle()
+    val usuarioAnterior by viewModel.usuarioAnterior.collectAsStateWithLifecycle()
     val mensajero = rememberMensajero()
     val actividad = LocalActivity.current
 
@@ -91,11 +94,31 @@ fun LoginScreen(
                 alReenviar = viewModel::reenviarVerificacion,
                 alSalir = viewModel::salir,
             )
-            is EstadoSesion.SinPerfil -> PasoNombre(
-                cargando = cargando,
-                alElegir = viewModel::elegirNombre,
-                alSalir = viewModel::salir,
-            )
+            is EstadoSesion.SinPerfil -> {
+                // Quien ya entraba en este dispositivo con una versión anterior arranca
+                // recuperando su perfil: si eligiera un nombre nuevo perdería su historial.
+                var eligioRecuperar by rememberSaveable { mutableStateOf<Boolean?>(null) }
+                if (eligioRecuperar ?: (usuarioAnterior != null)) {
+                    PasoPerfilAnterior(
+                        usuarioAnterior = usuarioAnterior,
+                        cargando = cargando,
+                        alVincular = { nombre, passwordAnterior ->
+                            // Al vincular, el usuario anterior se olvida: sin esto el paso
+                            // cambiaría mientras el acceso se desvanece.
+                            eligioRecuperar = true
+                            viewModel.vincularPerfil(nombre, passwordAnterior)
+                        },
+                        alCrearNuevo = { eligioRecuperar = false },
+                    )
+                } else {
+                    PasoNombre(
+                        cargando = cargando,
+                        alElegir = viewModel::elegirNombre,
+                        alRecuperar = { eligioRecuperar = true },
+                        alSalir = viewModel::salir,
+                    )
+                }
+            }
             else -> PasoIngreso(
                 cargando = cargando,
                 alIngresar = viewModel::ingresar,
@@ -219,7 +242,7 @@ private fun PasoIngreso(
     alRecuperar: (mail: String) -> Unit,
 ) {
     var mail by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
+    val password = rememberTextFieldState()
 
     TituloPaso(stringResource(R.string.login_titulo), stringResource(R.string.login_subtitulo))
     CampoTexto(
@@ -235,21 +258,17 @@ private fun PasoIngreso(
             imeAction = ImeAction.Next,
         ),
     )
-    CampoTexto(
-        valor = password,
-        alCambiar = { password = it },
+    CampoContrasena(
+        estado = password,
         etiqueta = stringResource(R.string.hint_password),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("password"),
-        teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-        acciones = KeyboardActions(onDone = { alIngresar(mail, password) }),
-        transformacion = PasswordVisualTransformation(),
+        alConfirmar = { alIngresar(mail, password.text.toString()) },
+        etiquetaDePrueba = "password",
+        modifier = Modifier.fillMaxWidth(),
     )
     Spacer(Modifier.height(4.dp))
     BotonPrincipal(
         texto = stringResource(R.string.accion_login),
-        alTocar = { alIngresar(mail, password) },
+        alTocar = { alIngresar(mail, password.text.toString()) },
         modifier = Modifier
             .fillMaxWidth()
             .testTag("btnLogin"),
@@ -257,7 +276,7 @@ private fun PasoIngreso(
     )
     BotonSecundario(
         texto = stringResource(R.string.accion_crear_cuenta),
-        alTocar = { alRegistrarse(mail, password) },
+        alTocar = { alRegistrarse(mail, password.text.toString()) },
         modifier = Modifier
             .fillMaxWidth()
             .testTag("btnCrear"),
@@ -317,6 +336,7 @@ private fun PasoVerificacion(
 private fun PasoNombre(
     cargando: Boolean,
     alElegir: (nombre: String) -> Unit,
+    alRecuperar: () -> Unit,
     alSalir: () -> Unit,
 ) {
     var nombre by rememberSaveable { mutableStateOf("") }
@@ -341,11 +361,68 @@ private fun PasoNombre(
             .testTag("btnContinuar"),
         cargando = cargando,
     )
+    BotonSecundario(
+        texto = stringResource(R.string.accion_ya_tenia_perfil),
+        alTocar = alRecuperar,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnYaTeniaPerfil"),
+        habilitado = !cargando,
+    )
     BotonDeTexto(
         texto = stringResource(R.string.accion_usar_otra_cuenta),
         alTocar = alSalir,
         habilitado = !cargando,
         tag = "btnOtraCuenta",
+    )
+}
+
+/**
+ * Para quien ya usaba la app antes de las cuentas con mail: en lugar de elegir un nombre nuevo,
+ * recupera su perfil con el usuario y la contraseña que tenía.
+ */
+@Composable
+private fun PasoPerfilAnterior(
+    usuarioAnterior: String?,
+    cargando: Boolean,
+    alVincular: (nombre: String, passwordAnterior: String) -> Unit,
+    alCrearNuevo: () -> Unit,
+) {
+    // El usuario con el que se entraba en este dispositivo ya viene escrito.
+    var nombre by rememberSaveable { mutableStateOf(usuarioAnterior.orEmpty()) }
+    val password = rememberTextFieldState()
+
+    TituloPaso(stringResource(R.string.perfil_anterior_titulo), stringResource(R.string.perfil_anterior_detalle))
+    CampoTexto(
+        valor = nombre,
+        alCambiar = { nombre = it },
+        etiqueta = stringResource(R.string.hint_usuario),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("usuarioAnterior"),
+        teclado = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
+    )
+    CampoContrasena(
+        estado = password,
+        etiqueta = stringResource(R.string.hint_password_anterior),
+        alConfirmar = { alVincular(nombre, password.text.toString()) },
+        etiquetaDePrueba = "passwordAnterior",
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.height(4.dp))
+    BotonPrincipal(
+        texto = stringResource(R.string.accion_vincular_perfil),
+        alTocar = { alVincular(nombre, password.text.toString()) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("btnVincular"),
+        cargando = cargando,
+    )
+    BotonDeTexto(
+        texto = stringResource(R.string.accion_perfil_nuevo),
+        alTocar = alCrearNuevo,
+        habilitado = !cargando,
+        tag = "btnPerfilNuevo",
     )
 }
 

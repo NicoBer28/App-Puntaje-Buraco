@@ -8,6 +8,7 @@ import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
+import com.example.puntajeburaco20.domain.repository.SesionAnteriorRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
@@ -15,6 +16,7 @@ import com.example.puntajeburaco20.fakes.FakeEstadisticasRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
+import com.example.puntajeburaco20.fakes.FakeSesionAnteriorRepository
 import com.example.puntajeburaco20.fakes.FakeSincronizacionRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import dagger.Module
@@ -57,6 +59,10 @@ object RepositoriosEnMemoriaModule {
     fun preferencias() = FakePreferenciasRepository()
 
     @Provides
+    @Singleton
+    fun sesionAnterior() = FakeSesionAnteriorRepository()
+
+    @Provides
     fun usuarioRepository(fake: FakeUsuarioRepository): UsuarioRepository = fake
 
     @Provides
@@ -73,6 +79,9 @@ object RepositoriosEnMemoriaModule {
 
     @Provides
     fun preferenciasRepository(fake: FakePreferenciasRepository): PreferenciasRepository = fake
+
+    @Provides
+    fun sesionAnteriorRepository(fake: FakeSesionAnteriorRepository): SesionAnteriorRepository = fake
 
     @Provides
     @Singleton

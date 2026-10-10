@@ -29,20 +29,28 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +63,8 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -297,7 +307,6 @@ fun CampoTexto(
     estiloTexto: TextStyle = MaterialTheme.typography.bodyLarge,
     iconoFinal: (@Composable () -> Unit)? = null,
 ) {
-    val esquema = MaterialTheme.colorScheme
     OutlinedTextField(
         value = valor,
         onValueChange = alCambiar,
@@ -311,16 +320,64 @@ fun CampoTexto(
         keyboardActions = acciones,
         visualTransformation = transformacion,
         shape = MaterialTheme.shapes.medium,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = colorFoco,
-            focusedLabelColor = colorFoco,
-            cursorColor = colorFoco,
-            unfocusedBorderColor = esquema.outlineVariant,
-            focusedContainerColor = esquema.surface,
-            unfocusedContainerColor = esquema.surfaceContainerLow,
-            disabledContainerColor = esquema.surfaceContainer,
-            disabledBorderColor = esquema.outlineVariant.copy(alpha = 0.6f),
+        colors = coloresDeCampo(colorFoco),
+    )
+}
+
+/**
+ * Campo para una contraseña. Cada carácter se ve un instante al escribirlo, antes de quedar
+ * oculto; el ojo de la derecha deja toda la contraseña a la vista hasta que se lo vuelve a tocar.
+ *
+ * @param etiquetaDePrueba `testTag` del campo; el del ojo es el mismo con "_ver" al final.
+ */
+@Composable
+fun CampoContrasena(
+    estado: TextFieldState,
+    etiqueta: String,
+    alConfirmar: () -> Unit,
+    etiquetaDePrueba: String,
+    modifier: Modifier = Modifier,
+) {
+    var aLaVista by rememberSaveable { mutableStateOf(false) }
+    OutlinedSecureTextField(
+        state = estado,
+        modifier = modifier.testTag(etiquetaDePrueba),
+        label = { Text(etiqueta, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        textStyle = MaterialTheme.typography.bodyLarge,
+        trailingIcon = {
+            IconButton(onClick = { aLaVista = !aLaVista }, modifier = Modifier.testTag("${etiquetaDePrueba}_ver")) {
+                Icon(
+                    painterResource(if (aLaVista) R.drawable.ic_visibility_off else R.drawable.ic_visibility),
+                    contentDescription = stringResource(
+                        if (aLaVista) R.string.cd_ocultar_contrasena else R.string.cd_mostrar_contrasena,
+                    ),
+                )
+            }
+        },
+        textObfuscationMode = if (aLaVista) TextObfuscationMode.Visible else TextObfuscationMode.RevealLastTyped,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            autoCorrectEnabled = false,
+            imeAction = ImeAction.Done,
         ),
+        onKeyboardAction = { alConfirmar() },
+        shape = MaterialTheme.shapes.medium,
+        colors = coloresDeCampo(MaterialTheme.colorScheme.primary),
+    )
+}
+
+@Composable
+private fun coloresDeCampo(colorFoco: Color): TextFieldColors {
+    val esquema = MaterialTheme.colorScheme
+    return OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = colorFoco,
+        focusedLabelColor = colorFoco,
+        cursorColor = colorFoco,
+        unfocusedBorderColor = esquema.outlineVariant,
+        focusedContainerColor = esquema.surface,
+        unfocusedContainerColor = esquema.surfaceContainerLow,
+        disabledContainerColor = esquema.surfaceContainer,
+        disabledBorderColor = esquema.outlineVariant.copy(alpha = 0.6f),
     )
 }
 

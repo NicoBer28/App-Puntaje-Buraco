@@ -9,7 +9,9 @@ import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRE
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.NOMBRES
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFIL
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PERFILES
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.PRUEBA_CLAVE_VIEJA
 import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.UID
+import com.example.puntajeburaco20.data.firestore.EsquemaFirestore.pruebaDeClaveVieja
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.Jugador
@@ -18,6 +20,7 @@ import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.Transaction
 import com.google.firebase.firestore.snapshots
@@ -81,6 +84,41 @@ class FirestoreUsuarioRepository @Inject constructor(
         }
         return Usuario(Jugador(referencia.id, nombre), amigos = emptyList())
     }
+
+    /**
+     * El perfil pasa a tener dueño, y la cuenta y el mail quedan apuntando a él, todo junto como
+     * en [crear]. La cuenta lleva además la prueba de la contraseña anterior: las reglas de
+     * seguridad la comparan con la credencial que dejó la migración y, si no coincide, rechazan
+     * la operación completa.
+     */
+    override suspend fun vincularAnterior(cuenta: Cuenta, nombre: String, passwordAnterior: String): Jugador =
+        try {
+            db.runTransaction<Result<Jugador>> { transaccion ->
+                val idPerfil = transaccion.get(reservaDe(nombre)).getString(PERFIL)
+                    ?: return@runTransaction Result.failure(ErrorUsuario.UsuarioInexistente)
+                val documento = transaccion.get(perfil(idPerfil))
+                val jugador = documento.aJugador()
+                    ?: return@runTransaction Result.failure(ErrorUsuario.UsuarioInexistente)
+                if (documento.contains(UID)) return@runTransaction Result.failure(ErrorUsuario.PerfilYaVinculado)
+                // Un perfil que alguien creó para otro nunca tuvo contraseña.
+                if (documento.contains(CREADO_POR)) return@runTransaction Result.failure(ErrorUsuario.PerfilCreadoPorOtro)
+
+                val prueba = pruebaDeClaveVieja(idPerfil, passwordAnterior)
+                transaccion.update(perfil(idPerfil), UID, cuenta.uid)
+                transaccion.set(
+                    db.collection(CUENTAS).document(cuenta.uid),
+                    mapOf(PERFIL to idPerfil, PRUEBA_CLAVE_VIEJA to prueba),
+                )
+                transaccion.set(db.collection(MAILS).document(cuenta.mail), mapOf(PERFIL to idPerfil, UID to cuenta.uid))
+                Result.success(jugador)
+            }.await().getOrThrow()
+        } catch (e: FirebaseFirestoreException) {
+            throw when (e.code) {
+                FirebaseFirestoreException.Code.PERMISSION_DENIED -> ErrorUsuario.ContrasenaAnteriorIncorrecta
+                FirebaseFirestoreException.Code.UNAVAILABLE -> ErrorUsuario.SinConexion
+                else -> e
+            }
+        }
 
     /** El perfil nace ya con la amistad: las reglas no aceptan uno que nadie tenga en su lista. */
     override suspend fun crearAmigoSinLogin(nombre: String, creador: Cuenta, amigoDe: Jugador): Jugador {

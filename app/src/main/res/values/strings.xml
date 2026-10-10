@@ -41,6 +41,12 @@
     <string name="nombre_titulo">Elegí tu nombre de usuario</string>
     <string name="nombre_detalle">Con este nombre te van a buscar tus amigos. De 3 a 8 letras o números.</string>
     <string name="accion_continuar">Continuar</string>
+    <string name="accion_ya_tenia_perfil">Ya tenía un perfil</string>
+    <string name="perfil_anterior_titulo">Recuperá tu perfil</string>
+    <string name="perfil_anterior_detalle">Escribí el usuario y la contraseña con los que entrabas antes. Conservás tus amigos y tus partidas.</string>
+    <string name="hint_password_anterior">Contraseña anterior</string>
+    <string name="accion_vincular_perfil">Recuperar perfil</string>
+    <string name="accion_perfil_nuevo">Crear un perfil nuevo</string>
     <string name="mensaje_verificacion_enviada">Te enviamos el mail de verificación</string>
     <string name="mensaje_recuperacion_enviada">Si ese mail tiene cuenta, te enviamos un enlace para cambiar la contraseña</string>
 
@@ -188,6 +194,8 @@
     <string name="error_cargar_partidas">No se pudieron cargar las partidas: %1$s</string>
 
     <!-- Accesibilidad (descripciones para lectores de pantalla) -->
+    <string name="cd_mostrar_contrasena">Mostrar la contraseña</string>
+    <string name="cd_ocultar_contrasena">Ocultar la contraseña</string>
     <string name="cd_vista_camara">Vista de la cámara con las fichas detectadas</string>
 
     <!-- Errores de usuarios -->
@@ -215,6 +223,9 @@
     <string name="error_demasiados_intentos">Demasiados intentos. Probá de nuevo más tarde.</string>
     <string name="error_sin_conexion">No hay conexión. Revisá tu internet y probá de nuevo.</string>
     <string name="error_sin_sesion">No hay una sesión iniciada</string>
+    <string name="error_perfil_ya_vinculado">Ese perfil ya es de una cuenta</string>
+    <string name="error_perfil_creado_por_otro">Ese perfil lo creó otra persona y no tiene contraseña</string>
+    <string name="error_contrasena_anterior_incorrecta">La contraseña anterior no coincide</string>
     <string name="error_es_usuario_actual">Ese usuario sos vos :)</string>
     <string name="error_ya_es_amigo">Ya es tu amigo</string>
     <string name="error_no_es_amigo">No está entre tus amigos</string>

@@ -5,6 +5,9 @@
   "description": "Scripts de mantenimiento de la base de datos y tests de las reglas de seguridad.",
   "scripts": {
     "respaldar": "node respaldar.mjs",
+    "restaurar": "node restaurar.mjs",
+    "migrar": "node migrar.mjs",
+    "test": "node --test \"migracion/*.test.mjs\"",
     "reglas": "node --test --test-concurrency=1 \"reglas/*.test.mjs\""
   },
   "engines": {

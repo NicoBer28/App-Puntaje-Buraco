@@ -23,6 +23,11 @@ sealed class ErrorUsuario : Exception() {
     data object SinConexion : ErrorUsuario()
     data object SinSesion : ErrorUsuario()
 
+    // Perfil anterior al cambio a cuentas con mail
+    data object PerfilYaVinculado : ErrorUsuario()
+    data object PerfilCreadoPorOtro : ErrorUsuario()
+    data object ContrasenaAnteriorIncorrecta : ErrorUsuario()
+
     // Amistades
     data object EsElUsuarioActual : ErrorUsuario()
     data object YaEsAmigo : ErrorUsuario()

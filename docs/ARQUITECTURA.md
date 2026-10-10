@@ -35,7 +35,7 @@ domain/   (módulo :domain, paquete com.example.puntajeburaco20.domain)
 ├── repository/               Interfaces: AuthRepository, UsuarioRepository,
 │                             EstadisticasRepository, PartidasJugadasRepository,
 │                             PartidaEnCursoRepository, SincronizacionRepository,
-│                             PreferenciasRepository
+│                             PreferenciasRepository, SesionAnteriorRepository
 ├── service/                  ValidadorCredenciales, CalculadoraPuntosFichas
 └── usecase/                  Una clase por operación de negocio
     (src/testFixtures: repositorios en memoria que usan los tests de todas las capas)
@@ -45,7 +45,8 @@ data/     (módulo :data, paquete com.example.puntajeburaco20.data)
 ├── auth/                     Cuentas de acceso con Firebase Authentication
 ├── firestore/                Perfiles, estadísticas, partidas jugadas, sincronización
 │                             + EsquemaFirestore
-├── local/                    Partida en curso y preferencias (DataStore)
+├── local/                    Partida en curso, preferencias y sesión de la versión anterior
+│                             (DataStore)
 └── vision/                   DetectorFichas (interfaz) y TfliteDetectorFichas (YOLO sobre LiteRT)
 
 app/      (módulo :app, paquete com.example.puntajeburaco20)
@@ -58,9 +59,11 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     ├── navegacion/           Raíz de la app y grafo de navegación (Navigation Compose)
     ├── sesion/               Estado de la sesión para toda la app
     ├── tema/                 Colores, tipografía (Barlow) y formas: TemaBuraco; tema elegido
-    ├── common/               Componentes compartidos (encabezado, tarjetas, selector de
-    │                         jugador, tabla de rondas), UiText, mensajes de error
+    ├── common/               Componentes compartidos (encabezado, tarjetas, campos de texto y
+    │                         de contraseña, selector de jugador, tabla de rondas), UiText,
+    │                         mensajes de error
     ├── login/                Acceso: ingresar, crear cuenta, verificar el mail, elegir nombre
+    │                         o recuperar el perfil que ya se tenía
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── perfil/               Datos de la cuenta, tema claro u oscuro, cerrar sesión
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
@@ -133,6 +136,12 @@ Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfi
 reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos
 listas a la vez. Sus tests están en `scripts/firestore/reglas/`.
 
+Los perfiles que existían antes de las cuentas con mail los creó la migración, sin dueño. Quien
+usaba uno lo recupera desde el paso de elegir nombre ("Ya tenía un perfil"), con su usuario y la
+contraseña que tenía (`VincularPerfilAnteriorUseCase`). La contraseña no se envía: la app manda
+un hash (`EsquemaFirestore.pruebaDeClaveVieja`) y las reglas lo comparan con el que dejó la
+migración en `credencialesViejas/`, que nadie puede leer.
+
 ## Partidas y estadísticas
 
 Una partida terminada es un único documento de `partidas/`, que comparten todos sus jugadores y
@@ -149,16 +158,20 @@ mientras que "Mis partidas" se puede ver con la copia que Firestore guarda en el
   versiones anteriores (`SharedPreferencesMigration`).
 - **Partida en curso**: las versiones anteriores identificaban a los jugadores por su nombre. Una
   partida guardada así no se puede retomar: se descarta al abrir la app.
+- **Sesión**: las versiones anteriores guardaban en DataStore el usuario con la sesión iniciada.
+  La app ya no lo usa para entrar, pero si lo encuentra (`SesionAnteriorRepository`) ofrece
+  recuperar ese perfil en lugar de elegir un nombre nuevo.
 - **Base de datos**: la app usa solo el esquema nuevo (`EsquemaFirestore`). Los datos de las
-  versiones anteriores (`users/`, `doubles/`) los pasa el script de migración de
-  [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md).
+  versiones anteriores (`users/`, `doubles/`) los pasa el script de migración (ver "Scripts de
+  Firestore").
 
 ## Navegación
 
 `RaizApp` (`ui/navegacion/NavegacionApp.kt`) decide qué se muestra según el estado de la sesión:
 
 - sin sesión completa, el **acceso** (`LoginScreen`), que a su vez muestra el paso que
-  corresponda: ingresar o crear la cuenta, verificar el mail o elegir el nombre de usuario;
+  corresponda: ingresar o crear la cuenta, verificar el mail, y elegir el nombre de usuario o
+  recuperar el perfil que ya se tenía;
 - con sesión completa, el grafo de **pantallas** (`NavegacionApp`), que arranca siempre en
   `NuevaPartidaScreen` y lleva a la partida en curso si la app se cerró en medio de una.
 
@@ -177,11 +190,12 @@ cerrar sesión desde el **perfil** es solo cerrar la sesión.
 ./gradlew assembleDebug                 # APK de debug
 ./gradlew :domain:test testDebugUnitTest # tests unitarios de las tres capas
 ./gradlew lintDebug                     # análisis estático
-./gradlew connectedDebugAndroidTest     # tests de UI (necesita un emulador o dispositivo)
+./gradlew :app:connectedDebugAndroidTest # tests de UI (necesita un emulador o dispositivo)
 ./gradlew assembleRelease               # APK de release (minificado con R8)
 
 # tests de las reglas de seguridad de Firestore (la primera vez: npm install en scripts/firestore)
 firebase emulators:exec --only firestore "npm --prefix scripts/firestore run reglas"
+npm --prefix scripts/firestore test     # tests del script de migración (no necesitan emulador)
 ```
 
 ### Emuladores de Firebase
@@ -210,6 +224,27 @@ firebase emulators:start --import .emuladores --export-on-exit .emuladores  # la
 
 Las reglas (`firestore.rules`) y los índices (`firestore.indexes.json`) se versionan en el repo y
 se publican con `firebase deploy --only firestore`.
+
+### Scripts de Firestore
+
+Están en `scripts/firestore` (Node; la primera vez, `npm install`). Usan el Admin SDK, que no pasa
+por las reglas de seguridad: contra el proyecto real necesitan la clave de una cuenta de servicio
+(`--clave`), y con `FIRESTORE_EMULATOR_HOST` definida trabajan sobre el emulador.
+
+```bash
+node respaldar.mjs --clave clave.json                 # descarga toda la base a respaldos/
+node migrar.mjs --clave clave.json                    # muestra qué haría la migración
+node migrar.mjs --clave clave.json --escribir         # pasa users/ y doubles/ al esquema nuevo
+
+# probar la migración con una copia de los datos reales
+firebase emulators:start
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node restaurar.mjs respaldos/respaldo-….json
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node migrar.mjs --escribir
+```
+
+`restaurar.mjs` solo escribe en el emulador. La conversión de los datos está en
+`migracion/plan.mjs`, que no habla con Firestore y tiene sus propios tests. Los respaldos y las
+claves no se versionan.
 
 ### Release
 
@@ -240,11 +275,13 @@ habla con Firebase.
   historial, las validaciones y los casos de uso; `data/src/test` la serialización de la partida
   (incluido el formato anterior); `app/src/test` los ViewModels.
 - **De UI** (`app/src/androidTest`, Compose UI Test + Hilt): recorren ingresar, crear una cuenta
-  (verificar el mail y elegir nombre), anotar y deshacer rondas, terminar una partida y verla en
-  "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule` reemplaza a `DataModule`, así
-  que no tocan Firebase. Los elementos se buscan por `testTag`.
+  (verificar el mail y elegir nombre), recuperar un perfil anterior, anotar y deshacer rondas,
+  terminar una partida y verla en "Mis partidas", y cerrar sesión. `RepositoriosEnMemoriaModule`
+  reemplaza a `DataModule`, así que no tocan Firebase. Los elementos se buscan por `testTag`.
 - **De reglas de seguridad** (`scripts/firestore/reglas`, Node + emulador de Firestore): prueban
   `firestore.rules` haciendo de distintas cuentas, verificadas o no.
+- **De la migración** (`scripts/firestore/migracion`, Node): la conversión del esquema anterior al
+  nuevo, y que el hash de la contraseña vieja sea el mismo que calcula la app.
 
 Todos usan los mismos repositorios en memoria, publicados por `:domain` como *test fixtures*
 (`domain/src/testFixtures`).

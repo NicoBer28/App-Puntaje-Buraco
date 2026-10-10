@@ -37,6 +37,18 @@ interface UsuarioRepository {
     suspend fun crear(cuenta: Cuenta, nombre: String): Usuario
 
     /**
+     * Vincula a la [cuenta] el perfil llamado [nombre], que la persona usaba antes de que la app
+     * tuviera cuentas con mail. Demuestra que era suyo con la contraseña que tenía entonces.
+     * Necesita conexión.
+     *
+     * @throws ErrorUsuario.UsuarioInexistente si no hay un perfil con ese nombre.
+     * @throws ErrorUsuario.PerfilYaVinculado si el perfil ya es de una cuenta.
+     * @throws ErrorUsuario.PerfilCreadoPorOtro si lo creó otra persona: nunca tuvo contraseña.
+     * @throws ErrorUsuario.ContrasenaAnteriorIncorrecta si la contraseña no es la que tenía.
+     */
+    suspend fun vincularAnterior(cuenta: Cuenta, nombre: String, passwordAnterior: String): Jugador
+
+    /**
      * Crea un perfil sin cuenta de acceso para alguien que no usa la app, ya como amigo de
      * [amigoDe], que es el perfil de [creador]. Queda a cargo de [creador] hasta que esa persona
      * lo reclame. Todo es una sola operación: nunca queda un perfil suelto que nadie tiene en

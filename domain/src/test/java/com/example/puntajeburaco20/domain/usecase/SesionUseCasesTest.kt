@@ -1,11 +1,13 @@
 package com.example.puntajeburaco20.domain.usecase
 
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
+import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.EstadoSesion
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
+import com.example.puntajeburaco20.fakes.FakeSesionAnteriorRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.cuentaDe
 import com.example.puntajeburaco20.fakes.jugador
@@ -26,6 +28,15 @@ class SesionUseCasesTest {
     private val iniciarSesion = IniciarSesionUseCase(auth)
     private val registrarCuenta = RegistrarCuentaUseCase(auth, validador)
     private val crearPerfil = CrearPerfilUseCase(auth, usuarios, validador)
+    private val sesionAnterior = FakeSesionAnteriorRepository()
+    private val vincularPerfilAnterior = VincularPerfilAnteriorUseCase(auth, usuarios, sesionAnterior, validador)
+
+    /** Deja la sesión iniciada con una cuenta verificada que todavía no tiene perfil. */
+    private suspend fun cuentaVerificadaSinPerfil(): Cuenta {
+        registrarCuenta("ana@test.com", "clave123")
+        auth.verificarMail("ana@test.com")
+        return auth.recargar()!!
+    }
 
     @Test
     fun `registrar una cuenta inicia sesion sin verificar y envia el mail de verificacion`() = runTest {
@@ -106,6 +117,56 @@ class SesionUseCasesTest {
         esperarError<ErrorUsuario.LongitudInsuficiente> { crearPerfil("An") }
         esperarError<ErrorUsuario.NombreEnUso> { crearPerfil("BETO") }
         assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
+    }
+
+    @Test
+    fun `vincular el perfil anterior completa la sesion con ese perfil y sus amigos`() = runTest {
+        usuarios.registrarAnterior("Ana", password = "1234")
+        usuarios.registrar("Beto")
+        usuarios.agregarAmistad(jugador("Ana"), jugador("Beto"))
+        sesionAnterior.nombre = "ana"
+        val cuenta = cuentaVerificadaSinPerfil()
+
+        val vinculado = vincularPerfilAnterior("ANA", "1234")
+
+        assertEquals(jugador("Ana"), vinculado)
+        assertEquals(EstadoSesion.Completa(cuenta, vinculado.id), observarSesion().first())
+        assertEquals(listOf(jugador("Beto")), usuarios.obtener(vinculado.id)?.amigos)
+        assertNull(sesionAnterior.nombre)
+    }
+
+    @Test
+    fun `vincular exige la contraseña que tenia el perfil`() = runTest {
+        usuarios.registrarAnterior("Ana", password = "1234")
+        sesionAnterior.nombre = "ana"
+        cuentaVerificadaSinPerfil()
+
+        esperarError<ErrorUsuario.ContrasenaAnteriorIncorrecta> { vincularPerfilAnterior("Ana", "12345") }
+        esperarError<ErrorUsuario.CamposIncompletos> { vincularPerfilAnterior("Ana", "") }
+        esperarError<ErrorUsuario.CamposIncompletos> { vincularPerfilAnterior("", "1234") }
+        esperarError<ErrorUsuario.CaracteresInvalidos> { vincularPerfilAnterior("An/a", "1234") }
+
+        assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
+        assertFalse(usuarios.tieneLogin("ana"))
+        // Mientras no lo vincule, el dispositivo sigue recordando con qué usuario entraba.
+        assertEquals("ana", sesionAnterior.nombre)
+    }
+
+    @Test
+    fun `solo se vincula un perfil anterior que todavia no es de nadie`() = runTest {
+        usuarios.registrar("Beto")
+        usuarios.registrar("Caro")
+        usuarios.crearAmigoSinLogin("Dani", creador = cuentaDe("Caro"), amigoDe = jugador("Caro"))
+
+        esperarError<ErrorUsuario.SinSesion> { vincularPerfilAnterior("Beto", "1234") }
+        registrarCuenta("ana@test.com", "clave123")
+        esperarError<ErrorUsuario.MailSinVerificar> { vincularPerfilAnterior("Beto", "1234") }
+        auth.verificarMail("ana@test.com")
+        auth.recargar()
+
+        esperarError<ErrorUsuario.UsuarioInexistente> { vincularPerfilAnterior("Zoe", "1234") }
+        esperarError<ErrorUsuario.PerfilYaVinculado> { vincularPerfilAnterior("Beto", "1234") }
+        esperarError<ErrorUsuario.PerfilCreadoPorOtro> { vincularPerfilAnterior("Dani", "1234") }
     }
 
     @Test

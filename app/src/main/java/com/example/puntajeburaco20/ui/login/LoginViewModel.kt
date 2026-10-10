@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.repository.AuthRepository
+import com.example.puntajeburaco20.domain.repository.SesionAnteriorRepository
 import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.CrearPerfilUseCase
 import com.example.puntajeburaco20.domain.usecase.IniciarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.RecuperarContrasenaUseCase
 import com.example.puntajeburaco20.domain.usecase.RegistrarCuentaUseCase
+import com.example.puntajeburaco20.domain.usecase.VincularPerfilAnteriorUseCase
 import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.common.aMensaje
 import com.example.puntajeburaco20.ui.common.intentar
@@ -24,7 +26,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Acceso a la app: ingresar o crear una cuenta, verificar el mail y elegir el nombre de usuario.
+ * Acceso a la app: ingresar o crear una cuenta, verificar el mail y elegir el nombre de usuario
+ * (o recuperar el perfil que ya se tenía).
  * No decide qué paso se muestra: eso sale del estado de la sesión, que cambia solo cuando cada
  * operación termina bien.
  */
@@ -34,8 +37,10 @@ class LoginViewModel @Inject constructor(
     private val registrarCuenta: RegistrarCuentaUseCase,
     private val recuperarContrasenaUseCase: RecuperarContrasenaUseCase,
     private val crearPerfil: CrearPerfilUseCase,
+    private val vincularPerfilAnterior: VincularPerfilAnteriorUseCase,
     private val cerrarSesion: CerrarSesionUseCase,
     private val auth: AuthRepository,
+    sesionAnterior: SesionAnteriorRepository,
 ) : ViewModel() {
 
     sealed interface Evento {
@@ -47,6 +52,18 @@ class LoginViewModel @Inject constructor(
 
     private val _eventos = Channel<Evento>(Channel.BUFFERED)
     val eventos = _eventos.receiveAsFlow()
+
+    private val _usuarioAnterior = MutableStateFlow<String?>(null)
+
+    /**
+     * Usuario con el que este dispositivo entraba antes de que la app tuviera cuentas con mail, o
+     * `null` si no había ninguno. Deja de estar una vez que esa persona vincula su perfil.
+     */
+    val usuarioAnterior: StateFlow<String?> = _usuarioAnterior.asStateFlow()
+
+    init {
+        viewModelScope.launch { _usuarioAnterior.value = sesionAnterior.nombreDeUsuario() }
+    }
 
     fun ingresar(mail: String, password: String) = ejecutar { iniciarSesion(mail, password) }
 
@@ -71,6 +88,12 @@ class LoginViewModel @Inject constructor(
     }
 
     fun elegirNombre(nombre: String) = ejecutar { crearPerfil(nombre) }
+
+    /** En lugar de elegir un nombre nuevo, se queda con el perfil que ya usaba. */
+    fun vincularPerfil(nombre: String, passwordAnterior: String) = ejecutar {
+        vincularPerfilAnterior(nombre, passwordAnterior)
+        _usuarioAnterior.value = null
+    }
 
     /** Cierra la sesión para poder entrar con otra cuenta. */
     fun salir() = ejecutar { cerrarSesion() }

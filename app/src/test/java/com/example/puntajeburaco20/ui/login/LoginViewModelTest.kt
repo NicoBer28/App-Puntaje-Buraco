@@ -11,8 +11,10 @@ import com.example.puntajeburaco20.domain.usecase.IniciarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.RecuperarContrasenaUseCase
 import com.example.puntajeburaco20.domain.usecase.RegistrarCuentaUseCase
+import com.example.puntajeburaco20.domain.usecase.VincularPerfilAnteriorUseCase
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
+import com.example.puntajeburaco20.fakes.FakeSesionAnteriorRepository
 import com.example.puntajeburaco20.fakes.FakeUsuarioRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
 import com.example.puntajeburaco20.fakes.cuentaDe
@@ -42,17 +44,23 @@ class LoginViewModelTest {
     private val usuarios = FakeUsuarioRepository()
     private val auth = FakeAuthRepository()
     private val partidaEnCurso = FakePartidaEnCursoRepository()
+    private val sesionAnterior = FakeSesionAnteriorRepository()
     private val validador = ValidadorCredenciales()
     private val observarSesion = ObservarSesionUseCase(auth, usuarios)
 
-    private val viewModel = LoginViewModel(
-        iniciarSesion = IniciarSesionUseCase(auth),
-        registrarCuenta = RegistrarCuentaUseCase(auth, validador),
-        recuperarContrasenaUseCase = RecuperarContrasenaUseCase(auth, validador),
-        crearPerfil = CrearPerfilUseCase(auth, usuarios, validador),
-        cerrarSesion = CerrarSesionUseCase(auth, partidaEnCurso),
-        auth = auth,
-    )
+    // Se crea recién al usarlo, para que cada test pueda preparar antes la sesión anterior.
+    private val viewModel by lazy {
+        LoginViewModel(
+            iniciarSesion = IniciarSesionUseCase(auth),
+            registrarCuenta = RegistrarCuentaUseCase(auth, validador),
+            recuperarContrasenaUseCase = RecuperarContrasenaUseCase(auth, validador),
+            crearPerfil = CrearPerfilUseCase(auth, usuarios, validador),
+            vincularPerfilAnterior = VincularPerfilAnteriorUseCase(auth, usuarios, sesionAnterior, validador),
+            cerrarSesion = CerrarSesionUseCase(auth, partidaEnCurso),
+            auth = auth,
+            sesionAnterior = sesionAnterior,
+        )
+    }
 
     private fun TestScope.eventos(): MutableList<Evento> {
         val eventos = mutableListOf<Evento>()
@@ -184,6 +192,48 @@ class LoginViewModelTest {
             eventos,
         )
         assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
+    }
+
+    @Test
+    fun `quien ya tenia un perfil lo vincula con su contraseña anterior`() = runTest {
+        usuarios.registrarAnterior("Ana", password = "1234")
+        sesionAnterior.nombre = "ana"
+        val eventos = eventosTrasRegistrar(verificada = true)
+        assertEquals("ana", viewModel.usuarioAnterior.value)
+
+        viewModel.vincularPerfil("ana", "1234")
+
+        val sesion = observarSesion().first() as EstadoSesion.Completa
+        assertEquals(jugador("Ana").id, sesion.idPerfil)
+        assertTrue(eventos.isEmpty())
+        // El dispositivo ya no recuerda al usuario anterior.
+        assertNull(viewModel.usuarioAnterior.value)
+        assertNull(sesionAnterior.nombre)
+    }
+
+    @Test
+    fun `vincular con otra contraseña o un perfil que no sirve muestra el motivo`() = runTest {
+        usuarios.registrarAnterior("Ana", password = "1234")
+        usuarios.registrar("Beto")
+        sesionAnterior.nombre = "ana"
+        val eventos = eventosTrasRegistrar(verificada = true)
+
+        viewModel.vincularPerfil("Ana", "4321")
+        viewModel.vincularPerfil("Beto", "1234")
+        viewModel.vincularPerfil("Zoe", "1234")
+        viewModel.vincularPerfil("Ana", "")
+
+        assertEquals(
+            listOf(
+                mensaje(R.string.error_contrasena_anterior_incorrecta),
+                mensaje(R.string.error_perfil_ya_vinculado),
+                mensaje(R.string.error_usuario_inexistente),
+                mensaje(R.string.error_complete_campos),
+            ),
+            eventos,
+        )
+        assertTrue(observarSesion().first() is EstadoSesion.SinPerfil)
+        assertEquals("ana", viewModel.usuarioAnterior.value)
     }
 
     @Test

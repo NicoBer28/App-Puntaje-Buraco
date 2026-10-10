@@ -11,6 +11,9 @@ Las fases 1 a 3 se desarrollan y prueban contra el emulador de Firebase, sin toc
 reales. La fase 4 migra los datos y es la única publicación obligada (**el corte**). Las fases
 5 a 7 se publican después, cada una por separado.
 
+**Estado al 10/10/2026**: fases 0 a 4 hechas y el corte aplicado en el proyecto real. Faltan las
+fases 5 a 7.
+
 ## Conceptos
 
 - **Perfil**: el jugador. Es el documento `perfiles/{idPerfil}`, con un id automático. Las
@@ -66,6 +69,7 @@ nombres/{nombreEnMinusculas}             reserva el nombre de usuario
 
 cuentas/{uid}
   perfil: "{idPerfil}"
+  pruebaClaveVieja: "fe85…"              solo si vinculó un perfil anterior al corte
 
 mails/{mail}
   perfil: "{idPerfil}"
@@ -93,7 +97,7 @@ estadisticasPrevias/{equipo}/rivales/{equipoRival}
   ganadas: 7
 
 credencialesViejas/{idPerfil}            ninguna app la lee
-  hash: "9f2c…"
+  hash: "9f2c…"                          ausente si el usuario no tenía contraseña
 ```
 
 Notas:
@@ -105,6 +109,12 @@ Notas:
 - El nombre se copia en `amigos/` y en cada partida para no leer un perfil por cada jugador.
 - `estadisticasPrevias/` guarda las partidas anteriores a que la app registrara el historial
   completo, que hoy existen solo como contadores.
+- La contraseña vieja no viaja ni queda escrita tal cual. Al vincular, la app guarda en
+  `cuentas/{uid}` una prueba: el hash de la contraseña junto con el id del perfil.
+  `credencialesViejas/` tiene el hash de esa prueba, y las reglas comprueban que coincidan. Quien
+  consiguiera leer `credencialesViejas/` no podría usar lo que hay ahí para vincular un perfil.
+- El id de un perfil migrado tiene la forma de un id automático, pero se calcula a partir del id
+  que el usuario tenía en `users/`. Así la migración da siempre el mismo resultado.
 
 ### Cómo se resuelve cada consulta
 
@@ -123,7 +133,7 @@ A cada conteo se le suma lo que haya en `estadisticasPrevias/`.
 
 | Dato | Quién lee | Quién escribe |
 |---|---|---|
-| `perfiles/` y `nombres/` | Cualquier usuario verificado | El dueño. Quien lo creó, mientras no tenga `uid` |
+| `perfiles/` y `nombres/` | Cualquier usuario verificado | El dueño. Quien lo creó, mientras no tenga `uid`. Un perfil migrado, quien demuestre saber su contraseña vieja, y solo para quedárselo |
 | `perfiles/{id}/amigos/` | El dueño del perfil | El dueño de cualquiera de los dos lados, y siempre los dos lados juntos |
 | `partidas/` | Cualquier usuario verificado | Las crea cualquier usuario verificado, con su `uid` en `creadaPor`. Nadie las modifica |
 | `cuentas/{uid}` | Esa cuenta | Esa cuenta |
@@ -256,32 +266,68 @@ jugadores y terminando una partida sin conexión.
 
 **Publicación obligada.** A partir de acá las versiones anteriores de la app dejan de funcionar.
 
-- [ ] Script de migración (Admin SDK, se corre en la máquina local). Lee `users/` y `doubles/` y
-      escribe el esquema nuevo:
+- [x] Script de migración (`scripts/firestore/migrar.mjs`, con el Admin SDK; se corre en la
+      máquina local). Lee `users/` y `doubles/` y escribe el esquema nuevo:
   - un perfil por usuario, con su nombre reservado y sus amigos;
   - `credencialesViejas/{idPerfil}` con el hash de la contraseña;
   - una sola partida por cada grupo de copias de `users/{id}/partidas`;
   - `estadisticasPrevias/` con los contadores actuales, descontando las partidas que sí tienen
     documento para no contarlas dos veces.
-- [ ] Parejas con el id del formato anterior (nombres pegados sin separador): el script las
+- [x] Parejas con el id del formato anterior (nombres pegados sin separador): el script las
       resuelve probando las parejas de usuarios existentes, y lista las que no pueda resolver.
-- [ ] No se migran los usuarios de prueba (`prueba`, `test`, `test2` y `test3`), ni sus amistades,
+- [x] No se migran los usuarios de prueba (`prueba`, `test`, `test2` y `test3`), ni sus amistades,
       partidas y estadísticas. Tampoco la colección `users_v2` ni el campo `Recuperar`, que son
-      de versiones anteriores de la app.
-- [ ] El script no borra `users/` ni `doubles/`: quedan como respaldo, bloqueadas por las reglas.
-      Se puede correr más de una vez sin duplicar datos.
-- [ ] Botón **"Ya tenía un perfil"** en el paso de elegir nombre: pide el nombre de usuario y la
-      contraseña vieja. Las reglas calculan el hash de lo que la persona escribe y lo comparan con
+      de versiones anteriores de la app. Las partidas que los demás jugaron contra ellos se
+      descuentan de sus totales.
+- [x] El script no borra `users/` ni `doubles/`: quedan como respaldo, bloqueadas por las reglas.
+      Se puede correr más de una vez sin duplicar datos: un perfil o una partida que ya existen
+      no se vuelven a escribir, así que tampoco pisa lo que haya cambiado desde la app.
+- [x] Sin `--escribir` el script solo muestra qué haría y qué hay para revisar a mano (amistades
+      de un solo lado, equipos sin identificar, contadores que no cierran).
+- [x] Botón **"Ya tenía un perfil"** en el paso de elegir nombre: pide el nombre de usuario y la
+      contraseña vieja. Las reglas calculan el hash de lo que la app envía y lo comparan con
       `credencialesViejas/` usando `get()`. Si coinciden, el perfil queda vinculado a la cuenta.
-- [ ] Si el dispositivo tenía sesión de la versión anterior (clave `usuarioActual` de DataStore),
-      precargar ese nombre y borrar la clave después de vincular.
-- [ ] Probar el script completo contra el emulador, con una copia de los datos reales.
+- [x] Si el dispositivo tenía sesión de la versión anterior (clave `usuarioActual` de DataStore),
+      el acceso arranca directamente en ese paso, con el nombre ya escrito; la clave se borra
+      después de vincular.
+- [x] Las reglas bloquean `users/`, `doubles/` y `users_v2/`.
+- [x] Probar el script completo contra el emulador, con una copia de los datos reales
+      (`scripts/firestore/restaurar.mjs` carga un respaldo en el emulador).
+
+**Listo cuando**: en el emulador, con una copia de los datos reales ya migrada, alguien que
+usaba la versión anterior crea su cuenta, recupera su perfil con su contraseña vieja y ve sus
+amigos y sus estadísticas.
+Comprobado el 10/10/2026 con el respaldo del 9/10: 20 perfiles, 27 amistades y 60 documentos de
+estadísticas; ninguna partida, porque las únicas con detalle son de usuarios de prueba. Lo único
+para revisar fue un jugador con una partida más en su total que sumando por rival. En un emulador
+de Android, con la sesión anterior de un usuario puesta a mano en el dispositivo, la app ofreció
+recuperar ese perfil, rechazó una contraseña equivocada y con la real entró con sus amigos y sus
+estadísticas.
 
 **Orden del corte**
 
 1. Publicar las reglas y los índices. Las versiones viejas dejan de poder leer y escribir.
-2. Correr el script de migración.
-3. Distribuir la versión nueva.
+2. Hacer un respaldo nuevo, ahora que los datos viejos ya no cambian.
+3. Correr el script de migración: primero sin `--escribir`, para revisar los avisos.
+4. Distribuir la versión nueva.
+
+```bash
+firebase deploy --only firestore
+cd scripts/firestore
+node respaldar.mjs --clave /ruta/a/la-clave.json
+node migrar.mjs --clave /ruta/a/la-clave.json
+node migrar.mjs --clave /ruta/a/la-clave.json --escribir
+```
+
+Los pasos 1 a 3 se hicieron el 10/10/2026: quedaron 20 perfiles, 27 amistades y 60 documentos de
+estadísticas, todos los perfiles sin dueño y con su credencial vieja. Ese mismo día la primera
+cuenta real recuperó su perfil con la versión nueva. Falta pasarle el APK al resto.
+
+El APK que se reparte es el de debug, porque todavía no hay una clave de firma propia (ver
+[MEJORAS_PENDIENTES.md](MEJORAS_PENDIENTES.md)). Android solo lo instala encima de la versión
+anterior si las dos se compilaron en la misma máquina; si no, hay que desinstalar primero, y
+entonces la persona tiene que tocar "Ya tenía un perfil" porque el teléfono ya no recuerda su
+usuario.
 
 **Implicaciones**
 
@@ -289,6 +335,11 @@ jugadores y terminando una partida sin conexión.
   colecciones viejas quedan como respaldo.
 - Todos los usuarios actuales quedan como perfiles sin login hasta que cada uno vincule su mail.
   No hay fecha límite: quien vuelva a los seis meses lo hace solo.
+- Quien actualiza la app en el mismo teléfono ve directamente el paso para recuperar su perfil.
+  En un teléfono nuevo tiene que tocar "Ya tenía un perfil": si en cambio elige un nombre nuevo,
+  arranca sin historial y ya no puede vincular el perfil viejo con esa cuenta.
+- Un perfil que alguien creó para otro después del corte no tiene contraseña: hasta la fase 6 no
+  se puede recuperar, y la app lo avisa.
 - Nadie puede leer contraseñas, ni robar o borrar perfiles.
 - Quien siga en una versión vieja no puede usar la app hasta actualizar. Lo que tuviera sin
   sincronizar se pierde.

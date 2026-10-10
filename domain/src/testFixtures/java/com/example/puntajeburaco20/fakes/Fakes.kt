@@ -15,6 +15,7 @@ import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
 import com.example.puntajeburaco20.domain.repository.PartidasJugadasRepository
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
+import com.example.puntajeburaco20.domain.repository.SesionAnteriorRepository
 import com.example.puntajeburaco20.domain.repository.SincronizacionRepository
 import com.example.puntajeburaco20.domain.repository.UsuarioRepository
 import kotlinx.coroutines.flow.Flow
@@ -37,13 +38,25 @@ fun cuentaDe(nombre: String, verificada: Boolean = true): Cuenta {
  */
 class FakeUsuarioRepository : UsuarioRepository {
 
-    private data class Perfil(val nombre: String, val uid: String?, val creadoPor: String?, val amigos: List<String>)
+    private data class Perfil(
+        val nombre: String,
+        val uid: String?,
+        val creadoPor: String?,
+        val amigos: List<String>,
+        val passwordAnterior: String? = null,
+    )
 
     private val perfiles = MutableStateFlow<Map<String, Perfil>>(emptyMap())
 
     /** Deja registrado un perfil vinculado a la cuenta de [cuentaDe]. */
     fun registrar(nombre: String, uid: String? = cuentaDe(nombre).uid) {
         perfiles.value += Usuario.claveDeNombre(nombre) to Perfil(nombre, uid, creadoPor = null, amigos = emptyList())
+    }
+
+    /** Deja un perfil anterior a las cuentas con mail: sin cuenta, con la contraseña que tenía. */
+    fun registrarAnterior(nombre: String, password: String) {
+        perfiles.value += Usuario.claveDeNombre(nombre) to
+            Perfil(nombre, uid = null, creadoPor = null, amigos = emptyList(), passwordAnterior = password)
     }
 
     /** Uid de quien creó el perfil, o `null` si no fue creado para otro. */
@@ -64,6 +77,18 @@ class FakeUsuarioRepository : UsuarioRepository {
         val id = idLibre(nombre)
         perfiles.value += id to Perfil(nombre, cuenta.uid, creadoPor = null, amigos = emptyList())
         return aUsuario(id)!!
+    }
+
+    override suspend fun vincularAnterior(cuenta: Cuenta, nombre: String, passwordAnterior: String): Jugador {
+        val id = Usuario.claveDeNombre(nombre)
+        val perfil = perfiles.value[id] ?: throw ErrorUsuario.UsuarioInexistente
+        when {
+            perfil.uid != null -> throw ErrorUsuario.PerfilYaVinculado
+            perfil.creadoPor != null -> throw ErrorUsuario.PerfilCreadoPorOtro
+            perfil.passwordAnterior != passwordAnterior -> throw ErrorUsuario.ContrasenaAnteriorIncorrecta
+        }
+        perfiles.value += id to perfil.copy(uid = cuenta.uid)
+        return Jugador(id, perfil.nombre)
     }
 
     override suspend fun crearAmigoSinLogin(nombre: String, creador: Cuenta, amigoDe: Jugador): Jugador {
@@ -236,6 +261,15 @@ class FakePartidasJugadasRepository : PartidasJugadasRepository {
             .filter { it.partida.ladoDe(jugador) != null }
             .sortedByDescending { it.fecha }
             .take(limite)
+    }
+}
+
+/** [nombre] es el usuario con el que el dispositivo entraba antes de las cuentas con mail. */
+class FakeSesionAnteriorRepository(var nombre: String? = null) : SesionAnteriorRepository {
+    override suspend fun nombreDeUsuario(): String? = nombre
+
+    override suspend fun olvidar() {
+        nombre = null
     }
 }
 

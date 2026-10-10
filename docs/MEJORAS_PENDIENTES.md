@@ -6,39 +6,52 @@ Están ordenados por prioridad.
 
 ## Seguridad y datos (prioridad alta)
 
-1. **Contraseñas en texto plano y login en el cliente.** `users/{id}.Password` se guarda sin
-   hashear y la app la compara localmente. Cualquiera con la app puede leer todas las contraseñas.
-   Conviene migrar a **Firebase Authentication** (la rama `feature/copia-inicial` ya tiene un
-   `AuthRepository` con email y Google) y escribir **reglas de seguridad** de Firestore. Con la
-   arquitectura nueva alcanza con reimplementar `UsuarioRepository.autenticar/crear`.
-   Requiere decidir antes:
-   - Habilitar el proveedor en la consola de Firebase.
-   - Cómo migrar las cuentas existentes (por ejemplo, crear la cuenta de Auth la primera vez que
-     cada usuario inicia sesión con su contraseña actual, y borrar el campo `Password`).
-   - Firebase Auth exige contraseñas de 6 caracteres o más; hoy se permiten de 3 a 8.
-   - "Crear usuario para un amigo" no encaja con Auth (crear otra cuenta cambia la sesión
-     actual): habría que reemplazarlo por invitaciones o crear la cuenta desde un backend.
-2. **La identidad es el nombre.** El id de usuario es el nombre en minúsculas y `AmigosNombre`
-   duplica los nombres. Por eso no se puede renombrar a nadie. Con Firebase Auth convendría usar
-   el `uid` como id y guardar el nombre una sola vez. Depende del punto 1.
+1. **Terminar el plan de cuentas.** Faltan las fases 5 a 7 de
+   [PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md): mail obligatorio al crear un usuario para otro
+   y reclamo de ese perfil, pedidos de reclamo cuando el mail no coincide, y renombrar y borrar
+   perfiles.
+2. **Borrar el esquema anterior.** `users/`, `doubles/` y `users_v2/` siguen en la base como
+   respaldo de la migración, con las contraseñas viejas sin hashear. Las reglas los bloquean
+   para todos, pero conviene borrarlos cuando el esquema nuevo lleve un tiempo funcionando bien
+   (antes, hacer un respaldo con `scripts/firestore/respaldar.mjs`).
 
 ## Plataforma y UI
 
 3. **Cambiar el paquete `com.example.puntajeburaco20`.** `com.example` no se puede publicar en
    Play. Requiere registrar la app de nuevo en Firebase (nuevo `google-services.json`).
+4. **Clave de firma propia.** No hay `keystore.properties`, así que el APK que se reparte es el
+   de debug, firmado con la clave de debug de la máquina que lo compiló. Un APK compilado en otra
+   máquina no se instala encima del anterior: hay que desinstalar primero. Conviene crear una
+   clave de release, guardarla fuera del repo y usarla siempre. El build de release todavía no se
+   probó con las cuentas nuevas.
 
 ## Ingeniería
 
-4. **Versionar el modelo de detección.** `best_float32.tflite` y `labels.txt` no están en el
+5. **Versionar el modelo de detección.** `best_float32.tflite` y `labels.txt` no están en el
    repo, así que la detección no anda en un clon limpio. Opciones: Git LFS, o descargar el modelo
    al primer uso (Firebase ML / Storage). Hace falta tener los archivos del modelo.
-5. **Actualizar LiteRT** cuando Google corrija el conflicto de namespaces con AGP 9
+6. **Actualizar LiteRT** cuando Google corrija el conflicto de namespaces con AGP 9
    ([issue #6965](https://github.com/google-ai-edge/LiteRT/issues/6965)). Se probó la 2.2.0
    (octubre de 2026) y sigue fallando.
-6. **Tests de UI en CI.** Hoy el workflow solo los compila; correrlos necesita un emulador
-   (por ejemplo `reactivecircus/android-emulator-runner`), lo que hace el build bastante más lento.
+7. **Más tests en CI.** Hoy el workflow solo compila los tests de UI; correrlos necesita un
+   emulador (por ejemplo `reactivecircus/android-emulator-runner`), lo que hace el build bastante
+   más lento. Tampoco corre los tests de las reglas de seguridad (necesitan el emulador de
+   Firestore) ni los del script de migración (Node).
 
 ## Hecho
+
+Se resolvieron en la rama `feature/cuentas-y-esquema-nuevo` (fases 0 a 4 de
+[PLAN_AUTENTICACION.md](PLAN_AUTENTICACION.md)):
+
+- Cuentas con Firebase Authentication: mail verificado, contraseña de 6 caracteres o más y
+  recuperación por mail. La app ya no guarda ni compara contraseñas.
+- Reglas de seguridad de Firestore, con tests.
+- Cada jugador tiene un id de perfil propio, separado del nombre.
+- "Crear usuario para un amigo" crea un perfil sin cuenta, a cargo de quien lo creó.
+- Una partida es un solo documento y las estadísticas se calculan contándolas.
+- Migración de los datos anteriores al esquema nuevo. Quien ya usaba la app recupera su perfil
+  con la contraseña que tenía.
+- El campo de contraseña muestra cada carácter al escribirlo y tiene un botón para verla entera.
 
 Se resolvieron en la rama `refactor/arquitectura`:
 
