@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Los emuladores de Firebase no usan HTTPS. Solo vale para el build de debug. -->
+    <application android:usesCleartextTraffic="true" />
+
+</manifest>

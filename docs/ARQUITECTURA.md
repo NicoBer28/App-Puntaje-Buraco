@@ -145,6 +145,33 @@ principal.
 ./gradlew assembleRelease               # APK de release (minificado con R8)
 ```
 
+### Emuladores de Firebase
+
+Para probar sin tocar los datos reales, el build de debug puede apuntar a los emuladores de Auth
+y Firestore (configurados en `firebase.json`). Hace falta la CLI de Firebase
+(`npm install -g firebase-tools`).
+
+```bash
+firebase emulators:start                                    # consola en http://localhost:4000
+./gradlew installDebug -PemuladoresFirebase=10.0.2.2        # app apuntando a los emuladores
+```
+
+`10.0.2.2` es la máquina anfitriona vista desde el emulador de Android. En un dispositivo físico
+se usa `localhost`, después de correr `adb reverse tcp:8080 tcp:8080` y
+`adb reverse tcp:9099 tcp:9099`. Para no pasar el parámetro cada vez (por ejemplo, desde Android
+Studio) se puede poner `emuladoresFirebase=10.0.2.2` en `local.properties`.
+
+Sin ese parámetro la app usa el proyecto real, y el build de release lo ignora siempre. Los
+emuladores arrancan vacíos; para conservar los datos entre ejecuciones:
+
+```bash
+firebase emulators:start --export-on-exit .emuladores                       # la primera vez
+firebase emulators:start --import .emuladores --export-on-exit .emuladores  # las siguientes
+```
+
+Las reglas (`firestore.rules`) y los índices (`firestore.indexes.json`) se versionan en el repo y
+se publican con `firebase deploy --only firestore`.
+
 ### Release
 
 El build de release está minificado con R8 (`isMinifyEnabled` + `isShrinkResources`). Las reglas
