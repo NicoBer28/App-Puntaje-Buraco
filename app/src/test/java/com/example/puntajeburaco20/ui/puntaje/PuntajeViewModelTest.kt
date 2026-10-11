@@ -212,7 +212,7 @@ class PuntajeViewModelTest {
         val eventos = eventosDe(viewModel)
         viewModel.abrirCamara()
 
-        viewModel.sumarFichasDetectadas(LadoEquipo.UNO)
+        viewModel.sumarFichasDetectadas(LadoEquipo.UNO, restar = false)
 
         assertFalse(viewModel.camaraActiva.value)
         assertEquals(Evento.Mensaje(UiText.de(R.string.mensaje_sin_detecciones)), eventos.last())

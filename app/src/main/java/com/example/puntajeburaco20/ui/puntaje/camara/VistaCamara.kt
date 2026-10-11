@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -78,6 +79,7 @@ import com.example.puntajeburaco20.domain.model.FichaDetectada
 import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
+import com.example.puntajeburaco20.ui.common.SelectorSegmentado
 import com.example.puntajeburaco20.ui.common.textoEncima
 import com.example.puntajeburaco20.ui.puntaje.PuntajeViewModel.FotoFichas
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
@@ -109,7 +111,7 @@ fun VistaCamara(
     alDescartarFoto: () -> Unit,
     alCorregir: (indice: Int, etiqueta: String?) -> Unit,
     alAgregar: (CajaNormalizada, String) -> Unit,
-    alSumar: (LadoEquipo) -> Unit,
+    alSumar: (lado: LadoEquipo, restar: Boolean) -> Unit,
     alCerrar: () -> Unit,
     alFallar: (Throwable) -> Unit,
 ) {
@@ -131,6 +133,10 @@ fun VistaCamara(
     var seleccionada by remember(foto?.imagen) { mutableStateOf<Int?>(null) }
     var nueva by remember(foto?.imagen) { mutableStateOf<CajaNormalizada?>(null) }
     val fichasFoto = foto?.fichas
+    // Si las fichas de la foto suman o descuentan. La elección se mantiene al sacar otra foto, y
+    // vuelve a sumar cada vez que se abre la cámara. Lo que se ve en vivo, sin foto, siempre suma.
+    var eligioRestar by remember { mutableStateOf(false) }
+    val restan = foto != null && eligioRestar
 
     val colores = TemaBuraco.colores
     Box(
@@ -215,14 +221,21 @@ fun VistaCamara(
                 )
                 Spacer(Modifier.height(8.dp))
             }
+            if (foto != null) {
+                SelectorSigno(restan, alCambiar = { eligioRestar = it })
+                Spacer(Modifier.height(8.dp))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf(
                     Triple(LadoEquipo.UNO, nombreUno, colores.equipoUno),
                     Triple(LadoEquipo.DOS, nombreDos, colores.equipoDos),
                 ).forEach { (lado, nombre, color) ->
                     BotonPrincipal(
-                        texto = stringResource(R.string.accion_sumar_a_equipo, nombre),
-                        alTocar = { alSumar(lado) },
+                        texto = stringResource(
+                            if (restan) R.string.accion_restar_a_equipo else R.string.accion_sumar_a_equipo,
+                            nombre,
+                        ),
+                        alTocar = { alSumar(lado, restan) },
                         modifier = Modifier.weight(1f),
                         habilitado = foto == null || !foto.analizando,
                         colores = ButtonDefaults.buttonColors(containerColor = color, contentColor = color.textoEncima()),
@@ -241,6 +254,24 @@ fun VistaCamara(
             }
             Spacer(Modifier.height(8.dp))
         }
+    }
+}
+
+/**
+ * Si las fichas de la foto suman (las que se bajaron) o descuentan (las que quedaron en la mano).
+ * Como cada resultado se acumula en los puntos de la ronda, sirve para sacar una foto de cada cosa.
+ */
+@Composable
+private fun SelectorSigno(restan: Boolean, alCambiar: (Boolean) -> Unit) {
+    // La pantalla de la cámara es siempre negra: el control va con los colores del tema oscuro.
+    TemaBuraco(oscuro = true) {
+        SelectorSegmentado(
+            // El orden de R.array.signos_fichas es: suman, restan.
+            opciones = stringArrayResource(R.array.signos_fichas).asList(),
+            elegida = if (restan) 1 else 0,
+            alElegir = { alCambiar(it == 1) },
+            tag = { if (it == 1) "fichasRestan" else "fichasSuman" },
+        )
     }
 }
 

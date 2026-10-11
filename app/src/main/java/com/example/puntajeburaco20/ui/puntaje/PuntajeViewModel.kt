@@ -63,6 +63,7 @@ class PuntajeViewModel @Inject constructor(
         /** Recordar quién empieza la próxima ronda (la pantalla lo destaca en el marcador). */
         data class AvisarQuienEmpieza(val jugador: Jugador) : Evento
         data object LimpiarRonda : Evento
+        /** Lo que valen las fichas contadas con la cámara; [puntos] es negativo si descuentan. */
         data class SumarPuntosDetectados(val lado: LadoEquipo, val puntos: Int) : Evento
         data object Salir : Evento
     }
@@ -251,7 +252,12 @@ class PuntajeViewModel @Inject constructor(
     private fun conFichas(foto: FotoFichas, fichas: List<FichaDetectada>) =
         foto.copy(fichas = fichas, puntos = calculadora.sumar(fichas))
 
-    fun sumarFichasDetectadas(lado: LadoEquipo) {
+    /**
+     * Pasa a los puntos de la ronda lo que valen las fichas contadas y cierra la cámara.
+     *
+     * @param restar `true` si esas fichas descuentan, como las que quedaron en la mano.
+     */
+    fun sumarFichasDetectadas(lado: LadoEquipo, restar: Boolean) {
         // Si hay una foto analizada se suma esa (con las correcciones); si no, lo último que se vio en vivo.
         val fichas = _foto.value?.fichas ?: ultimaDeteccion
         cerrarCamara()
@@ -260,8 +266,9 @@ class PuntajeViewModel @Inject constructor(
             return
         }
         val puntos = calculadora.sumar(fichas)
-        _eventos.trySend(Evento.SumarPuntosDetectados(lado, puntos))
-        _eventos.trySend(Evento.Mensaje(UiText.Plural(R.plurals.mensaje_puntos_detectados, puntos)))
+        _eventos.trySend(Evento.SumarPuntosDetectados(lado, if (restar) -puntos else puntos))
+        val aviso = if (restar) R.plurals.mensaje_puntos_restados else R.plurals.mensaje_puntos_detectados
+        _eventos.trySend(Evento.Mensaje(UiText.Plural(aviso, puntos)))
     }
 
     private fun cerrarCamara() {
