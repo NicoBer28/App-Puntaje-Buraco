@@ -4,7 +4,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.example.puntajeburaco20.domain.model.ModoTema
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,7 +28,24 @@ class DataStorePreferenciasRepository @Inject constructor(
         preferencias.edit { it[CLAVE_MODO_TEMA] = modo.name }
     }
 
+    /** Un nombre desconocido (de otra versión de la app) se ignora. */
+    override val recorridosVistos: Flow<Set<Recorrido>> = preferencias.datosSeguros()
+        .map { guardadas ->
+            val nombres = guardadas[CLAVE_RECORRIDOS_VISTOS].orEmpty()
+            Recorrido.entries.filterTo(mutableSetOf()) { it.name in nombres }
+        }
+        .distinctUntilChanged()
+
+    override suspend fun marcarRecorridoVisto(recorrido: Recorrido) {
+        preferencias.edit { it[CLAVE_RECORRIDOS_VISTOS] = it[CLAVE_RECORRIDOS_VISTOS].orEmpty() + recorrido.name }
+    }
+
+    override suspend fun reiniciarRecorridos() {
+        preferencias.edit { it.remove(CLAVE_RECORRIDOS_VISTOS) }
+    }
+
     private companion object {
         val CLAVE_MODO_TEMA = stringPreferencesKey("modoTema")
+        val CLAVE_RECORRIDOS_VISTOS = stringSetPreferencesKey("recorridosVistos")
     }
 }

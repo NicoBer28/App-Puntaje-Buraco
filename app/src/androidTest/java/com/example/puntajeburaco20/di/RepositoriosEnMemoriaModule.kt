@@ -3,6 +3,7 @@ package com.example.puntajeburaco20.di
 import android.graphics.Bitmap
 import com.example.puntajeburaco20.data.vision.DetectorFichas
 import com.example.puntajeburaco20.domain.model.FichaDetectada
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
@@ -54,9 +55,10 @@ object RepositoriosEnMemoriaModule {
     @Singleton
     fun partidasJugadas() = FakePartidasJugadasRepository()
 
+    /** Con los recorridos de ayuda ya vistos: si no, taparían la pantalla en todos los tests. */
     @Provides
     @Singleton
-    fun preferencias() = FakePreferenciasRepository()
+    fun preferencias() = FakePreferenciasRepository(recorridosVistos = Recorrido.entries.toSet())
 
     @Provides
     @Singleton

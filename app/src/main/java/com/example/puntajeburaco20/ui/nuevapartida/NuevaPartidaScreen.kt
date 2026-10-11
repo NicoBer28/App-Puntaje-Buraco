@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.ModoJuego
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.ui.common.Atajo
 import com.example.puntajeburaco20.ui.common.Avatar
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
@@ -57,7 +58,27 @@ import com.example.puntajeburaco20.ui.common.SeleccionJugadores
 import com.example.puntajeburaco20.ui.common.SelectorModo
 import com.example.puntajeburaco20.ui.common.Tarjeta
 import com.example.puntajeburaco20.ui.common.rememberMensajero
+import com.example.puntajeburaco20.ui.recorrido.PasoRecorrido
+import com.example.puntajeburaco20.ui.recorrido.RecorridoGuiado
+import com.example.puntajeburaco20.ui.recorrido.destacable
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
+
+private const val DESTINO_AMIGOS = "amigos"
+private const val DESTINO_MODO = "modo"
+private const val DESTINO_EQUIPOS = "equipos"
+private const val DESTINO_EMPEZAR = "empezar"
+private const val DESTINO_ESTADISTICAS = "estadisticas"
+private const val DESTINO_PERFIL = "perfil"
+
+/** Lo que se explica la primera vez que se ve esta pantalla, en el orden en que hace falta. */
+private val PasosInicio = listOf(
+    PasoRecorrido(DESTINO_AMIGOS, R.string.recorrido_amigos_titulo, R.string.recorrido_amigos_detalle),
+    PasoRecorrido(DESTINO_MODO, R.string.recorrido_modo_titulo, R.string.recorrido_modo_detalle),
+    PasoRecorrido(DESTINO_EQUIPOS, R.string.recorrido_equipos_titulo, R.string.recorrido_equipos_detalle),
+    PasoRecorrido(DESTINO_EMPEZAR, R.string.recorrido_empezar_titulo, R.string.recorrido_empezar_detalle),
+    PasoRecorrido(DESTINO_ESTADISTICAS, R.string.recorrido_estadisticas_titulo, R.string.recorrido_estadisticas_detalle),
+    PasoRecorrido(DESTINO_PERFIL, R.string.recorrido_perfil_titulo, R.string.recorrido_perfil_detalle),
+)
 
 /**
  * Destino inicial de la navegación. Redirige al login si no hay sesión, y a la partida en curso
@@ -84,52 +105,61 @@ fun NuevaPartidaScreen(
         }
     }
 
-    PantallaBuraco(
-        mensajero = mensajero,
-        encabezado = {
-            Encabezado(
-                titulo = stringResource(R.string.titulo_nueva_partida),
-                subtitulo = stringResource(R.string.subtitulo_nueva_partida),
-                navegacion = { Saludo(estado.nombreUsuario, irAPerfil) },
-            ) {
-                AnimatedVisibility(visible = estado.cambiosPendientes) {
-                    AvisoSincronizacion()
+    RecorridoGuiado(Recorrido.INICIO, PasosInicio) {
+        PantallaBuraco(
+            mensajero = mensajero,
+            encabezado = {
+                Encabezado(
+                    titulo = stringResource(R.string.titulo_nueva_partida),
+                    subtitulo = stringResource(R.string.subtitulo_nueva_partida),
+                    navegacion = { Saludo(estado.nombreUsuario, irAPerfil, Modifier.destacable(DESTINO_PERFIL)) },
+                ) {
+                    AnimatedVisibility(visible = estado.cambiosPendientes) {
+                        AvisoSincronizacion()
+                    }
                 }
+            },
+            pie = {
+                BotonPrincipal(
+                    texto = stringResource(R.string.accion_nueva_partida),
+                    alTocar = viewModel::iniciarPartida,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .destacable(DESTINO_EMPEZAR)
+                        .testTag("btnNuevaPartida"),
+                    icono = R.drawable.ic_play_arrow,
+                    cargando = estado.iniciando,
+                )
+            },
+        ) {
+            SelectorModo(
+                modo = estado.seleccion.modo,
+                alCambiar = viewModel::cambiarModo,
+                modifier = Modifier.destacable(DESTINO_MODO),
+            )
+            Equipos(estado.seleccion, viewModel::elegirJugador, Modifier.destacable(DESTINO_EQUIPOS))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Atajo(
+                    titulo = stringResource(R.string.atajo_estadisticas),
+                    detalle = stringResource(R.string.atajo_estadisticas_detalle),
+                    icono = R.drawable.ic_bar_chart,
+                    alTocar = irAEstadisticas,
+                    modifier = Modifier
+                        .weight(1f)
+                        .destacable(DESTINO_ESTADISTICAS)
+                        .testTag("btnHistoriales"),
+                )
+                Atajo(
+                    titulo = stringResource(R.string.atajo_amigos),
+                    detalle = stringResource(R.string.atajo_amigos_detalle),
+                    icono = R.drawable.ic_group_add,
+                    alTocar = irAAmigos,
+                    modifier = Modifier
+                        .weight(1f)
+                        .destacable(DESTINO_AMIGOS)
+                        .testTag("btnUsuario"),
+                )
             }
-        },
-        pie = {
-            BotonPrincipal(
-                texto = stringResource(R.string.accion_nueva_partida),
-                alTocar = viewModel::iniciarPartida,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("btnNuevaPartida"),
-                icono = R.drawable.ic_play_arrow,
-                cargando = estado.iniciando,
-            )
-        },
-    ) {
-        SelectorModo(modo = estado.seleccion.modo, alCambiar = viewModel::cambiarModo)
-        Equipos(estado.seleccion, viewModel::elegirJugador)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Atajo(
-                titulo = stringResource(R.string.atajo_estadisticas),
-                detalle = stringResource(R.string.atajo_estadisticas_detalle),
-                icono = R.drawable.ic_bar_chart,
-                alTocar = irAEstadisticas,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("btnHistoriales"),
-            )
-            Atajo(
-                titulo = stringResource(R.string.atajo_amigos),
-                detalle = stringResource(R.string.atajo_amigos_detalle),
-                icono = R.drawable.ic_group_add,
-                alTocar = irAAmigos,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("btnUsuario"),
-            )
         }
     }
 
@@ -144,10 +174,10 @@ fun NuevaPartidaScreen(
 
 /** Quién tiene la sesión iniciada. Es también el acceso a su perfil. */
 @Composable
-private fun Saludo(nombre: String, irAPerfil: () -> Unit) {
+private fun Saludo(nombre: String, irAPerfil: () -> Unit, modifier: Modifier = Modifier) {
     val colores = TemaBuraco.colores
     Row(
-        Modifier
+        modifier
             .padding(start = 4.dp)
             .clip(CircleShape)
             .clickable(
@@ -218,7 +248,7 @@ private fun AvisoSincronizacion() {
  * las de 4 el equipo 1 son las posiciones 0 y 1, y el equipo 2 las 2 y 3.
  */
 @Composable
-private fun Equipos(seleccion: SeleccionJugadores, alElegir: (Int, Jugador?) -> Unit) {
+private fun Equipos(seleccion: SeleccionJugadores, alElegir: (Int, Jugador?) -> Unit, modifier: Modifier = Modifier) {
     val colores = TemaBuraco.colores
     val (posicionesUno, posicionesDos) = when (seleccion.modo) {
         ModoJuego.INDIVIDUAL -> listOf(0) to listOf(1)
@@ -236,7 +266,7 @@ private fun Equipos(seleccion: SeleccionJugadores, alElegir: (Int, Jugador?) -> 
     }
     // El aviso va pegado a las tarjetas y centrado: es una nota al pie de los equipos, no el
     // título de los atajos que siguen.
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 listOf(

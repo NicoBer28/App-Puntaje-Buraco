@@ -12,6 +12,7 @@ import com.example.puntajeburaco20.domain.model.PartidaJugada
 import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.domain.model.Reclamo
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
@@ -333,6 +334,12 @@ class FakeAuthRepository(cuentaInicial: Cuenta? = null) : AuthRepository {
         if (registros[cuenta.mail]?.let { it.password != password } == true) throw ErrorUsuario.CredencialesIncorrectas
     }
 
+    override suspend fun cambiarContrasena(nueva: String) {
+        error?.let { throw it }
+        val cuenta = actual.value ?: throw ErrorUsuario.SinSesion
+        registros[cuenta.mail]?.let { registros[cuenta.mail] = it.copy(password = nueva) }
+    }
+
     override suspend fun borrarCuenta() {
         error?.let { throw it }
         val cuenta = actual.value ?: throw ErrorUsuario.SinSesion
@@ -430,10 +437,23 @@ class FakeSincronizacionRepository(pendientes: Boolean = false) : Sincronizacion
     override val hayCambiosPendientes = MutableStateFlow(pendientes)
 }
 
-class FakePreferenciasRepository(modoInicial: ModoTema = ModoTema.SISTEMA) : PreferenciasRepository {
+class FakePreferenciasRepository(
+    modoInicial: ModoTema = ModoTema.SISTEMA,
+    recorridosVistos: Set<Recorrido> = emptySet(),
+) : PreferenciasRepository {
     override val modoTema = MutableStateFlow(modoInicial)
 
     override suspend fun cambiarModoTema(modo: ModoTema) {
         modoTema.value = modo
+    }
+
+    override val recorridosVistos = MutableStateFlow(recorridosVistos)
+
+    override suspend fun marcarRecorridoVisto(recorrido: Recorrido) {
+        recorridosVistos.value += recorrido
+    }
+
+    override suspend fun reiniciarRecorridos() {
+        recorridosVistos.value = emptySet()
     }
 }

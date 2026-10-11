@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -20,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.ModoTema
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
@@ -93,6 +95,15 @@ class FlujosPrincipalesTest {
 
     private fun esperar(tag: String) {
         compose.waitUntil(TIEMPO_MAXIMO_MS) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun esperarQueSeVaya(tag: String) {
+        compose.waitUntil(TIEMPO_MAXIMO_MS) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
+    }
+
+    /** Espera a que desaparezca un mensaje que se muestra unos segundos y tapa lo que tiene debajo. */
+    private fun esperarQueSeVayaElTexto(@StringRes id: Int) {
+        compose.waitUntil(TIEMPO_MAXIMO_MENSAJE_MS) { compose.onAllNodesWithText(texto(id)).fetchSemanticsNodes().isEmpty() }
     }
 
     /** Toca un elemento que puede estar fuera de la parte visible de una lista desplazable. */
@@ -209,7 +220,9 @@ class FlujosPrincipalesTest {
             // En lugar de pedirle un nombre nuevo le ofrece su perfil, con el usuario ya escrito.
             esperar("usuarioAnterior")
             compose.onNodeWithTag("usuarioAnterior").assertTextContains("caro")
-            // Puede pasar a crear un perfil nuevo, y volver.
+            // Puede pasar a crear un perfil nuevo, y volver. El aviso del mail enviado sale abajo
+            // y en una pantalla chica tapa ese botón, que es el último: hay que esperar a que se vaya.
+            esperarQueSeVayaElTexto(R.string.mensaje_verificacion_enviada)
             tocarDesplazando("btnPerfilNuevo")
             tocarDesplazando("btnYaTeniaPerfil")
 
@@ -389,6 +402,26 @@ class FlujosPrincipalesTest {
     }
 
     @Test
+    fun desdeElPerfilSeCambiaLaContrasenaYSeSigueConLaSesionIniciada() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocar("btnPerfil")
+            tocarDesplazando("opcionCambiarContrasena")
+            esperar("passwordActual")
+            compose.onNodeWithTag("passwordActual").performTextReplacement(CLAVE)
+            compose.onNodeWithTag("passwordNueva").performTextReplacement("nueva456")
+            tocar("btnGuardarContrasena")
+
+            // La contraseña anterior deja de servir y la sesión sigue abierta, en el perfil.
+            compose.waitUntil(TIEMPO_MAXIMO_MS) {
+                runBlocking { runCatching { auth.confirmarIdentidad(CLAVE) } }.isFailure
+            }
+            runBlocking { auth.confirmarIdentidad("nueva456") }
+            compose.onNodeWithTag("nombrePerfil").assertTextEquals("Ana")
+        }
+    }
+
+    @Test
     fun sumarYDeshacerUnaRondaActualizaLosTotales() {
         iniciarSesionComoAna()
         abrirApp().use {
@@ -485,8 +518,59 @@ class FlujosPrincipalesTest {
         }
     }
 
+    @Test
+    fun laPrimeraVezSeRecorrenElInicioYElAnotador() {
+        runBlocking { preferencias.reiniciarRecorridos() }
+        iniciarSesionComoAna()
+        abrirApp().use {
+            // Arranca solo, y se puede ir y volver entre los pasos.
+            esperar("recorridoGlobo")
+            compose.onNodeWithText(texto(R.string.recorrido_amigos_titulo)).assertIsDisplayed()
+            tocar("recorridoSiguiente")
+            compose.onNodeWithText(texto(R.string.recorrido_modo_titulo)).assertIsDisplayed()
+            tocar("recorridoAnterior")
+            compose.onNodeWithText(texto(R.string.recorrido_amigos_titulo)).assertIsDisplayed()
+
+            tocar("recorridoOmitir")
+            esperarQueSeVaya("recorridoGlobo")
+            assertEquals(setOf(Recorrido.INICIO), preferencias.recorridosVistos.value)
+
+            // Omitido el del inicio, la pantalla vuelve a responder. Al entrar a la partida sale
+            // el del anotador, que tiene un paso más si el dispositivo tiene cámara.
+            empezarPartidaAnaContraBeto()
+            esperar("recorridoGlobo")
+            compose.onNodeWithText(texto(R.string.recorrido_marcador_titulo)).assertIsDisplayed()
+            while (compose.onAllNodesWithTag("recorridoListo").fetchSemanticsNodes().isEmpty()) {
+                tocar("recorridoSiguiente")
+            }
+            compose.onNodeWithText(texto(R.string.recorrido_terminar_titulo)).assertIsDisplayed()
+            tocar("recorridoListo")
+
+            esperarQueSeVaya("recorridoGlobo")
+            assertEquals(Recorrido.entries.toSet(), preferencias.recorridosVistos.value)
+        }
+    }
+
+    @Test
+    fun desdeLaAyudaDelPerfilSeVuelveAVerElRecorrido() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocar("btnPerfil")
+            tocarDesplazando("opcionAyuda")
+
+            // Vuelve al inicio, con el recorrido otra vez en el primer paso.
+            esperar("recorridoGlobo")
+            compose.onNodeWithText(texto(R.string.recorrido_amigos_titulo)).assertIsDisplayed()
+            compose.onNodeWithTag("btnNuevaPartida").assertIsDisplayed()
+            assertEquals(emptySet<Recorrido>(), preferencias.recorridosVistos.value)
+        }
+    }
+
     private companion object {
         const val TIEMPO_MAXIMO_MS = 5_000L
+
+        /** Un mensaje dura unos 4 segundos, o más si el dispositivo tiene ayudas de accesibilidad. */
+        const val TIEMPO_MAXIMO_MENSAJE_MS = 15_000L
         const val CLAVE = "clave123"
     }
 }

@@ -43,12 +43,19 @@ interface AuthRepository {
     suspend fun enviarRecuperacion(mail: String)
 
     /**
-     * Vuelve a comprobar la contraseña de la cuenta actual. Hace falta antes de [borrarCuenta],
-     * que solo se permite a quien inició sesión hace poco.
+     * Vuelve a comprobar la contraseña de la cuenta actual. Hace falta antes de [cambiarContrasena]
+     * y de [borrarCuenta], que solo se permiten a quien inició sesión hace poco.
      *
      * @throws ErrorUsuario.CredencialesIncorrectas si la contraseña no coincide.
      */
     suspend fun confirmarIdentidad(password: String)
+
+    /**
+     * Reemplaza la contraseña de la cuenta actual, que sigue con la sesión iniciada.
+     *
+     * @throws ErrorUsuario.ContrasenaCorta si la nueva no cumple el formato.
+     */
+    suspend fun cambiarContrasena(nueva: String)
 
     /** Elimina la cuenta actual, que deja de tener la sesión iniciada. No se puede deshacer. */
     suspend fun borrarCuenta()
