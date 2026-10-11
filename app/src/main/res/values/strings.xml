@@ -150,7 +150,7 @@
     <string name="recorrido_anotar_titulo">Anotar la ronda</string>
     <string name="recorrido_anotar_detalle">En Base van las canastas, en Puntos lo que suman las fichas.</string>
     <string name="recorrido_camara_titulo">Contar con la cámara</string>
-    <string name="recorrido_camara_detalle">Apuntá a las fichas, sacá una foto y la app las cuenta. El resultado se suma a los Puntos del equipo que elijas.</string>
+    <string name="recorrido_camara_detalle">Apuntá a las fichas, sacá una foto y la app las cuenta. El resultado se suma o se resta a los Puntos del equipo que elijas.</string>
     <string name="recorrido_sumar_titulo">Sumar la ronda</string>
     <string name="recorrido_sumar_detalle">Suma lo anotado al total de cada equipo y pasa a la ronda siguiente.</string>
     <string name="recorrido_deshacer_titulo">Deshacer</string>
@@ -173,6 +173,11 @@
     <string name="accion_fin">Terminar</string>
     <string name="accion_camara">Contar fichas con la cámara</string>
     <string name="accion_sumar_a_equipo">Sumar a %1$s</string>
+    <string name="accion_restar_a_equipo">Restar a %1$s</string>
+    <string-array name="signos_fichas">
+        <item>Suman</item>
+        <item>Restan</item>
+    </string-array>
     <string name="accion_deshacer">Deshacer última ronda</string>
     <string name="rondas_titulo">Rondas</string>
     <string name="rondas_vacio">Todavía no se anotó ninguna ronda.</string>
@@ -196,6 +201,10 @@
     <plurals name="mensaje_puntos_detectados">
         <item quantity="one">Se sumó %1$d punto</item>
         <item quantity="other">Se sumaron %1$d puntos</item>
+    </plurals>
+    <plurals name="mensaje_puntos_restados">
+        <item quantity="one">Se restó %1$d punto</item>
+        <item quantity="other">Se restaron %1$d puntos</item>
     </plurals>
     <string name="mensaje_sin_detecciones">No se detectó nada para sumar</string>
     <string name="mensaje_camara_cancelada">Cámara cerrada</string>

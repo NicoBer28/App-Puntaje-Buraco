@@ -37,6 +37,10 @@ tocar un lugar vacío para agregar una ficha que faltó. Con muchas fichas las c
 la foto se acerca pellizcando (hasta 5x) y se mueve arrastrando (`ZoomFoto.kt`). La lógica pura
 (geometría y fusión) está en `Recortes.kt` y tiene tests en la JVM.
 
+Lo contado se acumula en los Puntos del equipo elegido. Con una foto sacada, un selector decide si
+suma o resta: así se saca una foto de las fichas bajadas y otra de las que quedaron en la mano, y
+queda el neto. Lo que se suma desde la vista en vivo, sin foto, siempre suma.
+
 ### Por qué
 
 El modelo trabaja a 640x640. En una foto de una fila de 50 fichas, al reducirla entera cada ficha
