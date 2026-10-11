@@ -35,7 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -73,6 +75,7 @@ fun PerfilScreen(
     val mensajero = rememberMensajero()
     var confirmarCierre by remember { mutableStateOf(false) }
     var cambiandoNombre by remember { mutableStateOf(false) }
+    var cambiandoContrasena by remember { mutableStateOf(false) }
     var borrandoCuenta by remember { mutableStateOf(false) }
 
     RecolectarEventos(viewModel.eventos) { evento ->
@@ -115,13 +118,12 @@ fun PerfilScreen(
                 alTocar = { cambiandoNombre = true },
             )
             SeparadorDeOpciones()
-            // Las opciones que todavía no tienen pantalla se muestran marcadas como "Pronto" y avisan al tocarlas.
-            OpcionProximamente(
+            FilaOpcion(
                 titulo = R.string.opcion_cambiar_contrasena,
                 detalle = R.string.opcion_cambiar_contrasena_detalle,
                 icono = R.drawable.ic_lock,
                 tag = "opcionCambiarContrasena",
-                avisar = mensajero::mostrar,
+                alTocar = { cambiandoContrasena = true },
             )
             SeparadorDeOpciones()
             FilaOpcion(
@@ -134,6 +136,7 @@ fun PerfilScreen(
             )
         }
         GrupoOpciones(stringResource(R.string.seccion_aplicacion)) {
+            // Las opciones que todavía no tienen pantalla se muestran marcadas como "Pronto" y avisan al tocarlas.
             OpcionProximamente(
                 titulo = R.string.opcion_configuracion,
                 detalle = R.string.opcion_configuracion_detalle,
@@ -176,6 +179,13 @@ fun PerfilScreen(
             alCerrar = { cambiandoNombre = false },
         )
     }
+    if (cambiandoContrasena) {
+        DialogoContrasena(
+            alGuardar = viewModel::cambiarContrasena,
+            alRecuperar = viewModel::recuperarContrasena,
+            alCerrar = { cambiandoContrasena = false },
+        )
+    }
     if (borrandoCuenta) {
         DialogoBorrarCuenta(alBorrar = viewModel::borrarCuenta, alCerrar = { borrandoCuenta = false })
     }
@@ -208,6 +218,65 @@ private fun DialogoNombre(nombreActual: String, alGuardar: (nombre: String) -> U
         },
         confirmButton = {
             TextButton(onClick = guardar, modifier = Modifier.testTag("btnGuardarNombre")) {
+                Text(stringResource(R.string.accion_guardar))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = alCerrar) { Text(stringResource(R.string.cancelar)) }
+        },
+    )
+}
+
+/**
+ * Pide la contraseña actual y la nueva. La nueva se escribe una sola vez: el ojo del campo deja
+ * revisarla. Quien no se acuerda de la actual puede pedir el enlace que llega por mail.
+ */
+@Composable
+private fun DialogoContrasena(
+    alGuardar: (actual: String, nueva: String) -> Unit,
+    alRecuperar: () -> Unit,
+    alCerrar: () -> Unit,
+) {
+    val actual = rememberTextFieldState()
+    val nueva = rememberTextFieldState()
+    val foco = LocalFocusManager.current
+    val guardar = {
+        alCerrar()
+        alGuardar(actual.text.toString(), nueva.text.toString())
+    }
+    AlertDialog(
+        onDismissRequest = alCerrar,
+        title = { Text(stringResource(R.string.dialogo_contrasena_titulo)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.dialogo_contrasena_detalle), style = MaterialTheme.typography.bodyMedium)
+                CampoContrasena(
+                    estado = actual,
+                    etiqueta = stringResource(R.string.hint_password_actual),
+                    alConfirmar = { foco.moveFocus(FocusDirection.Down) },
+                    etiquetaDePrueba = "passwordActual",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                CampoContrasena(
+                    estado = nueva,
+                    etiqueta = stringResource(R.string.hint_password_nueva),
+                    alConfirmar = guardar,
+                    etiquetaDePrueba = "passwordNueva",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextButton(
+                    onClick = {
+                        alCerrar()
+                        alRecuperar()
+                    },
+                    modifier = Modifier.testTag("btnNoRecuerdoContrasena"),
+                ) {
+                    Text(stringResource(R.string.accion_no_recuerdo_contrasena))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = guardar, modifier = Modifier.testTag("btnGuardarContrasena")) {
                 Text(stringResource(R.string.accion_guardar))
             }
         },

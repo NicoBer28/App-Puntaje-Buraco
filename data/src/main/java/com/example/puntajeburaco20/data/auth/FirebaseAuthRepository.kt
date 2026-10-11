@@ -83,6 +83,12 @@ class FirebaseAuthRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun cambiarContrasena(nueva: String) = traducirErrores {
+        val usuario = auth.currentUser ?: throw ErrorUsuario.SinSesion
+        usuario.updatePassword(nueva).await()
+        Unit
+    }
+
     override suspend fun borrarCuenta() = traducirErrores {
         val usuario = auth.currentUser ?: throw ErrorUsuario.SinSesion
         usuario.delete().await()

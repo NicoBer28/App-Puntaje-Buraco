@@ -67,7 +67,7 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── pedidos/              Aviso de que alguien pide un perfil que el usuario creó para otro
     ├── perfil/               Datos de la cuenta, tema claro u oscuro, cambiar el nombre de
-    │                         usuario, cerrar sesión y borrar la cuenta
+    │                         usuario o la contraseña, cerrar sesión y borrar la cuenta
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
     ├── amigos/               Agregar / eliminar amigos; crear usuarios para otros, cambiarles
     │                         el nombre o el mail y borrarlos
@@ -151,6 +151,11 @@ partidas siguen siendo los mismos (las partidas ya jugadas muestran el nombre qu
 perfil también se puede **borrar**: el propio, junto con la cuenta, y el de un usuario creado
 para otro mientras nadie lo haya aceptado. Las partidas que jugó quedan en el historial de los
 demás.
+
+La **contraseña** se cambia desde el perfil, escribiendo la actual y la nueva
+(`CambiarContrasenaUseCase`): el servicio de cuentas solo lo permite a quien comprobó la suya
+hace poco, igual que para borrar la cuenta. Quien no se acuerda de la actual pide desde ahí el
+mismo enlace por mail que ofrece el acceso.
 
 Las reglas de seguridad (`firestore.rules`) exigen mail verificado, que el perfil, su nombre
 reservado, su cuenta y su mail se creen juntos, y que una amistad se cree o se borre en las dos

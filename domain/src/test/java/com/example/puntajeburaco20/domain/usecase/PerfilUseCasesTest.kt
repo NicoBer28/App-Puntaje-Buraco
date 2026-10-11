@@ -38,6 +38,7 @@ class PerfilUseCasesTest {
     private val sesion = ObservarSesionUseCase(auth, usuarios)
     private val renombrarPerfil = RenombrarPerfilUseCase(usuarios, validador)
     private val borrarPerfilACargo = BorrarPerfilACargoUseCase(usuarios, sesion)
+    private val cambiarContrasena = CambiarContrasenaUseCase(auth, validador)
     private val borrarCuenta = BorrarCuentaUseCase(auth, usuarios, partidaEnCurso, sesion)
     private val perfilesACargo = ObservarPerfilesACargoUseCase(usuarios, sesion)
 
@@ -132,6 +133,34 @@ class PerfilUseCasesTest {
     }
 
     @Test
+    fun `cambiar la contraseña deja la sesion iniciada y solo se entra con la nueva`() = runTest {
+        cambiarContrasena("clave123", "nueva456")
+
+        assertTrue(sesion().first() is EstadoSesion.Completa)
+        esperarError<ErrorUsuario.CredencialesIncorrectas> { auth.iniciarSesion("ana@test.com", "clave123") }
+        assertEquals(cuentaDe("Ana"), auth.iniciarSesion("ana@test.com", "nueva456"))
+    }
+
+    @Test
+    fun `sin la contraseña actual o con una nueva que no sirve, la contraseña no cambia`() = runTest {
+        esperarError<ErrorUsuario.CamposIncompletos> { cambiarContrasena("", "nueva456") }
+        esperarError<ErrorUsuario.CamposIncompletos> { cambiarContrasena("clave123", "") }
+        esperarError<ErrorUsuario.ContrasenaCorta> { cambiarContrasena("clave123", "12345") }
+        esperarError<ErrorUsuario.ContrasenaIncorrecta> { cambiarContrasena("otraclave", "nueva456") }
+
+        assertEquals(cuentaDe("Ana"), auth.iniciarSesion("ana@test.com", "clave123"))
+    }
+
+    @Test
+    fun `quien no se acuerda de la contraseña recibe el enlace en el mail de su cuenta`() = runTest {
+        val recuperar = RecuperarContrasenaUseCase(auth, validador)
+
+        assertEquals("ana@test.com", recuperar.aLaCuentaActual())
+
+        assertEquals(listOf("ana@test.com"), auth.recuperacionesEnviadas)
+    }
+
+    @Test
     fun `sin la contraseña correcta no se borra nada`() = runTest {
         esperarError<ErrorUsuario.CamposIncompletos> { borrarCuenta("") }
         esperarError<ErrorUsuario.ContrasenaIncorrecta> { borrarCuenta("otraclave") }
@@ -142,10 +171,12 @@ class PerfilUseCasesTest {
     }
 
     @Test
-    fun `sin sesion no se borra una cuenta ni un perfil a cargo`() = runTest {
+    fun `sin sesion no se cambia la contraseña ni se borra una cuenta o un perfil a cargo`() = runTest {
         val nadie = ObservarSesionUseCase(FakeAuthRepository(), usuarios)
 
         esperarError<ErrorUsuario.SinSesion> { BorrarCuentaUseCase(FakeAuthRepository(), usuarios, partidaEnCurso, nadie)("clave123") }
         esperarError<ErrorUsuario.SinSesion> { BorrarPerfilACargoUseCase(usuarios, nadie)(dani) }
+        esperarError<ErrorUsuario.SinSesion> { CambiarContrasenaUseCase(FakeAuthRepository(), validador)("clave123", "nueva456") }
+        esperarError<ErrorUsuario.SinSesion> { RecuperarContrasenaUseCase(FakeAuthRepository(), validador).aLaCuentaActual() }
     }
 }

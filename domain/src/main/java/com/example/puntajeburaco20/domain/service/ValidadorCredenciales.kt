@@ -30,8 +30,15 @@ class ValidadorCredenciales @Inject constructor() {
     fun validarCuenta(mail: String, password: String) {
         if (mail.isEmpty() || password.isEmpty()) throw ErrorUsuario.CamposIncompletos
         validarMail(mail)
-        if (password.length < LONGITUD_MINIMA_PASSWORD) {
-            throw ErrorUsuario.ContrasenaCorta(LONGITUD_MINIMA_PASSWORD)
+        validarContrasena(password)
+    }
+
+    /** @throws ErrorUsuario.ContrasenaCorta si no llega al mínimo que acepta el servicio de cuentas. */
+    fun validarContrasena(password: String) {
+        when {
+            password.isEmpty() -> throw ErrorUsuario.CamposIncompletos
+            password.length < LONGITUD_MINIMA_PASSWORD ->
+                throw ErrorUsuario.ContrasenaCorta(LONGITUD_MINIMA_PASSWORD)
         }
     }
 

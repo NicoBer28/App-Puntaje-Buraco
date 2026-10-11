@@ -389,6 +389,26 @@ class FlujosPrincipalesTest {
     }
 
     @Test
+    fun desdeElPerfilSeCambiaLaContrasenaYSeSigueConLaSesionIniciada() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocar("btnPerfil")
+            tocarDesplazando("opcionCambiarContrasena")
+            esperar("passwordActual")
+            compose.onNodeWithTag("passwordActual").performTextReplacement(CLAVE)
+            compose.onNodeWithTag("passwordNueva").performTextReplacement("nueva456")
+            tocar("btnGuardarContrasena")
+
+            // La contraseña anterior deja de servir y la sesión sigue abierta, en el perfil.
+            compose.waitUntil(TIEMPO_MAXIMO_MS) {
+                runBlocking { runCatching { auth.confirmarIdentidad(CLAVE) } }.isFailure
+            }
+            runBlocking { auth.confirmarIdentidad("nueva456") }
+            compose.onNodeWithTag("nombrePerfil").assertTextEquals("Ana")
+        }
+    }
+
+    @Test
     fun sumarYDeshacerUnaRondaActualizaLosTotales() {
         iniciarSesionComoAna()
         abrirApp().use {

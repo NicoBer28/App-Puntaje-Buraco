@@ -5,9 +5,11 @@ import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
 import com.example.puntajeburaco20.domain.usecase.BorrarCuentaUseCase
+import com.example.puntajeburaco20.domain.usecase.CambiarContrasenaUseCase
 import com.example.puntajeburaco20.domain.usecase.CerrarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarSesionUseCase
 import com.example.puntajeburaco20.domain.usecase.ObservarUsuarioActualUseCase
+import com.example.puntajeburaco20.domain.usecase.RecuperarContrasenaUseCase
 import com.example.puntajeburaco20.domain.usecase.RenombrarPerfilUseCase
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
@@ -53,6 +55,8 @@ class PerfilViewModelTest {
         preferencias = preferencias,
         cerrarSesionUseCase = CerrarSesionUseCase(auth, partidaEnCurso),
         renombrarPerfil = RenombrarPerfilUseCase(usuarios, ValidadorCredenciales()),
+        cambiarContrasenaUseCase = CambiarContrasenaUseCase(auth, ValidadorCredenciales()),
+        recuperarContrasenaUseCase = RecuperarContrasenaUseCase(auth, ValidadorCredenciales()),
         borrarCuentaUseCase = BorrarCuentaUseCase(auth, usuarios, partidaEnCurso, sesion),
         observarUsuarioActual = ObservarUsuarioActualUseCase(usuarios, sesion),
     )
@@ -127,6 +131,51 @@ class PerfilViewModelTest {
             eventos,
         )
         assertEquals("Ana", viewModel.estado.value.nombreUsuario)
+    }
+
+    @Test
+    fun `cambiar la contraseña lo avisa y deja la sesion iniciada`() = runTest {
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+
+        viewModel.cambiarContrasena(actual = "clave123", nueva = "nueva456")
+
+        assertEquals(listOf(Evento.Mensaje(UiText.de(R.string.mensaje_contrasena_cambiada))), eventos)
+        assertEquals(cuentaDe("Ana"), auth.cuenta.value)
+        assertEquals(cuentaDe("Ana"), auth.iniciarSesion("ana@test.com", "nueva456"))
+        assertFalse(viewModel.estado.value.ocupado)
+    }
+
+    @Test
+    fun `con otra contraseña actual o una nueva muy corta muestra el motivo y no la cambia`() = runTest {
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+
+        viewModel.cambiarContrasena(actual = "otraclave", nueva = "nueva456")
+        viewModel.cambiarContrasena(actual = "clave123", nueva = "12345")
+
+        assertEquals(
+            listOf(
+                Evento.Mensaje(UiText.de(R.string.error_contrasena_incorrecta)),
+                Evento.Mensaje(UiText.Plural(R.plurals.error_contrasena_corta, 6)),
+            ),
+            eventos,
+        )
+        assertEquals(cuentaDe("Ana"), auth.iniciarSesion("ana@test.com", "clave123"))
+    }
+
+    @Test
+    fun `quien no se acuerda de la contraseña recibe el enlace y se le dice a que mail`() = runTest {
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+
+        viewModel.recuperarContrasena()
+
+        assertEquals(listOf("ana@test.com"), auth.recuperacionesEnviadas)
+        assertEquals(
+            listOf(Evento.Mensaje(UiText.de(R.string.mensaje_recuperacion_enviada_a, "ana@test.com"))),
+            eventos,
+        )
     }
 
     @Test

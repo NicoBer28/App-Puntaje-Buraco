@@ -333,6 +333,12 @@ class FakeAuthRepository(cuentaInicial: Cuenta? = null) : AuthRepository {
         if (registros[cuenta.mail]?.let { it.password != password } == true) throw ErrorUsuario.CredencialesIncorrectas
     }
 
+    override suspend fun cambiarContrasena(nueva: String) {
+        error?.let { throw it }
+        val cuenta = actual.value ?: throw ErrorUsuario.SinSesion
+        registros[cuenta.mail]?.let { registros[cuenta.mail] = it.copy(password = nueva) }
+    }
+
     override suspend fun borrarCuenta() {
         error?.let { throw it }
         val cuenta = actual.value ?: throw ErrorUsuario.SinSesion

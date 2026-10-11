@@ -111,6 +111,13 @@
     <string name="accion_borrar_cuenta">Borrar cuenta</string>
     <string name="opcion_cambiar_contrasena">Cambiar contraseña</string>
     <string name="opcion_cambiar_contrasena_detalle">Elegí una clave nueva</string>
+    <string name="dialogo_contrasena_titulo">Cambiar contraseña</string>
+    <string name="dialogo_contrasena_detalle">Escribí la que usás ahora y la nueva, de 6 caracteres o más.</string>
+    <string name="hint_password_actual">Contraseña actual</string>
+    <string name="hint_password_nueva">Contraseña nueva</string>
+    <string name="accion_no_recuerdo_contrasena">No me acuerdo de la actual</string>
+    <string name="mensaje_contrasena_cambiada">Contraseña cambiada</string>
+    <string name="mensaje_recuperacion_enviada_a">Te enviamos a %1$s un enlace para elegir una contraseña nueva</string>
     <string name="seccion_aplicacion">Aplicación</string>
     <string name="opcion_configuracion">Configuración</string>
     <string name="opcion_configuracion_detalle">Ajustes de la app y de las partidas</string>
