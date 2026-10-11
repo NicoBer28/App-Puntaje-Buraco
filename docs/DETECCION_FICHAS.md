@@ -33,8 +33,9 @@ de lado mayor) y se analiza por recortes, al estilo
    quedan casi enteras dentro de otra.
 
 Después el resultado se puede corregir a mano: tocar una caja para cambiar su valor o quitarla, y
-tocar un lugar vacío para agregar una ficha que faltó. La lógica pura (geometría y fusión) está en
-`Recortes.kt` y tiene tests en la JVM.
+tocar un lugar vacío para agregar una ficha que faltó. Con muchas fichas las cajas quedan chicas:
+la foto se acerca pellizcando (hasta 5x) y se mueve arrastrando (`ZoomFoto.kt`). La lógica pura
+(geometría y fusión) está en `Recortes.kt` y tiene tests en la JVM.
 
 ### Por qué
 
