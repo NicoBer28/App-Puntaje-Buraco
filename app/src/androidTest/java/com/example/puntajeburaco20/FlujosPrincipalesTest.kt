@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -98,6 +99,11 @@ class FlujosPrincipalesTest {
 
     private fun esperarQueSeVaya(tag: String) {
         compose.waitUntil(TIEMPO_MAXIMO_MS) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
+    }
+
+    /** Espera a que desaparezca un mensaje que se muestra unos segundos y tapa lo que tiene debajo. */
+    private fun esperarQueSeVayaElTexto(@StringRes id: Int) {
+        compose.waitUntil(TIEMPO_MAXIMO_MENSAJE_MS) { compose.onAllNodesWithText(texto(id)).fetchSemanticsNodes().isEmpty() }
     }
 
     /** Toca un elemento que puede estar fuera de la parte visible de una lista desplazable. */
@@ -214,7 +220,9 @@ class FlujosPrincipalesTest {
             // En lugar de pedirle un nombre nuevo le ofrece su perfil, con el usuario ya escrito.
             esperar("usuarioAnterior")
             compose.onNodeWithTag("usuarioAnterior").assertTextContains("caro")
-            // Puede pasar a crear un perfil nuevo, y volver.
+            // Puede pasar a crear un perfil nuevo, y volver. El aviso del mail enviado sale abajo
+            // y en una pantalla chica tapa ese botón, que es el último: hay que esperar a que se vaya.
+            esperarQueSeVayaElTexto(R.string.mensaje_verificacion_enviada)
             tocarDesplazando("btnPerfilNuevo")
             tocarDesplazando("btnYaTeniaPerfil")
 
@@ -560,6 +568,9 @@ class FlujosPrincipalesTest {
 
     private companion object {
         const val TIEMPO_MAXIMO_MS = 5_000L
+
+        /** Un mensaje dura unos 4 segundos, o más si el dispositivo tiene ayudas de accesibilidad. */
+        const val TIEMPO_MAXIMO_MENSAJE_MS = 15_000L
         const val CLAVE = "clave123"
     }
 }
