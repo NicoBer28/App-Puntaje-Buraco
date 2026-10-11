@@ -111,7 +111,11 @@ fun NavegacionApp(navController: NavHostController = rememberNavController()) {
             PartidasJugadasScreen(alVolver = { navController.popBackStack() })
         }
         composable<Ruta.Perfil> {
-            PerfilScreen(alVolver = { navController.popBackStack() })
+            PerfilScreen(
+                alVolver = { navController.popBackStack() },
+                // El recorrido arranca en el inicio, que es desde donde se llega al perfil.
+                alVerRecorrido = { navController.popBackStack(Ruta.NuevaPartida, inclusive = false) },
+            )
         }
     }
 }

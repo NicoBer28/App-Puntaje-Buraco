@@ -58,7 +58,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -74,6 +73,7 @@ import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.LadoEquipo
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.ui.common.BotonPrincipal
 import com.example.puntajeburaco20.ui.common.BotonSecundario
 import com.example.puntajeburaco20.ui.common.CampoTexto
@@ -91,13 +91,30 @@ import com.example.puntajeburaco20.ui.common.rememberMensajero
 import com.example.puntajeburaco20.ui.common.textoEncima
 import com.example.puntajeburaco20.ui.puntaje.camara.CamaraFichas
 import com.example.puntajeburaco20.ui.puntaje.camara.VistaCamara
+import com.example.puntajeburaco20.ui.recorrido.PasoRecorrido
+import com.example.puntajeburaco20.ui.recorrido.RecorridoGuiado
+import com.example.puntajeburaco20.ui.recorrido.destacable
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
 import com.example.puntajeburaco20.ui.tema.numerico
 
 private enum class Dialogo { SALIR, DESHACER, ELEGIR_GANADOR }
 
-/** Un número entero, posiblemente negativo, todavía a medio escribir ("" o "-" también valen). */
-private val FormatoNumero = Regex("-?\\d{0,6}")
+private const val DESTINO_MARCADOR = "marcador"
+private const val DESTINO_ANOTAR = "anotar"
+private const val DESTINO_CAMARA = "camara"
+private const val DESTINO_SUMAR = "sumar"
+private const val DESTINO_DESHACER = "deshacer"
+private const val DESTINO_TERMINAR = "terminar"
+
+/** Lo que se explica la primera vez que se entra a una partida. El de la cámara solo sale si hay. */
+private val PasosPartida = listOf(
+    PasoRecorrido(DESTINO_MARCADOR, R.string.recorrido_marcador_titulo, R.string.recorrido_marcador_detalle),
+    PasoRecorrido(DESTINO_ANOTAR, R.string.recorrido_anotar_titulo, R.string.recorrido_anotar_detalle),
+    PasoRecorrido(DESTINO_CAMARA, R.string.recorrido_camara_titulo, R.string.recorrido_camara_detalle),
+    PasoRecorrido(DESTINO_SUMAR, R.string.recorrido_sumar_titulo, R.string.recorrido_sumar_detalle),
+    PasoRecorrido(DESTINO_DESHACER, R.string.recorrido_deshacer_titulo, R.string.recorrido_deshacer_detalle),
+    PasoRecorrido(DESTINO_TERMINAR, R.string.recorrido_terminar_titulo, R.string.recorrido_terminar_detalle),
+)
 
 @Composable
 fun PuntajeScreen(
@@ -160,119 +177,131 @@ fun PuntajeScreen(
         viewModel.sumarRonda(PuntajeViewModel.RondaIngresada(baseUno, puntosUno, baseDos, puntosDos))
     }
 
-    PantallaBuraco(
-        mensajero = mensajero,
-        encabezado = {
-            Encabezado(
-                titulo = if (actual.terminada) {
-                    stringResource(R.string.titulo_partida_terminada)
-                } else {
-                    stringResource(R.string.titulo_ronda, actual.rondas.size + 1)
-                },
-                navegacion = {
-                    IconButton(onClick = { dialogo = Dialogo.SALIR }, modifier = Modifier.testTag("btnAtras")) {
-                        Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.accion_salir))
-                    }
-                },
-                acciones = {
-                    IconButton(
-                        onClick = { dialogo = Dialogo.DESHACER },
-                        enabled = actual.sePuedeDeshacer,
-                        modifier = Modifier.testTag("btnDeshacer"),
-                    ) {
-                        Icon(painterResource(R.drawable.ic_undo), contentDescription = stringResource(R.string.accion_deshacer))
-                    }
-                    if (hayCamara && !actual.terminada) {
-                        IconButton(
-                            onClick = {
-                                val permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                                if (permiso == PackageManager.PERMISSION_GRANTED) {
-                                    viewModel.abrirCamara()
-                                } else {
-                                    pedirPermisoCamara.launch(Manifest.permission.CAMERA)
-                                }
-                            },
-                            modifier = Modifier.testTag("btnCamara"),
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.ic_photo_camera),
-                                contentDescription = stringResource(R.string.accion_camara),
-                            )
+    // El recorrido explica cómo anotar: no tiene sentido con la partida terminada ni con la cámara abierta.
+    RecorridoGuiado(Recorrido.PARTIDA, PasosPartida, habilitado = !actual.terminada && !camaraActiva) {
+        PantallaBuraco(
+            mensajero = mensajero,
+            encabezado = {
+                Encabezado(
+                    titulo = if (actual.terminada) {
+                        stringResource(R.string.titulo_partida_terminada)
+                    } else {
+                        stringResource(R.string.titulo_ronda, actual.rondas.size + 1)
+                    },
+                    navegacion = {
+                        IconButton(onClick = { dialogo = Dialogo.SALIR }, modifier = Modifier.testTag("btnAtras")) {
+                            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.accion_salir))
                         }
+                    },
+                    acciones = {
+                        IconButton(
+                            onClick = { dialogo = Dialogo.DESHACER },
+                            enabled = actual.sePuedeDeshacer,
+                            modifier = Modifier
+                                .destacable(DESTINO_DESHACER)
+                                .testTag("btnDeshacer"),
+                        ) {
+                            Icon(painterResource(R.drawable.ic_undo), contentDescription = stringResource(R.string.accion_deshacer))
+                        }
+                        if (hayCamara && !actual.terminada) {
+                            IconButton(
+                                onClick = {
+                                    val permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                                    if (permiso == PackageManager.PERMISSION_GRANTED) {
+                                        viewModel.abrirCamara()
+                                    } else {
+                                        pedirPermisoCamara.launch(Manifest.permission.CAMERA)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .destacable(DESTINO_CAMARA)
+                                    .testTag("btnCamara"),
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_photo_camera),
+                                    contentDescription = stringResource(R.string.accion_camara),
+                                )
+                            }
+                        }
+                    },
+                ) {
+                    // En columna: el marcador son los totales y, debajo, quién empieza.
+                    Column(Modifier.destacable(DESTINO_MARCADOR)) {
+                        Marcador(actual, nombreUno, nombreDos, avisosEmpieza)
                     }
-                },
-            ) {
-                Marcador(actual, nombreUno, nombreDos, avisosEmpieza)
-            }
-        },
-        // Las acciones de la ronda quedan fijas abajo: a mano aun con el teclado abierto.
-        pie = if (actual.terminada) {
-            null
-        } else {
-            {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    BotonSecundario(
-                        texto = stringResource(R.string.accion_fin),
-                        alTocar = { dialogo = Dialogo.ELEGIR_GANADOR },
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("btnFin"),
-                        icono = R.drawable.ic_sports_score,
+                }
+            },
+            // Las acciones de la ronda quedan fijas abajo: a mano aun con el teclado abierto.
+            pie = if (actual.terminada) {
+                null
+            } else {
+                {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        BotonSecundario(
+                            texto = stringResource(R.string.accion_fin),
+                            alTocar = { dialogo = Dialogo.ELEGIR_GANADOR },
+                            modifier = Modifier
+                                .weight(1f)
+                                .destacable(DESTINO_TERMINAR)
+                                .testTag("btnFin"),
+                            icono = R.drawable.ic_sports_score,
+                        )
+                        BotonPrincipal(
+                            texto = stringResource(R.string.accion_sumar),
+                            alTocar = sumarRonda,
+                            modifier = Modifier
+                                .weight(1.4f)
+                                .destacable(DESTINO_SUMAR)
+                                .testTag("btnSumar"),
+                        )
+                    }
+                }
+            },
+        ) {
+            if (actual.terminada) {
+                TarjetaGanador(
+                    nombre = if (actual.ganador == LadoEquipo.UNO) nombreUno else nombreDos,
+                    alSalir = { dialogo = Dialogo.SALIR },
+                )
+            } else {
+                Tarjeta(Modifier.destacable(DESTINO_ANOTAR)) {
+                    TituloSeccion(stringResource(R.string.anotar_ronda))
+                    CamposEquipo(
+                        nombre = nombreUno,
+                        color = TemaBuraco.colores.equipoUno,
+                        base = baseUno,
+                        alCambiarBase = { baseUno = it },
+                        puntos = puntosUno,
+                        alCambiarPuntos = { puntosUno = it },
+                        etiqueta = "Uno",
+                        ultimoCampo = false,
                     )
-                    BotonPrincipal(
-                        texto = stringResource(R.string.accion_sumar),
-                        alTocar = sumarRonda,
-                        modifier = Modifier
-                            .weight(1.4f)
-                            .testTag("btnSumar"),
+                    CamposEquipo(
+                        nombre = nombreDos,
+                        color = TemaBuraco.colores.equipoDos,
+                        base = baseDos,
+                        alCambiarBase = { baseDos = it },
+                        puntos = puntosDos,
+                        alCambiarPuntos = { puntosDos = it },
+                        etiqueta = "Dos",
+                        ultimoCampo = true,
                     )
                 }
             }
-        },
-    ) {
-        if (actual.terminada) {
-            TarjetaGanador(
-                nombre = if (actual.ganador == LadoEquipo.UNO) nombreUno else nombreDos,
-                alSalir = { dialogo = Dialogo.SALIR },
-            )
-        } else {
-            Tarjeta {
-                TituloSeccion(stringResource(R.string.anotar_ronda))
-                CamposEquipo(
-                    nombre = nombreUno,
-                    color = TemaBuraco.colores.equipoUno,
-                    base = baseUno,
-                    alCambiarBase = { baseUno = it },
-                    puntos = puntosUno,
-                    alCambiarPuntos = { puntosUno = it },
-                    etiqueta = "Uno",
-                    ultimoCampo = false,
-                )
-                CamposEquipo(
-                    nombre = nombreDos,
-                    color = TemaBuraco.colores.equipoDos,
-                    base = baseDos,
-                    alCambiarBase = { baseDos = it },
-                    puntos = puntosDos,
-                    alCambiarPuntos = { puntosDos = it },
-                    etiqueta = "Dos",
-                    ultimoCampo = true,
-                )
-            }
-        }
-        Tarjeta(relleno = PaddingValues(vertical = 20.dp)) {
-            Box(Modifier.padding(horizontal = 20.dp)) {
-                TituloSeccion(stringResource(R.string.rondas_titulo))
-            }
-            if (actual.rondas.isEmpty()) {
-                Text(
-                    stringResource(R.string.rondas_vacio),
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                TablaRondas(actual)
+            Tarjeta(relleno = PaddingValues(vertical = 20.dp)) {
+                Box(Modifier.padding(horizontal = 20.dp)) {
+                    TituloSeccion(stringResource(R.string.rondas_titulo))
+                }
+                if (actual.rondas.isEmpty()) {
+                    Text(
+                        stringResource(R.string.rondas_vacio),
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    TablaRondas(actual)
+                }
             }
         }
     }
@@ -421,9 +450,8 @@ private fun LadoMarcador(
             } else {
                 Box(
                     Modifier
-                        .size(width = 14.dp, height = 4.dp)
-                        .clip(CircleShape)
-                        .background(color),
+                        .size(8.dp)
+                        .background(color, CircleShape),
                 )
             }
         }
@@ -492,7 +520,6 @@ private fun CamposEquipo(
                 etiqueta = stringResource(R.string.hint_puntos),
                 color = color,
                 accionTeclado = if (ultimoCampo) ImeAction.Done else ImeAction.Next,
-                conCambioDeSigno = true,
                 modifier = Modifier
                     .weight(1f)
                     .testTag("puntos$etiqueta"),
@@ -502,8 +529,8 @@ private fun CamposEquipo(
 }
 
 /**
- * Campo para un número entero. El teclado numérico no siempre tiene el signo menos, así que los
- * puntos (que pueden ser negativos) tienen un botón para cambiarlo.
+ * Campo para un número entero, que puede ser negativo: el teclado numérico trae la tecla del
+ * menos, y [numeroIngresado] la acepta también después de escribir las cifras.
  */
 @Composable
 private fun CampoNumero(
@@ -513,29 +540,15 @@ private fun CampoNumero(
     color: Color,
     accionTeclado: ImeAction,
     modifier: Modifier = Modifier,
-    conCambioDeSigno: Boolean = false,
 ) {
-    val descripcionSigno = stringResource(R.string.accion_cambiar_signo)
     CampoTexto(
         valor = valor,
-        alCambiar = { nuevo -> if (nuevo.matches(FormatoNumero)) alCambiar(nuevo) },
+        alCambiar = { escrito -> numeroIngresado(escrito)?.let(alCambiar) },
         etiqueta = etiqueta,
         modifier = modifier,
-        teclado = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = accionTeclado),
+        teclado = KeyboardOptions(keyboardType = KeyboardType.NumberSigned, imeAction = accionTeclado),
         colorFoco = color,
         estiloTexto = MaterialTheme.typography.titleLarge.numerico,
-        iconoFinal = if (conCambioDeSigno) {
-            {
-                IconButton(
-                    onClick = { alCambiar(if (valor.startsWith("-")) valor.drop(1) else "-$valor") },
-                    modifier = Modifier.semantics { contentDescription = descripcionSigno },
-                ) {
-                    Text("±", style = MaterialTheme.typography.titleLarge, color = color)
-                }
-            }
-        } else {
-            null
-        },
     )
 }
 

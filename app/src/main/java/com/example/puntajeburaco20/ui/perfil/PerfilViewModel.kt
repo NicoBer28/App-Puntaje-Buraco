@@ -29,8 +29,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Perfil del usuario: sus datos, el tema de la app, cambiar de nombre o de contraseña, cerrar
- * sesión y borrar la cuenta.
+ * Perfil del usuario: sus datos, el tema de la app, cambiar de nombre o de contraseña, volver a
+ * ver la ayuda, cerrar sesión y borrar la cuenta.
  */
 @HiltViewModel
 class PerfilViewModel @Inject constructor(
@@ -54,6 +54,9 @@ class PerfilViewModel @Inject constructor(
 
     sealed interface Evento {
         data class Mensaje(val texto: UiText) : Evento
+
+        /** Los recorridos de ayuda quedaron pendientes: hay que volver al inicio, donde arranca el primero. */
+        data object VerRecorrido : Evento
     }
 
     private val _estado = MutableStateFlow(Estado())
@@ -89,6 +92,15 @@ class PerfilViewModel @Inject constructor(
             intentar { preferencias.cambiarModoTema(modo) }.onFailure {
                 _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_inesperado)))
             }
+        }
+    }
+
+    /** La ayuda es volver a pasar por los recorridos que se muestran la primera vez. */
+    fun verAyuda() {
+        viewModelScope.launch {
+            intentar { preferencias.reiniciarRecorridos() }
+                .onSuccess { _eventos.send(Evento.VerRecorrido) }
+                .onFailure { _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_inesperado))) }
         }
     }
 

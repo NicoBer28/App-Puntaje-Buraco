@@ -12,6 +12,7 @@ import com.example.puntajeburaco20.domain.model.PartidaJugada
 import com.example.puntajeburaco20.domain.model.PedidoDeReclamo
 import com.example.puntajeburaco20.domain.model.PerfilACargo
 import com.example.puntajeburaco20.domain.model.Reclamo
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.domain.model.Usuario
 import com.example.puntajeburaco20.domain.repository.AuthRepository
 import com.example.puntajeburaco20.domain.repository.EstadisticasRepository
@@ -436,10 +437,23 @@ class FakeSincronizacionRepository(pendientes: Boolean = false) : Sincronizacion
     override val hayCambiosPendientes = MutableStateFlow(pendientes)
 }
 
-class FakePreferenciasRepository(modoInicial: ModoTema = ModoTema.SISTEMA) : PreferenciasRepository {
+class FakePreferenciasRepository(
+    modoInicial: ModoTema = ModoTema.SISTEMA,
+    recorridosVistos: Set<Recorrido> = emptySet(),
+) : PreferenciasRepository {
     override val modoTema = MutableStateFlow(modoInicial)
 
     override suspend fun cambiarModoTema(modo: ModoTema) {
         modoTema.value = modo
+    }
+
+    override val recorridosVistos = MutableStateFlow(recorridosVistos)
+
+    override suspend fun marcarRecorridoVisto(recorrido: Recorrido) {
+        recorridosVistos.value += recorrido
+    }
+
+    override suspend fun reiniciarRecorridos() {
+        recorridosVistos.value = emptySet()
     }
 }

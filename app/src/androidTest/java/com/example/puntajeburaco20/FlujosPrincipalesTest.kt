@@ -20,6 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.puntajeburaco20.domain.model.Cuenta
 import com.example.puntajeburaco20.domain.model.ModoTema
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
 import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
@@ -93,6 +94,10 @@ class FlujosPrincipalesTest {
 
     private fun esperar(tag: String) {
         compose.waitUntil(TIEMPO_MAXIMO_MS) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun esperarQueSeVaya(tag: String) {
+        compose.waitUntil(TIEMPO_MAXIMO_MS) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
     }
 
     /** Toca un elemento que puede estar fuera de la parte visible de una lista desplazable. */
@@ -502,6 +507,54 @@ class FlujosPrincipalesTest {
 
             compose.onNodeWithTag("tema_OSCURO").assertIsSelected()
             assertEquals(ModoTema.OSCURO, preferencias.modoTema.value)
+        }
+    }
+
+    @Test
+    fun laPrimeraVezSeRecorrenElInicioYElAnotador() {
+        runBlocking { preferencias.reiniciarRecorridos() }
+        iniciarSesionComoAna()
+        abrirApp().use {
+            // Arranca solo, y se puede ir y volver entre los pasos.
+            esperar("recorridoGlobo")
+            compose.onNodeWithText(texto(R.string.recorrido_amigos_titulo)).assertIsDisplayed()
+            tocar("recorridoSiguiente")
+            compose.onNodeWithText(texto(R.string.recorrido_modo_titulo)).assertIsDisplayed()
+            tocar("recorridoAnterior")
+            compose.onNodeWithText(texto(R.string.recorrido_amigos_titulo)).assertIsDisplayed()
+
+            tocar("recorridoOmitir")
+            esperarQueSeVaya("recorridoGlobo")
+            assertEquals(setOf(Recorrido.INICIO), preferencias.recorridosVistos.value)
+
+            // Omitido el del inicio, la pantalla vuelve a responder. Al entrar a la partida sale
+            // el del anotador, que tiene un paso más si el dispositivo tiene cámara.
+            empezarPartidaAnaContraBeto()
+            esperar("recorridoGlobo")
+            compose.onNodeWithText(texto(R.string.recorrido_marcador_titulo)).assertIsDisplayed()
+            while (compose.onAllNodesWithTag("recorridoListo").fetchSemanticsNodes().isEmpty()) {
+                tocar("recorridoSiguiente")
+            }
+            compose.onNodeWithText(texto(R.string.recorrido_terminar_titulo)).assertIsDisplayed()
+            tocar("recorridoListo")
+
+            esperarQueSeVaya("recorridoGlobo")
+            assertEquals(Recorrido.entries.toSet(), preferencias.recorridosVistos.value)
+        }
+    }
+
+    @Test
+    fun desdeLaAyudaDelPerfilSeVuelveAVerElRecorrido() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            tocar("btnPerfil")
+            tocarDesplazando("opcionAyuda")
+
+            // Vuelve al inicio, con el recorrido otra vez en el primer paso.
+            esperar("recorridoGlobo")
+            compose.onNodeWithText(texto(R.string.recorrido_amigos_titulo)).assertIsDisplayed()
+            compose.onNodeWithTag("btnNuevaPartida").assertIsDisplayed()
+            assertEquals(emptySet<Recorrido>(), preferencias.recorridosVistos.value)
         }
     }
 

@@ -67,7 +67,8 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── pedidos/              Aviso de que alguien pide un perfil que el usuario creó para otro
     ├── perfil/               Datos de la cuenta, tema claro u oscuro, cambiar el nombre de
-    │                         usuario o la contraseña, cerrar sesión y borrar la cuenta
+    │                         usuario o la contraseña, ayuda, cerrar sesión y borrar la cuenta
+    ├── recorrido/            Ayuda: oscurece una pantalla e ilumina sus elementos de a uno
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
     ├── amigos/               Agregar / eliminar amigos; crear usuarios para otros, cambiarles
     │                         el nombre o el mail y borrarlos
@@ -105,6 +106,23 @@ el dorado del ganador. La tipografía es Barlow, y Barlow Condensed para título
 
 El tema sigue al sistema salvo que el usuario elija claro u oscuro en su perfil. La elección se
 guarda en el dispositivo (`PreferenciasRepository`) y `MainActivity` la aplica a toda la app.
+
+### Ayuda
+
+La ayuda es un **recorrido** sobre las pantallas reales (`ui/recorrido/`): la pantalla se
+oscurece, un elemento queda iluminado y un globo lo explica, con controles para avanzar,
+retroceder u omitir. Hay uno por pantalla (`Recorrido`: el inicio y el anotador) y cada uno sale
+solo la primera vez que se ve esa pantalla en el dispositivo; cuáles se vieron se guarda en
+`PreferenciasRepository`. "Ayuda", en el perfil, los deja a todos sin ver y vuelve al inicio.
+
+Para explicar algo más en una pantalla que ya tiene recorrido:
+
+1. Marcar el elemento con `Modifier.destacable("id")`.
+2. Agregar un `PasoRecorrido("id", título, detalle)` a la lista de pasos de esa pantalla, en el
+   lugar del orden que le toque.
+
+Un paso cuyo elemento no está en la pantalla se saltea solo. Para sumar otra pantalla, agregar un
+valor a `Recorrido` y envolver su contenido en `RecorridoGuiado`.
 
 ## Cambiar de base de datos
 

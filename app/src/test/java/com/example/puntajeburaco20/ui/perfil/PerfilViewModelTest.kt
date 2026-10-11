@@ -3,6 +3,7 @@ package com.example.puntajeburaco20.ui.perfil
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
+import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
 import com.example.puntajeburaco20.domain.usecase.BorrarCuentaUseCase
 import com.example.puntajeburaco20.domain.usecase.CambiarContrasenaUseCase
@@ -48,7 +49,7 @@ class PerfilViewModelTest {
         runBlocking { iniciarSesion("ana@test.com", "clave123") }
     }
     private val partidaEnCurso = FakePartidaEnCursoRepository()
-    private val preferencias = FakePreferenciasRepository()
+    private val preferencias = FakePreferenciasRepository(recorridosVistos = Recorrido.entries.toSet())
     private val sesion = ObservarSesionUseCase(auth, usuarios)
 
     private fun crearViewModel() = PerfilViewModel(
@@ -86,6 +87,17 @@ class PerfilViewModelTest {
 
         assertEquals(ModoTema.OSCURO, preferencias.modoTema.value)
         assertEquals(ModoTema.OSCURO, viewModel.estado.value.modoTema)
+    }
+
+    @Test
+    fun `la ayuda deja los recorridos sin ver y manda a verlos`() = runTest {
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+
+        viewModel.verAyuda()
+
+        assertEquals(emptySet<Recorrido>(), preferencias.recorridosVistos.value)
+        assertEquals(listOf<Evento>(Evento.VerRecorrido), eventos)
     }
 
     @Test

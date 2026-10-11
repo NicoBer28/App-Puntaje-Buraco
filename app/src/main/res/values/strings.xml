@@ -122,10 +122,41 @@
     <string name="opcion_configuracion">Configuración</string>
     <string name="opcion_configuracion_detalle">Ajustes de la app y de las partidas</string>
     <string name="opcion_ayuda">Ayuda</string>
-    <string name="opcion_ayuda_detalle">Cómo usar el anotador</string>
+    <string name="opcion_ayuda_detalle">Volver a ver el recorrido de la app</string>
     <string name="etiqueta_proximamente">Pronto</string>
     <string name="mensaje_proximamente">«%1$s» va a estar disponible pronto</string>
     <string name="accion_cerrar_sesion">Cerrar sesión</string>
+
+    <!-- Recorrido de ayuda -->
+    <string name="accion_omitir">Omitir</string>
+    <string name="accion_listo">Listo</string>
+    <string name="cd_paso_anterior">Paso anterior</string>
+    <string name="cd_paso_siguiente">Paso siguiente</string>
+    <string name="recorrido_progreso">Paso %1$d de %2$d</string>
+    <string name="recorrido_amigos_titulo">Empezá por tus amigos</string>
+    <string name="recorrido_amigos_detalle">Agregá a quienes ya usan la app, o creales un usuario a los que no. Para anotar una partida, los demás jugadores tienen que ser tus amigos.</string>
+    <string name="recorrido_modo_titulo">De a 2 o de a 4</string>
+    <string name="recorrido_modo_detalle">Elegí si juegan uno contra uno o en parejas.</string>
+    <string name="recorrido_equipos_titulo">Quiénes juegan</string>
+    <string name="recorrido_equipos_detalle">Tocá cada lugar para elegir al jugador. El jugador 1 empieza la primera ronda.</string>
+    <string name="recorrido_empezar_titulo">Empezar la partida</string>
+    <string name="recorrido_empezar_detalle">Con los jugadores elegidos, tocá acá. Al entrar te mostramos cómo anotar.</string>
+    <string name="recorrido_estadisticas_titulo">Estadísticas</string>
+    <string name="recorrido_estadisticas_detalle">Cuánto ganó y perdió cada jugador o cada pareja, y el detalle de tus partidas.</string>
+    <string name="recorrido_perfil_titulo">Tu perfil</string>
+    <string name="recorrido_perfil_detalle">Cambiá tu nombre, tu contraseña o el tema. Desde Ayuda podés volver a ver este recorrido.</string>
+    <string name="recorrido_marcador_titulo">El marcador</string>
+    <string name="recorrido_marcador_detalle">El total de cada equipo y quién empieza la ronda.</string>
+    <string name="recorrido_anotar_titulo">Anotar la ronda</string>
+    <string name="recorrido_anotar_detalle">En Base van las canastas, en Puntos lo que suman las fichas.</string>
+    <string name="recorrido_camara_titulo">Contar con la cámara</string>
+    <string name="recorrido_camara_detalle">Apuntá a las fichas, sacá una foto y la app las cuenta. El resultado se suma a los Puntos del equipo que elijas.</string>
+    <string name="recorrido_sumar_titulo">Sumar la ronda</string>
+    <string name="recorrido_sumar_detalle">Suma lo anotado al total de cada equipo y pasa a la ronda siguiente.</string>
+    <string name="recorrido_deshacer_titulo">Deshacer</string>
+    <string name="recorrido_deshacer_detalle">Si te equivocaste, borra la última ronda anotada.</string>
+    <string name="recorrido_terminar_titulo">Terminar la partida</string>
+    <string name="recorrido_terminar_detalle">Elegís quién ganó y el resultado queda guardado en las estadísticas.</string>
     <string name="dialogo_cerrar_sesion">Se va a cerrar tu sesión. Si hay una partida en curso, se pierde.</string>
 
     <!-- Puntaje -->
@@ -141,7 +172,6 @@
     <string name="accion_salir">Salir de la partida</string>
     <string name="accion_fin">Terminar</string>
     <string name="accion_camara">Contar fichas con la cámara</string>
-    <string name="accion_cambiar_signo">Cambiar signo</string>
     <string name="accion_sumar_a_equipo">Sumar a %1$s</string>
     <string name="accion_deshacer">Deshacer última ronda</string>
     <string name="rondas_titulo">Rondas</string>

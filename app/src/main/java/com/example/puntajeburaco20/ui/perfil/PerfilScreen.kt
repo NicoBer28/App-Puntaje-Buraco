@@ -69,6 +69,7 @@ import com.example.puntajeburaco20.ui.tema.TemaBuraco
 @Composable
 fun PerfilScreen(
     alVolver: () -> Unit,
+    alVerRecorrido: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -81,6 +82,7 @@ fun PerfilScreen(
     RecolectarEventos(viewModel.eventos) { evento ->
         when (evento) {
             is PerfilViewModel.Evento.Mensaje -> mensajero.mostrar(evento.texto)
+            PerfilViewModel.Evento.VerRecorrido -> alVerRecorrido()
         }
     }
 
@@ -145,12 +147,12 @@ fun PerfilScreen(
                 avisar = mensajero::mostrar,
             )
             SeparadorDeOpciones()
-            OpcionProximamente(
+            FilaOpcion(
                 titulo = R.string.opcion_ayuda,
                 detalle = R.string.opcion_ayuda_detalle,
                 icono = R.drawable.ic_help,
                 tag = "opcionAyuda",
-                avisar = mensajero::mostrar,
+                alTocar = viewModel::verAyuda,
             )
         }
         BotonSecundario(
