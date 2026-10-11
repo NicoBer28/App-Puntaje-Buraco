@@ -3,7 +3,10 @@ package com.example.puntajeburaco20
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -20,6 +23,8 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.puntajeburaco20.domain.model.Cuenta
+import com.example.puntajeburaco20.domain.model.LadoEquipo
+import com.example.puntajeburaco20.domain.model.LimitePuntos
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.fakes.FakeAuthRepository
@@ -502,12 +507,15 @@ class FlujosPrincipalesTest {
     }
 
     @Test
-    fun elPerfilMuestraAlUsuarioYGuardaElTemaElegido() {
+    fun elPerfilMuestraAlUsuarioYLaConfiguracionGuardaElTemaElegido() {
         iniciarSesionComoAna()
         abrirApp().use {
             tocar("btnPerfil")
             esperar("nombrePerfil")
             compose.onNodeWithTag("nombrePerfil").assertTextEquals("Ana")
+
+            tocarDesplazando("opcionConfiguracion")
+            esperar("tema_SISTEMA")
             compose.onNodeWithTag("tema_SISTEMA").assertIsSelected()
 
             tocarDesplazando("tema_OSCURO")
@@ -515,6 +523,46 @@ class FlujosPrincipalesTest {
 
             compose.onNodeWithTag("tema_OSCURO").assertIsSelected()
             assertEquals(ModoTema.OSCURO, preferencias.modoTema.value)
+        }
+    }
+
+    @Test
+    fun conElLimiteActivoLaPartidaSeTerminaAlLlegarSiSeConfirma() {
+        iniciarSesionComoAna()
+        abrirApp().use {
+            // Se juega a 500: se activa el límite y se cambian sus puntos en la configuración.
+            tocar("btnPerfil")
+            tocarDesplazando("opcionConfiguracion")
+            tocarDesplazando("interruptorLimite")
+            escribir("limitePuntos", "500")
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { preferencias.limitePuntos.value == LimitePuntos(puntos = 500, activo = true) }
+            compose.onNodeWithTag("interruptorLimite").assertIsOn()
+            // El campo queda elegido mientras se escribe, y se suelta al tocar cualquier otra cosa.
+            compose.onNodeWithTag("limitePuntos").assertIsFocused()
+            tocarDesplazando("interruptorPantalla")
+            compose.onNodeWithTag("limitePuntos").assertIsNotFocused()
+            // Con el teclado abierto el encabezado queda fuera de la vista: hay que desplazarse hasta la flecha.
+            tocarDesplazando("btnVolver")
+            tocarDesplazando("btnVolver")
+
+            empezarPartidaAnaContraBeto()
+            cargarRonda("100", "50", "0", "20")
+            compose.onNodeWithTag("totalUno", useUnmergedTree = true).assertTextEquals("150")
+
+            // Con 5000 Ana pasa el límite, pero era un error de tipeo: se corrige en los mismos campos.
+            cargarRonda("5000", "0", "0", "0")
+            esperar("btnCorregirRonda")
+            tocar("btnCorregirRonda")
+            compose.onNodeWithTag("totalUno", useUnmergedTree = true).assertTextEquals("150")
+            compose.onNodeWithTag("baseUno").assertTextContains("5000")
+
+            // Con 500 también llega: esta vez se confirma y la partida termina con Ana de ganadora.
+            cargarRonda("500", "0", "0", "0")
+            esperar("btnConfirmarGanador")
+            tocar("btnConfirmarGanador")
+            compose.waitUntil(TIEMPO_MAXIMO_MS) { partidasJugadas.guardadas.isNotEmpty() }
+            assertEquals(LadoEquipo.UNO, partidasJugadas.guardadas.single().partida.ganador)
+            compose.onNodeWithTag("totalUno", useUnmergedTree = true).assertTextEquals("650")
         }
     }
 

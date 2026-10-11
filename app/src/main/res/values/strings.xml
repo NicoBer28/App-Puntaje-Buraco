@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Puntaje Buraco 2.0</string>
 
     <!-- Comunes -->
@@ -121,10 +121,16 @@
     <string name="seccion_aplicacion">Aplicación</string>
     <string name="opcion_configuracion">Configuración</string>
     <string name="opcion_configuracion_detalle">Ajustes de la app y de las partidas</string>
+    <string name="subtitulo_configuracion">Se guarda en este teléfono.</string>
+    <string name="seccion_partida">Partida</string>
+    <string name="opcion_limite">Terminar al llegar al límite</string>
+    <string name="opcion_limite_detalle">Cuando un equipo llega, se ofrece terminar la partida. Si llegan los dos, gana el que tiene más puntos.</string>
+    <string name="hint_limite_puntos">Límite de puntos</string>
+    <string name="limite_rango">Entre %1$d y %2$d</string>
+    <string name="opcion_pantalla_encendida">Mantener la pantalla encendida</string>
+    <string name="opcion_pantalla_encendida_detalle">Mientras hay una partida en juego.</string>
     <string name="opcion_ayuda">Ayuda</string>
     <string name="opcion_ayuda_detalle">Volver a ver el recorrido de la app</string>
-    <string name="etiqueta_proximamente">Pronto</string>
-    <string name="mensaje_proximamente">«%1$s» va a estar disponible pronto</string>
     <string name="accion_cerrar_sesion">Cerrar sesión</string>
 
     <!-- Recorrido de ayuda -->
@@ -144,7 +150,7 @@
     <string name="recorrido_estadisticas_titulo">Estadísticas</string>
     <string name="recorrido_estadisticas_detalle">Cuánto ganó y perdió cada jugador o cada pareja, y el detalle de tus partidas.</string>
     <string name="recorrido_perfil_titulo">Tu perfil</string>
-    <string name="recorrido_perfil_detalle">Cambiá tu nombre, tu contraseña o el tema. Desde Ayuda podés volver a ver este recorrido.</string>
+    <string name="recorrido_perfil_detalle">Cambiá tu nombre o tu contraseña y ajustá la configuración. Desde Ayuda podés volver a ver este recorrido.</string>
     <string name="recorrido_marcador_titulo">El marcador</string>
     <string name="recorrido_marcador_detalle">El total de cada equipo y quién empieza la ronda.</string>
     <string name="recorrido_anotar_titulo">Anotar la ronda</string>
@@ -194,6 +200,11 @@
     <string name="accion_quitar_ficha">Quitar</string>
     <string name="dialogo_deshacer_ronda">Se borra la última ronda y se restan sus puntos.</string>
     <string name="mensaje_ronda_deshecha">Se deshizo la última ronda</string>
+    <string name="dialogo_limite_titulo">Ganador, %1$s</string>
+    <!-- El límite nunca es menor que 100: siempre va en plural. -->
+    <string name="dialogo_limite_mensaje" tools:ignore="PluralsCandidate">Gana %1$s, que superó los %2$d puntos. Si sumaron mal, corregilo antes de terminar.</string>
+    <string name="accion_terminar_partida">Terminar la partida</string>
+    <string name="accion_corregir_ronda">Corregir la ronda</string>
     <string name="dialogo_fin_titulo">Fin de la partida</string>
     <string name="dialogo_fin_mensaje">¿Quién ganó?</string>
     <string name="dialogo_salir_partida">Si salís ahora, se pierden todos los puntos de esta partida.</string>

@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.error.ErrorUsuario
 import com.example.puntajeburaco20.domain.model.Jugador
-import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
 import com.example.puntajeburaco20.domain.usecase.BorrarCuentaUseCase
 import com.example.puntajeburaco20.domain.usecase.CambiarContrasenaUseCase
@@ -29,8 +28,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Perfil del usuario: sus datos, el tema de la app, cambiar de nombre o de contraseña, volver a
- * ver la ayuda, cerrar sesión y borrar la cuenta.
+ * Perfil del usuario: sus datos, cambiar de nombre o de contraseña, volver a ver la ayuda, cerrar
+ * sesión y borrar la cuenta.
  */
 @HiltViewModel
 class PerfilViewModel @Inject constructor(
@@ -46,7 +45,6 @@ class PerfilViewModel @Inject constructor(
     data class Estado(
         val nombreUsuario: String = "",
         val cantidadAmigos: Int = 0,
-        val modoTema: ModoTema = ModoTema.SISTEMA,
         val cerrandoSesion: Boolean = false,
         /** `true` mientras se cambia el nombre o la contraseña, o se borra la cuenta. */
         val ocupado: Boolean = false,
@@ -81,17 +79,6 @@ class PerfilViewModel @Inject constructor(
                         }
                     }
                 }
-        }
-        viewModelScope.launch {
-            preferencias.modoTema.collect { modo -> _estado.update { it.copy(modoTema = modo) } }
-        }
-    }
-
-    fun cambiarTema(modo: ModoTema) {
-        viewModelScope.launch {
-            intentar { preferencias.cambiarModoTema(modo) }.onFailure {
-                _eventos.send(Evento.Mensaje(it.aMensaje(R.string.error_inesperado)))
-            }
         }
     }
 

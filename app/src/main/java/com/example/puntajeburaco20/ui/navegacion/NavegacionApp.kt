@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.puntajeburaco20.domain.model.EstadoSesion
 import com.example.puntajeburaco20.ui.amigos.AmigosScreen
+import com.example.puntajeburaco20.ui.configuracion.ConfiguracionScreen
 import com.example.puntajeburaco20.ui.historial.HistorialScreen
 import com.example.puntajeburaco20.ui.login.FondoAcceso
 import com.example.puntajeburaco20.ui.login.LoginScreen
@@ -37,6 +38,7 @@ sealed interface Ruta {
     @Serializable data object Historial : Ruta
     @Serializable data object PartidasJugadas : Ruta
     @Serializable data object Perfil : Ruta
+    @Serializable data object Configuracion : Ruta
 }
 
 private const val DURACION_MS = 280
@@ -113,9 +115,13 @@ fun NavegacionApp(navController: NavHostController = rememberNavController()) {
         composable<Ruta.Perfil> {
             PerfilScreen(
                 alVolver = { navController.popBackStack() },
+                irAConfiguracion = { navController.navigate(Ruta.Configuracion) { launchSingleTop = true } },
                 // El recorrido arranca en el inicio, que es desde donde se llega al perfil.
                 alVerRecorrido = { navController.popBackStack(Ruta.NuevaPartida, inclusive = false) },
             )
+        }
+        composable<Ruta.Configuracion> {
+            ConfiguracionScreen(alVolver = { navController.popBackStack() })
         }
     }
 }

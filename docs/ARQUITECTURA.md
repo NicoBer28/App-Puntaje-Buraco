@@ -66,8 +66,9 @@ app/      (módulo :app, paquete com.example.puntajeburaco20)
     │                         recuperar el perfil que ya se tenía o aceptar el que creó otro
     ├── nuevapartida/         Pantalla principal: elegir jugadores
     ├── pedidos/              Aviso de que alguien pide un perfil que el usuario creó para otro
-    ├── perfil/               Datos de la cuenta, tema claro u oscuro, cambiar el nombre de
-    │                         usuario o la contraseña, ayuda, cerrar sesión y borrar la cuenta
+    ├── perfil/               Datos de la cuenta, cambiar el nombre de usuario o la contraseña,
+    │                         ayuda, cerrar sesión y borrar la cuenta
+    ├── configuracion/        Tema claro u oscuro, límite de puntos y pantalla encendida
     ├── recorrido/            Ayuda: oscurece una pantalla e ilumina sus elementos de a uno
     ├── puntaje/              Anotador de la partida (+ camara/ para detectar fichas)
     ├── amigos/               Agregar / eliminar amigos; crear usuarios para otros, cambiarles
@@ -104,8 +105,23 @@ oscuro) más `ColoresBuraco`, con el color de cada equipo (cobalto y petróleo) 
 el dorado del ganador. La tipografía es Barlow, y Barlow Condensed para títulos y puntajes
 (`res/font`, licencia OFL en `docs/licencias/OFL-Barlow.txt`).
 
-El tema sigue al sistema salvo que el usuario elija claro u oscuro en su perfil. La elección se
-guarda en el dispositivo (`PreferenciasRepository`) y `MainActivity` la aplica a toda la app.
+El tema sigue al sistema salvo que el usuario elija claro u oscuro en la configuración. La
+elección se guarda en el dispositivo (`PreferenciasRepository`) y `MainActivity` la aplica a toda
+la app.
+
+### Configuración
+
+Se llega desde el perfil y todo se guarda en el dispositivo (`PreferenciasRepository`), en el
+momento en que se cambia:
+
+- El **tema**.
+- El **límite de puntos** (`LimitePuntos`): a cuántos se juega y si está activo. Activo, cuando al
+  sumar una ronda un equipo llega al límite, el anotador ofrece terminar la partida: gana el que
+  llegó o, si llegaron los dos, el que tiene más puntos (`Partida.ganadorAlLlegarA`); empatados se
+  sigue jugando. Como terminar no se puede deshacer, la ronda no se anota hasta que se confirma:
+  si tenía un error, se corrige en los mismos campos. Rige el límite que haya al sumar cada
+  ronda, así que se puede activar o cambiar a mitad de una partida.
+- **Mantener la pantalla encendida** mientras hay una partida en juego.
 
 ### Ayuda
 

@@ -1,7 +1,6 @@
 package com.example.puntajeburaco20.ui.perfil
 
 import com.example.puntajeburaco20.R
-import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.Recorrido
 import com.example.puntajeburaco20.domain.service.ValidadorCredenciales
@@ -76,17 +75,6 @@ class PerfilViewModelTest {
 
         usuarios.agregarAmistad(jugador("Ana"), jugador("Beto"))
         assertEquals(1, viewModel.estado.value.cantidadAmigos)
-    }
-
-    @Test
-    fun `cambiar el tema lo guarda y lo refleja`() = runTest {
-        val viewModel = crearViewModel()
-        assertEquals(ModoTema.SISTEMA, viewModel.estado.value.modoTema)
-
-        viewModel.cambiarTema(ModoTema.OSCURO)
-
-        assertEquals(ModoTema.OSCURO, preferencias.modoTema.value)
-        assertEquals(ModoTema.OSCURO, viewModel.estado.value.modoTema)
     }
 
     @Test

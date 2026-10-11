@@ -10,9 +10,11 @@ import com.example.puntajeburaco20.domain.model.CajaNormalizada
 import com.example.puntajeburaco20.domain.model.FichaDetectada
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
+import com.example.puntajeburaco20.domain.model.LimitePuntos
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.repository.PartidaEnCursoRepository
+import com.example.puntajeburaco20.domain.repository.PreferenciasRepository
 import com.example.puntajeburaco20.domain.service.CalculadoraPuntosFichas
 import com.example.puntajeburaco20.domain.usecase.RegistrarResultadoPartidaUseCase
 import com.example.puntajeburaco20.ui.common.UiText
@@ -22,9 +24,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -33,6 +37,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PuntajeViewModel @Inject constructor(
     private val partidaEnCurso: PartidaEnCursoRepository,
+    preferencias: PreferenciasRepository,
     private val registrarResultado: RegistrarResultadoPartidaUseCase,
     private val calculadora: CalculadoraPuntosFichas,
     private val detector: DetectorFichas,
@@ -80,8 +85,23 @@ class PuntajeViewModel @Inject constructor(
         val analizando: Boolean get() = fichas == null
     }
 
+    /**
+     * Un equipo llegó al límite de puntos con la ronda que se quiso sumar. La [partida], con esa
+     * ronda ya incluida, no se anota hasta que los jugadores confirmen que está bien.
+     */
+    data class GanadorPorLimite(val partida: Partida, val lado: LadoEquipo, val limite: Int)
+
     private val _partida = MutableStateFlow<Partida?>(null)
     val partida: StateFlow<Partida?> = _partida.asStateFlow()
+
+    /** El límite que rige es el de la configuración al sumar cada ronda, no el del comienzo de la partida. */
+    private val limite = preferencias.limitePuntos.stateIn(viewModelScope, SharingStarted.Eagerly, LimitePuntos())
+
+    private val _ganadorPorLimite = MutableStateFlow<GanadorPorLimite?>(null)
+    val ganadorPorLimite: StateFlow<GanadorPorLimite?> = _ganadorPorLimite.asStateFlow()
+
+    val pantallaEncendida: StateFlow<Boolean> =
+        preferencias.pantallaEncendida.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _camaraActiva = MutableStateFlow(false)
     val camaraActiva: StateFlow<Boolean> = _camaraActiva.asStateFlow()
@@ -127,10 +147,30 @@ class PuntajeViewModel @Inject constructor(
             return
         }
         val nueva = actual.registrarRonda(rondaUno, rondaDos)
+        val limiteActual = limite.value
+        val ganador = if (limiteActual.activo) nueva.ganadorAlLlegarA(limiteActual.puntos) else null
+        if (ganador != null) {
+            // Terminar no se puede deshacer: antes se pide confirmar, por si la ronda tiene un error.
+            _ganadorPorLimite.value = GanadorPorLimite(nueva, ganador, limiteActual.puntos)
+            return
+        }
         _partida.value = nueva
         _eventos.trySend(Evento.LimpiarRonda)
         avisarQuienEmpieza(nueva)
         guardar(nueva)
+    }
+
+    /** Los jugadores confirman la ronda con la que un equipo llegó al límite: se anota y la partida termina. */
+    fun confirmarGanador() {
+        val pendiente = _ganadorPorLimite.value ?: return
+        _ganadorPorLimite.value = null
+        _eventos.trySend(Evento.LimpiarRonda)
+        terminar(pendiente.partida, pendiente.lado)
+    }
+
+    /** La ronda con la que un equipo llegaba al límite tenía un error: no se anota y queda escrita para corregirla. */
+    fun corregirRonda() {
+        _ganadorPorLimite.value = null
     }
 
     /** Corrige un puntaje mal cargado: quita la última ronda como si no se hubiera jugado. */
@@ -147,7 +187,11 @@ class PuntajeViewModel @Inject constructor(
     fun finalizar(ganador: LadoEquipo) {
         val actual = _partida.value ?: return
         if (actual.terminada) return
-        val terminada = actual.finalizar(ganador)
+        terminar(actual, ganador)
+    }
+
+    private fun terminar(partida: Partida, ganador: LadoEquipo) {
+        val terminada = partida.finalizar(ganador)
         _partida.value = terminada
         viewModelScope.launch {
             intentar {
