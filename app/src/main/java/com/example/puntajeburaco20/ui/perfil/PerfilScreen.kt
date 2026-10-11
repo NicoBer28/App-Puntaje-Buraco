@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,7 +40,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
@@ -50,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.puntajeburaco20.R
-import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.ui.common.Avatar
 import com.example.puntajeburaco20.ui.common.BotonSecundario
 import com.example.puntajeburaco20.ui.common.CampoContrasena
@@ -59,16 +56,15 @@ import com.example.puntajeburaco20.ui.common.DialogoConfirmacion
 import com.example.puntajeburaco20.ui.common.Encabezado
 import com.example.puntajeburaco20.ui.common.PantallaBuraco
 import com.example.puntajeburaco20.ui.common.RecolectarEventos
-import com.example.puntajeburaco20.ui.common.SelectorSegmentado
 import com.example.puntajeburaco20.ui.common.Tarjeta
 import com.example.puntajeburaco20.ui.common.TituloSeccion
-import com.example.puntajeburaco20.ui.common.UiText
 import com.example.puntajeburaco20.ui.common.rememberMensajero
 import com.example.puntajeburaco20.ui.tema.TemaBuraco
 
 @Composable
 fun PerfilScreen(
     alVolver: () -> Unit,
+    irAConfiguracion: () -> Unit,
     alVerRecorrido: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel(),
 ) {
@@ -98,19 +94,6 @@ fun PerfilScreen(
             }
         },
     ) {
-        Tarjeta {
-            TituloSeccion(
-                stringResource(R.string.seccion_apariencia),
-                stringResource(R.string.seccion_apariencia_detalle),
-            )
-            SelectorSegmentado(
-                // El orden de R.array.modos_tema coincide con el de ModoTema.
-                opciones = stringArrayResource(R.array.modos_tema).asList(),
-                elegida = estado.modoTema.ordinal,
-                alElegir = { viewModel.cambiarTema(ModoTema.entries[it]) },
-                tag = { "tema_${ModoTema.entries[it].name}" },
-            )
-        }
         GrupoOpciones(stringResource(R.string.seccion_cuenta)) {
             FilaOpcion(
                 titulo = R.string.opcion_cambiar_nombre,
@@ -138,13 +121,12 @@ fun PerfilScreen(
             )
         }
         GrupoOpciones(stringResource(R.string.seccion_aplicacion)) {
-            // Las opciones que todavía no tienen pantalla se muestran marcadas como "Pronto" y avisan al tocarlas.
-            OpcionProximamente(
+            FilaOpcion(
                 titulo = R.string.opcion_configuracion,
                 detalle = R.string.opcion_configuracion_detalle,
                 icono = R.drawable.ic_settings,
                 tag = "opcionConfiguracion",
-                avisar = mensajero::mostrar,
+                alTocar = irAConfiguracion,
             )
             SeparadorDeOpciones()
             FilaOpcion(
@@ -368,35 +350,6 @@ private fun GrupoOpciones(titulo: String, opciones: @Composable ColumnScope.() -
             Box(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp)) { TituloSeccion(titulo) }
             opciones()
         }
-    }
-}
-
-/** Opción que todavía no está implementada: al tocarla avisa que va a estar disponible más adelante. */
-@Composable
-private fun OpcionProximamente(
-    @StringRes titulo: Int,
-    @StringRes detalle: Int,
-    @DrawableRes icono: Int,
-    tag: String,
-    avisar: (UiText) -> Unit,
-) {
-    val nombre = stringResource(titulo)
-    FilaOpcion(
-        titulo = titulo,
-        detalle = detalle,
-        icono = icono,
-        tag = tag,
-        alTocar = { avisar(UiText.de(R.string.mensaje_proximamente, nombre)) },
-    ) {
-        Text(
-            stringResource(R.string.etiqueta_proximamente),
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

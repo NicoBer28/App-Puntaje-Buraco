@@ -6,6 +6,7 @@ import com.example.puntajeburaco20.domain.model.Equipo
 import com.example.puntajeburaco20.domain.model.Estadisticas
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
+import com.example.puntajeburaco20.domain.model.LimitePuntos
 import com.example.puntajeburaco20.domain.model.ModoTema
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PartidaJugada
@@ -445,6 +446,18 @@ class FakePreferenciasRepository(
 
     override suspend fun cambiarModoTema(modo: ModoTema) {
         modoTema.value = modo
+    }
+
+    override val limitePuntos = MutableStateFlow(LimitePuntos())
+
+    override suspend fun cambiarLimitePuntos(limite: LimitePuntos) {
+        limitePuntos.value = limite
+    }
+
+    override val pantallaEncendida = MutableStateFlow(false)
+
+    override suspend fun cambiarPantallaEncendida(encendida: Boolean) {
+        pantallaEncendida.value = encendida
     }
 
     override val recorridosVistos = MutableStateFlow(recorridosVistos)

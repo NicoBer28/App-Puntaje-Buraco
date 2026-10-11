@@ -41,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -54,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -123,6 +125,8 @@ fun PuntajeScreen(
 ) {
     val partida by viewModel.partida.collectAsStateWithLifecycle()
     val camaraActiva by viewModel.camaraActiva.collectAsStateWithLifecycle()
+    val ganadorPorLimite by viewModel.ganadorPorLimite.collectAsStateWithLifecycle()
+    val pantallaEncendida by viewModel.pantallaEncendida.collectAsStateWithLifecycle()
     val fichas by viewModel.fichasEnPantalla.collectAsStateWithLifecycle()
     val foto by viewModel.foto.collectAsStateWithLifecycle()
     val mensajero = rememberMensajero()
@@ -174,6 +178,7 @@ fun PuntajeScreen(
     }
     val nombreUno = actual.equipoUno.nombreVisible()
     val nombreDos = actual.equipoDos.nombreVisible()
+    if (pantallaEncendida && !actual.terminada) MantenerPantallaEncendida()
     val sumarRonda = {
         viewModel.sumarRonda(PuntajeViewModel.RondaIngresada(baseUno, puntosUno, baseDos, puntosDos))
     }
@@ -346,6 +351,76 @@ fun PuntajeScreen(
         )
         null -> Unit
     }
+    ganadorPorLimite?.let { ganador ->
+        DialogoLimiteAlcanzado(
+            nombre = if (ganador.lado == LadoEquipo.UNO) nombreUno else nombreDos,
+            limite = ganador.limite,
+            alConfirmar = viewModel::confirmarGanador,
+            alCorregir = viewModel::corregirRonda,
+        )
+    }
+}
+
+/** Mientras está en pantalla, el teléfono no la apaga solo. */
+@Composable
+private fun MantenerPantallaEncendida() {
+    val vista = LocalView.current
+    DisposableEffect(vista) {
+        vista.keepScreenOn = true
+        onDispose { vista.keepScreenOn = false }
+    }
+}
+
+/**
+ * Un equipo llegó al límite de puntos y gana la partida. Lo normal es terminarla, así que esa es
+ * la acción destacada; pero como terminar no se puede deshacer, también se puede volver a los
+ * campos, que siguen como estaban, para corregir una ronda mal sumada.
+ */
+@Composable
+private fun DialogoLimiteAlcanzado(
+    nombre: String,
+    limite: Int,
+    alConfirmar: () -> Unit,
+    alCorregir: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = alCorregir,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.dialogo_limite_titulo, nombre), modifier = Modifier.weight(1f, fill = false))
+                Spacer(Modifier.width(10.dp))
+                // El mismo trofeo que después marca al ganador en el marcador.
+                Icon(
+                    painterResource(R.drawable.ic_emoji_events),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = TemaBuraco.colores.ganador,
+                )
+            }
+        },
+        text = {
+            Text(
+                stringResource(R.string.dialogo_limite_mensaje, nombre, limite),
+                modifier = Modifier.testTag("mensajeLimite"),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        confirmButton = {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                BotonPrincipal(
+                    texto = stringResource(R.string.accion_terminar_partida),
+                    alTocar = alConfirmar,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("btnConfirmarGanador"),
+                    icono = R.drawable.ic_sports_score,
+                )
+                TextButton(onClick = alCorregir, modifier = Modifier.testTag("btnCorregirRonda")) {
+                    Text(stringResource(R.string.accion_corregir_ronda))
+                }
+            }
+        },
+    )
 }
 
 private fun sumar(actual: String, puntos: Int): String = ((actual.toIntOrNull() ?: 0) + puntos).toString()

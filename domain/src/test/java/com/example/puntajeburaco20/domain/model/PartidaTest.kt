@@ -122,6 +122,28 @@ class PartidaTest {
     }
 
     @Test
+    fun `jugando a un limite gana el equipo que llega`() {
+        val partida = Partida.nueva(listOf(ana, beto))
+            .registrarRonda(PuntajeRonda(2000, 900), PuntajeRonda(1500, 300))
+        assertNull(partida.ganadorAlLlegarA(3000))
+
+        // Con 100 más Ana llega justo a 3000.
+        assertEquals(LadoEquipo.UNO, partida.registrarRonda(PuntajeRonda(100, 0), PuntajeRonda.CERO).ganadorAlLlegarA(3000))
+        assertEquals(LadoEquipo.DOS, partida.registrarRonda(PuntajeRonda.CERO, PuntajeRonda(1500, 0)).ganadorAlLlegarA(3000))
+    }
+
+    @Test
+    fun `si los dos llegan al limite gana el que tiene mas puntos, y empatados se sigue jugando`() {
+        val partida = Partida.nueva(listOf(ana, beto))
+
+        val ganaBeto = partida.registrarRonda(PuntajeRonda(3000, 50), PuntajeRonda(3000, 200))
+        assertEquals(LadoEquipo.DOS, ganaBeto.ganadorAlLlegarA(3000))
+
+        val empatados = partida.registrarRonda(PuntajeRonda(3000, 100), PuntajeRonda(3100, 0))
+        assertNull(empatados.ganadorAlLlegarA(3000))
+    }
+
+    @Test
     fun `se sabe en que lado juega cada jugador`() {
         val partida = Partida.nueva(listOf(ana, beto, caro, dani))
 

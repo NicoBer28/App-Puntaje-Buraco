@@ -3,6 +3,7 @@ package com.example.puntajeburaco20.ui.puntaje
 import com.example.puntajeburaco20.R
 import com.example.puntajeburaco20.domain.model.Jugador
 import com.example.puntajeburaco20.domain.model.LadoEquipo
+import com.example.puntajeburaco20.domain.model.LimitePuntos
 import com.example.puntajeburaco20.domain.model.Partida
 import com.example.puntajeburaco20.domain.model.PuntajeRonda
 import com.example.puntajeburaco20.domain.service.CalculadoraPuntosFichas
@@ -10,6 +11,7 @@ import com.example.puntajeburaco20.domain.usecase.RegistrarResultadoPartidaUseCa
 import com.example.puntajeburaco20.fakes.FakeDetectorFichas
 import com.example.puntajeburaco20.fakes.FakePartidaEnCursoRepository
 import com.example.puntajeburaco20.fakes.FakePartidasJugadasRepository
+import com.example.puntajeburaco20.fakes.FakePreferenciasRepository
 import com.example.puntajeburaco20.fakes.MainDispatcherRule
 import com.example.puntajeburaco20.fakes.jugador
 import com.example.puntajeburaco20.ui.common.UiText
@@ -39,9 +41,11 @@ class PuntajeViewModelTest {
     private val repositorio = FakePartidaEnCursoRepository(Partida.nueva(listOf(ana, beto)))
     private val partidasJugadas = FakePartidasJugadasRepository()
     private val detector = FakeDetectorFichas()
+    private val preferencias = FakePreferenciasRepository()
 
     private fun crearViewModel() = PuntajeViewModel(
         partidaEnCurso = repositorio,
+        preferencias = preferencias,
         registrarResultado = RegistrarResultadoPartidaUseCase(partidasJugadas),
         calculadora = CalculadoraPuntosFichas(),
         detector = detector,
@@ -176,6 +180,91 @@ class PuntajeViewModelTest {
 
         assertEquals(0, viewModel.partida.value!!.totalUno)
         assertTrue(eventos.isEmpty())
+    }
+
+    @Test
+    fun `con el limite activo, al llegar se pide confirmar antes de anotar la ronda`() = runTest {
+        preferencias.limitePuntos.value = LimitePuntos(puntos = 3000, activo = true)
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+
+        viewModel.sumarRonda(RondaIngresada("3000", "50", "1000", "0"))
+
+        val pendiente = viewModel.ganadorPorLimite.value!!
+        assertEquals(LadoEquipo.UNO, pendiente.lado)
+        assertEquals(3050, pendiente.partida.totalUno)
+        assertEquals(3000, pendiente.limite)
+        // Todavía no pasó nada: ni la ronda anotada, ni los campos limpios, ni el resultado guardado.
+        assertTrue(viewModel.partida.value!!.rondas.isEmpty())
+        assertEquals(listOf(comienza(ana)), eventos)
+        assertTrue(partidasJugadas.guardadas.isEmpty())
+    }
+
+    @Test
+    fun `confirmar al ganador anota la ronda, termina la partida y registra el resultado`() = runTest {
+        preferencias.limitePuntos.value = LimitePuntos(puntos = 3000, activo = true)
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+        viewModel.sumarRonda(RondaIngresada("1000", "0", "3000", "200"))
+
+        viewModel.confirmarGanador()
+
+        val partida = viewModel.partida.value!!
+        assertNull(viewModel.ganadorPorLimite.value)
+        assertEquals(LadoEquipo.DOS, partida.ganador)
+        assertEquals(3200, partida.totalDos)
+        assertEquals(Evento.LimpiarRonda, eventos.last())
+        assertEquals(partida, repositorio.partida)
+        assertEquals(partida, partidasJugadas.guardadas.single().partida)
+    }
+
+    @Test
+    fun `corregir la ronda no anota nada y deja seguir jugando`() = runTest {
+        preferencias.limitePuntos.value = LimitePuntos(puntos = 3000, activo = true)
+        val viewModel = crearViewModel()
+        val eventos = eventosDe(viewModel)
+        viewModel.sumarRonda(RondaIngresada("3000", "0", "100", "0"))
+
+        viewModel.corregirRonda()
+
+        assertNull(viewModel.ganadorPorLimite.value)
+        assertTrue(viewModel.partida.value!!.rondas.isEmpty())
+        assertEquals(listOf(comienza(ana)), eventos)
+
+        // Era 300 y no 3000: la ronda corregida se anota como cualquier otra.
+        viewModel.sumarRonda(RondaIngresada("300", "0", "100", "0"))
+        assertNull(viewModel.ganadorPorLimite.value)
+        assertEquals(300, viewModel.partida.value!!.totalUno)
+        assertFalse(viewModel.partida.value!!.terminada)
+    }
+
+    @Test
+    fun `sin el limite activo, o llegando empatados, la ronda se anota y se sigue jugando`() = runTest {
+        val viewModel = crearViewModel()
+
+        viewModel.sumarRonda(RondaIngresada("3000", "0", "100", "0"))
+        assertNull(viewModel.ganadorPorLimite.value)
+        assertEquals(3000, viewModel.partida.value!!.totalUno)
+
+        // El límite que vale es el de la configuración al sumar la ronda: se puede activar a mitad de partida.
+        preferencias.limitePuntos.value = LimitePuntos(puntos = 3000, activo = true)
+        viewModel.sumarRonda(RondaIngresada("0", "0", "2900", "0"))
+        assertNull(viewModel.ganadorPorLimite.value)
+        assertEquals(2, viewModel.partida.value!!.rondas.size)
+        assertFalse(viewModel.partida.value!!.terminada)
+
+        viewModel.sumarRonda(RondaIngresada("0", "0", "50", "0"))
+        assertEquals(LadoEquipo.DOS, viewModel.ganadorPorLimite.value?.lado)
+    }
+
+    @Test
+    fun `la pantalla queda encendida solo si se eligio en la configuracion`() = runTest {
+        val viewModel = crearViewModel()
+        assertFalse(viewModel.pantallaEncendida.value)
+
+        preferencias.pantallaEncendida.value = true
+
+        assertTrue(viewModel.pantallaEncendida.value)
     }
 
     @Test

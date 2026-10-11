@@ -81,6 +81,18 @@ data class Partida(
 
     fun total(lado: LadoEquipo): Int = rondas.sumOf { it.de(lado).total }
 
+    /**
+     * Quién gana si se juega a [limite] puntos: el equipo que llegó o, si llegaron los dos, el que
+     * tiene más. Devuelve `null` si todavía no llegó ninguno o si llegaron empatados, y entonces
+     * se sigue jugando.
+     */
+    fun ganadorAlLlegarA(limite: Int): LadoEquipo? = when {
+        maxOf(totalUno, totalDos) < limite -> null
+        totalUno > totalDos -> LadoEquipo.UNO
+        totalDos > totalUno -> LadoEquipo.DOS
+        else -> null
+    }
+
     /** Lado en el que juega el [jugador], o `null` si no participa de la partida. */
     fun ladoDe(jugador: Jugador): LadoEquipo? = LadoEquipo.entries.firstOrNull { equipo(it).incluye(jugador) }
 
