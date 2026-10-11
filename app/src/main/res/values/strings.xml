@@ -1,5 +1,290 @@
 <resources>
     <string name="app_name">Puntaje Buraco 2.0</string>
-<!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Comunes -->
+    <string name="si">Sí</string>
+    <string name="no">No</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="cerrar">Cerrar</string>
+    <string name="accion_volver">Volver</string>
+    <string name="dialogo_confirmacion_titulo">¿Seguro?</string>
+    <string-array name="modos_juego">
+        <item>2 jugadores</item>
+        <item>4 jugadores</item>
+    </string-array>
+    <string name="equipo_uno">Equipo 1</string>
+    <string name="equipo_dos">Equipo 2</string>
+    <string name="versus">vs</string>
+    <string name="etiqueta_jugador_1">Jugador 1</string>
+    <string name="etiqueta_jugador_2">Jugador 2</string>
+    <string name="etiqueta_jugador_3">Jugador 3</string>
+    <string name="etiqueta_jugador_4">Jugador 4</string>
+    <string name="elegir_jugador_titulo">Elegí un jugador</string>
+    <string name="elegir_jugador_vacio">Todavía no tenés amigos agregados. Sumalos desde la pantalla Amigos.</string>
+
+    <!-- Login -->
+    <string name="login_marca">Buraco</string>
+    <string name="login_bajada">Anotador de partidas</string>
+    <string name="login_titulo">Hola de nuevo</string>
+    <string name="login_subtitulo">Ingresá con tu mail o creá una cuenta nueva.</string>
+    <string name="hint_mail">Mail</string>
+    <string name="hint_usuario">Usuario</string>
+    <string name="hint_password">Contraseña</string>
+    <string name="accion_login">Ingresar</string>
+    <string name="accion_crear_cuenta">Crear cuenta</string>
+    <string name="accion_olvide_contrasena">Olvidé mi contraseña</string>
+    <string name="accion_usar_otra_cuenta">Usar otra cuenta</string>
+    <string name="verificacion_titulo">Revisá tu correo</string>
+    <string name="verificacion_detalle">Te enviamos un mail a %1$s. Abrí el enlace que trae y volvé a la app. Si no lo ves, fijate en el correo no deseado.</string>
+    <string name="accion_ya_verifique">Ya lo abrí</string>
+    <string name="accion_reenviar_mail">Reenviar mail</string>
+    <string name="nombre_titulo">Elegí tu nombre de usuario</string>
+    <string name="nombre_detalle">Con este nombre te van a buscar tus amigos. De 3 a 8 letras o números.</string>
+    <string name="accion_continuar">Continuar</string>
+    <string name="accion_ya_tenia_perfil">Ya tenía un perfil</string>
+    <string name="perfil_anterior_titulo">Recuperá tu perfil</string>
+    <string name="perfil_anterior_detalle">Escribí el usuario y la contraseña con los que entrabas antes. Si el perfil te lo creó otra persona, dejá la contraseña vacía: le pedimos que confirme que sos vos.</string>
+    <string name="hint_password_anterior">Contraseña anterior</string>
+    <string name="accion_vincular_perfil">Recuperar perfil</string>
+    <string name="accion_perfil_nuevo">Crear un perfil nuevo</string>
+    <string name="reclamo_buscando_titulo">Un momento</string>
+    <string name="reclamo_buscando_detalle">Estamos viendo si ya tenés un perfil.</string>
+    <string name="reclamo_titulo">¿Este perfil es tuyo?</string>
+    <string name="reclamo_detalle">%1$s creó el perfil %2$s para vos.</string>
+    <plurals name="reclamo_detalle_con_partidas">
+        <item quantity="one">%1$s creó el perfil %2$s para vos. Ya tiene %3$d partida anotada.</item>
+        <item quantity="other">%1$s creó el perfil %2$s para vos. Ya tiene %3$d partidas anotadas.</item>
+    </plurals>
+    <string name="accion_aceptar_reclamo">Sí, es mío</string>
+    <string name="accion_rechazar_reclamo">No es mío</string>
+    <string name="espera_titulo">Falta que te confirmen</string>
+    <string name="espera_detalle">Le pedimos a quien creó el perfil %1$s que confirme que sos vos. Lo va a ver cuando abra la app; después vas a poder entrar.</string>
+    <string name="accion_nombre_nuevo">Elegir un nombre nuevo</string>
+    <string name="dialogo_cancelar_pedido">Se cancela el pedido y empezás sin las partidas de ese perfil.</string>
+    <string name="mensaje_pedido_rechazado">No confirmaron que ese perfil sea tuyo</string>
+    <string name="dialogo_rechazar_reclamo">Vas a elegir un nombre nuevo y empezar sin las partidas de ese perfil.</string>
+    <string name="mensaje_verificacion_enviada">Te enviamos el mail de verificación</string>
+    <string name="mensaje_recuperacion_enviada">Si ese mail tiene cuenta, te enviamos un enlace para cambiar la contraseña</string>
+
+    <!-- Nueva partida -->
+    <string name="saludo">Hola,</string>
+    <string name="titulo_nueva_partida">Nueva partida</string>
+    <string name="subtitulo_nueva_partida">Elegí quiénes juegan y en qué equipo.</string>
+    <string name="placeholder_jugador">Elegir jugador</string>
+    <string name="quitar_jugador">Dejar vacío</string>
+    <string name="accion_nueva_partida">Empezar partida</string>
+    <string name="aviso_empieza_primero">Empieza la primera ronda el jugador 1.</string>
+    <string name="aviso_empieza_primero_parejas">Empieza la primera ronda el jugador 1 y le sigue el jugador 3.</string>
+    <string name="atajo_estadisticas">Estadísticas</string>
+    <string name="atajo_estadisticas_detalle">Historial y mis partidas</string>
+    <string name="atajo_amigos">Amigos</string>
+    <string name="atajo_amigos_detalle">Agregar o crear cuentas</string>
+    <string name="error_elija_jugador">Faltan elegir jugadores</string>
+    <string name="dialogo_salir_app">¿Querés salir de la app?</string>
+    <string name="accion_ver_perfil">ver tu perfil</string>
+    <string name="mensaje_cambios_pendientes">Hay datos sin sincronizar. Se suben cuando vuelva la conexión.</string>
+
+    <!-- Perfil -->
+    <string name="titulo_perfil">Perfil</string>
+    <string name="subtitulo_perfil">Tu cuenta y las preferencias de la app.</string>
+    <plurals name="perfil_amigos">
+        <item quantity="one">%1$d amigo</item>
+        <item quantity="other">%1$d amigos</item>
+    </plurals>
+    <string name="seccion_apariencia">Apariencia</string>
+    <string name="seccion_apariencia_detalle">«Sistema» usa el modo claro u oscuro que tenga tu teléfono.</string>
+    <string-array name="modos_tema">
+        <item>Sistema</item>
+        <item>Claro</item>
+        <item>Oscuro</item>
+    </string-array>
+    <string name="seccion_cuenta">Cuenta</string>
+    <string name="opcion_cambiar_nombre">Cambiar nombre de usuario</string>
+    <string name="opcion_cambiar_nombre_detalle">Tus amigos te van a buscar con el nuevo</string>
+    <string name="dialogo_nombre_titulo">Nombre de usuario</string>
+    <string name="dialogo_nombre_detalle">De 3 a 8 letras o números. Las partidas ya jugadas conservan el nombre anterior.</string>
+    <string name="mensaje_nombre_cambiado">Nombre cambiado</string>
+    <string name="opcion_borrar_cuenta">Borrar mi cuenta</string>
+    <string name="opcion_borrar_cuenta_detalle">Se borra tu perfil y no se puede deshacer</string>
+    <string name="dialogo_borrar_cuenta_titulo">Borrar mi cuenta</string>
+    <string name="dialogo_borrar_cuenta_detalle">Se borran tu perfil y tus amistades, y tu nombre y tu mail quedan libres. Las partidas que jugaste siguen en el historial de los demás. Para confirmar, escribí tu contraseña.</string>
+    <string name="accion_borrar_cuenta">Borrar cuenta</string>
+    <string name="opcion_cambiar_contrasena">Cambiar contraseña</string>
+    <string name="opcion_cambiar_contrasena_detalle">Elegí una clave nueva</string>
+    <string name="seccion_aplicacion">Aplicación</string>
+    <string name="opcion_configuracion">Configuración</string>
+    <string name="opcion_configuracion_detalle">Ajustes de la app y de las partidas</string>
+    <string name="opcion_ayuda">Ayuda</string>
+    <string name="opcion_ayuda_detalle">Cómo usar el anotador</string>
+    <string name="etiqueta_proximamente">Pronto</string>
+    <string name="mensaje_proximamente">«%1$s» va a estar disponible pronto</string>
+    <string name="accion_cerrar_sesion">Cerrar sesión</string>
+    <string name="dialogo_cerrar_sesion">Se va a cerrar tu sesión. Si hay una partida en curso, se pierde.</string>
+
+    <!-- Puntaje -->
+    <string name="equipo_pareja">%1$s y %2$s</string>
+    <string name="titulo_ronda">Ronda %1$d</string>
+    <string name="titulo_partida_terminada">Partida terminada</string>
+    <string name="hint_base">Base</string>
+    <string name="hint_puntos">Puntos</string>
+    <string name="ultima_ronda">Última ronda %1$s</string>
+    <string name="empieza">Empieza %1$s</string>
+    <string name="anotar_ronda">Anotar ronda</string>
+    <string name="accion_sumar">Sumar ronda</string>
+    <string name="accion_salir">Salir de la partida</string>
+    <string name="accion_fin">Terminar</string>
+    <string name="accion_camara">Contar fichas con la cámara</string>
+    <string name="accion_cambiar_signo">Cambiar signo</string>
+    <string name="accion_sumar_a_equipo">Sumar a %1$s</string>
+    <string name="accion_deshacer">Deshacer última ronda</string>
+    <string name="rondas_titulo">Rondas</string>
+    <string name="rondas_vacio">Todavía no se anotó ninguna ronda.</string>
+    <string name="ganador">Ganó %1$s</string>
+    <string name="ganador_detalle">El resultado ya quedó guardado.</string>
+    <string name="camara_titulo">Apuntá a las fichas</string>
+    <string name="camara_detalle">Para muchas fichas, sacá una foto. Con pocas, alcanza con sumar lo que se ve marcado.</string>
+    <string name="camara_analizando">Contando fichas…</string>
+    <string name="camara_analizando_detalle">Se revisa la foto por partes: puede tardar unos segundos.</string>
+    <string name="camara_resultado">%1$d fichas · %2$d puntos</string>
+    <string name="camara_corregir_detalle">Tocá una ficha para corregirla, o un lugar vacío para agregar una que faltó.</string>
+    <string name="accion_sacar_foto">Sacar foto y contar</string>
+    <string name="accion_otra_foto">Sacar otra foto</string>
+    <string name="accion_quitar_ficha">Quitar</string>
+    <string name="dialogo_deshacer_ronda">Se borra la última ronda y se restan sus puntos.</string>
+    <string name="mensaje_ronda_deshecha">Se deshizo la última ronda</string>
+    <string name="dialogo_fin_titulo">Fin de la partida</string>
+    <string name="dialogo_fin_mensaje">¿Quién ganó?</string>
+    <string name="dialogo_salir_partida">Si salís ahora, se pierden todos los puntos de esta partida.</string>
+    <string name="dialogo_salir_partida_terminada">Los puntos ya fueron guardados. ¿Volver al inicio?</string>
+    <plurals name="mensaje_puntos_detectados">
+        <item quantity="one">Se sumó %1$d punto</item>
+        <item quantity="other">Se sumaron %1$d puntos</item>
+    </plurals>
+    <string name="mensaje_sin_detecciones">No se detectó nada para sumar</string>
+    <string name="mensaje_camara_cancelada">Cámara cerrada</string>
+    <string name="error_permiso_camara">Se necesita permiso de cámara para detectar las fichas</string>
+    <string name="error_detector_no_disponible">No se pudo cargar el detector de fichas: %1$s</string>
+    <string name="error_camara">No se pudo iniciar la cámara: %1$s</string>
+    <string name="error_analizar_foto">No se pudo analizar la foto: %1$s</string>
+    <string name="error_guardar_resultado">No se pudo guardar el resultado: %1$s</string>
+
+    <!-- Amigos -->
+    <string name="titulo_amigos">Amigos</string>
+    <string name="subtitulo_amigos">Sumá a tus compañeros de mesa para elegirlos en las partidas.</string>
+    <string name="seccion_agregar_amigo">Agregar o quitar</string>
+    <string name="seccion_agregar_amigo_detalle">Escribí el usuario de tu amigo.</string>
+    <string name="seccion_crear_cuenta">Crear usuario para un amigo</string>
+    <string name="seccion_crear_cuenta_detalle">Si no usa la app, creale un usuario acá y queda agregado. Cuando se registre con ese mail, el perfil pasa a ser suyo.</string>
+    <string name="hint_mail_amigo">Mail del amigo</string>
+    <string name="seccion_perfiles_a_cargo">Usuarios que creaste</string>
+    <string name="seccion_perfiles_a_cargo_detalle">Cada uno espera a que su dueño se registre con el mail que le cargaste.</string>
+    <string name="perfil_a_cargo_sin_mail">Sin mail</string>
+    <string name="accion_editar">Editar</string>
+    <string name="dialogo_usuario_titulo">Usuario que creaste</string>
+    <string name="accion_guardar">Guardar</string>
+    <string name="mensaje_usuario_guardado">Cambios guardados</string>
+    <string name="accion_borrar_usuario">Borrar usuario</string>
+    <string name="dialogo_borrar_usuario">Se borra el usuario %1$s y deja de ser amigo de todos. Las partidas que jugó siguen en el historial de los demás.</string>
+    <string name="mensaje_usuario_borrado">Usuario borrado</string>
+    <string name="accion_crear_usuario">Crear usuario</string>
+    <string name="hint_usuario_amigo">Usuario del amigo</string>
+    <string name="accion_agregar_amigo">Agregar</string>
+    <string name="accion_eliminar_amigo">Quitar</string>
+    <string name="mensaje_amigo_agregado">Amigo agregado</string>
+    <string name="mensaje_amigo_eliminado">Amigo quitado</string>
+    <string name="mensaje_usuario_amigo_creado">Usuario creado</string>
+
+    <!-- Pedidos de perfiles creados para otros -->
+    <string name="pedido_titulo">Te piden un perfil</string>
+    <string name="pedido_detalle">%1$s dice ser %2$s, el usuario que creaste. Si es esa persona, el perfil queda reservado para ese mail y va a poder entrar.</string>
+    <string name="accion_aceptar_pedido">Sí, es</string>
+    <string name="accion_rechazar_pedido">No es</string>
+    <string name="accion_despues">Después</string>
+
+    <!-- Historial -->
+    <string name="titulo_estadisticas">Estadísticas</string>
+    <string name="subtitulo_estadisticas">Cómo les fue, en general o contra un rival.</string>
+    <string name="placeholder_historial">Cualquiera</string>
+    <string name="quitar_rival">Cualquier rival</string>
+    <string name="etiqueta_equipo">Equipo</string>
+    <string name="etiqueta_rival">Rival (opcional)</string>
+    <string name="accion_buscar">Buscar</string>
+    <string name="etiqueta_partidas_jugadas">Jugadas</string>
+    <string name="etiqueta_partidas_ganadas">Ganadas</string>
+    <string name="etiqueta_partidas_perdidas">Perdidas</string>
+    <string name="porcentaje">%1$d%%</string>
+    <string name="porcentaje_detalle">de partidas ganadas</string>
+    <string name="estadisticas_vacias">Elegí jugadores y tocá Buscar para ver los resultados.</string>
+    <string name="error_complete_primer_campo">Completá los jugadores del equipo</string>
+    <string name="error_complete_segundo_campo">Elegí los dos jugadores del rival, o ninguno</string>
+    <string name="mensaje_nunca_jugaron_entre_ellos">Nunca jugaron entre ellos</string>
+    <string name="mensaje_nunca_jugaron_juntos">Nunca jugaron juntos</string>
+    <string name="error_consultar_estadisticas">No se pudieron obtener las estadísticas: %1$s</string>
+    <string name="error_estadisticas_sin_conexion">Las estadísticas necesitan conexión. Probá de nuevo cuando tengas señal.</string>
+    <string name="accion_mis_partidas">Mis partidas</string>
+    <string name="accion_mis_partidas_detalle">Tus últimas partidas, ronda por ronda</string>
+
+    <!-- Mis partidas -->
+    <string name="titulo_mis_partidas">Mis partidas</string>
+    <string name="resumen_ganadas">Ganadas</string>
+    <string name="resumen_ganadas_valor">%1$d/%2$d</string>
+    <string name="resumen_racha">Racha</string>
+    <string name="resumen_promedio">Promedio</string>
+    <string name="resumen_sin_partidas">Todavía no terminaste ninguna partida.</string>
+    <string name="partida_ganada">Ganada</string>
+    <string name="partida_perdida">Perdida</string>
+    <string name="partida_equipos">%1$s vs %2$s</string>
+    <string name="partida_resultado">%1$d a %2$d</string>
+    <plurals name="partida_rondas">
+        <item quantity="one">%1$d ronda</item>
+        <item quantity="other">%1$d rondas</item>
+    </plurals>
+    <string name="detalle_desglose">%1$d + %2$d</string>
+    <string name="detalle_desglose_resta">%1$d − %2$d</string>
+    <string name="detalle_total">Total</string>
+    <string name="detalle_sin_rondas">No se anotaron rondas.</string>
+    <string name="error_cargar_partidas">No se pudieron cargar las partidas: %1$s</string>
+
+    <!-- Accesibilidad (descripciones para lectores de pantalla) -->
+    <string name="cd_mostrar_contrasena">Mostrar la contraseña</string>
+    <string name="cd_ocultar_contrasena">Ocultar la contraseña</string>
+    <string name="cd_vista_camara">Vista de la cámara con las fichas detectadas</string>
+
+    <!-- Errores de usuarios -->
+    <string name="error_campo_vacio">Completá el campo</string>
+    <string name="error_complete_campos">Completá todos los campos</string>
+    <plurals name="error_longitud_minima">
+        <item quantity="one">El usuario debe tener al menos %1$d caracter</item>
+        <item quantity="other">El usuario debe tener al menos %1$d caracteres</item>
+    </plurals>
+    <plurals name="error_longitud_maxima">
+        <item quantity="one">El usuario puede tener hasta %1$d caracter</item>
+        <item quantity="other">El usuario puede tener hasta %1$d caracteres</item>
+    </plurals>
+    <string name="error_caracteres_invalidos">Solo se permiten letras y números</string>
+    <string name="error_nombre_en_uso">Ese nombre ya está en uso</string>
+    <string name="error_usuario_inexistente">Ese usuario no existe</string>
+    <string name="error_mail_invalido">Ese mail no es válido</string>
+    <string name="error_mail_en_uso">Ese mail ya tiene una cuenta. Probá ingresar.</string>
+    <string name="error_mail_sin_verificar">Todavía no verificaste tu mail</string>
+    <plurals name="error_contrasena_corta">
+        <item quantity="one">La contraseña debe tener al menos %1$d caracter</item>
+        <item quantity="other">La contraseña debe tener al menos %1$d caracteres</item>
+    </plurals>
+    <string name="error_credenciales_incorrectas">Mail o contraseña incorrectos</string>
+    <string name="error_contrasena_incorrecta">La contraseña no coincide</string>
+    <string name="error_demasiados_intentos">Demasiados intentos. Probá de nuevo más tarde.</string>
+    <string name="error_sin_conexion">No hay conexión. Revisá tu internet y probá de nuevo.</string>
+    <string name="error_sin_sesion">No hay una sesión iniciada</string>
+    <string name="error_perfil_ya_vinculado">Ese perfil ya es de una cuenta</string>
+    <string name="error_perfil_creado_por_otro">Ese perfil lo creó otra persona y no tiene contraseña</string>
+    <string name="error_contrasena_anterior_incorrecta">La contraseña anterior no coincide</string>
+    <string name="error_mail_con_perfil">Ese mail ya tiene un perfil. Agregá a esa persona con su nombre de usuario.</string>
+    <string name="error_reclamo_pendiente">Primero respondé si el perfil que te crearon es tuyo</string>
+    <string name="error_reclamo_no_disponible">Ese perfil ya no está reservado para tu mail</string>
+    <string name="error_es_usuario_actual">Ese usuario sos vos :)</string>
+    <string name="error_ya_es_amigo">Ya es tu amigo</string>
+    <string name="error_no_es_amigo">No está entre tus amigos</string>
+    <string name="error_verificar_usuario">Error al verificar el usuario: %1$s</string>
+    <string name="error_inesperado">Ocurrió un error: %1$s</string>
 </resources>

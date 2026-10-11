@@ -1,5 +1,6 @@
 *.iml
 .gradle
+.kotlin
 /local.properties
 /.idea/caches
 /.idea/libraries
@@ -13,3 +14,24 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Configuración de Firebase (contiene claves del proyecto)
+app/google-services.json
+
+# Datos de firma del build de release
+keystore.properties
+*.jks
+*.keystore
+
+# Scripts de mantenimiento de Firestore: dependencias, respaldos y claves de cuentas de servicio
+node_modules/
+scripts/firestore/respaldos/
+*firebase-adminsdk*.json
+
+# Firebase CLI y emuladores
+.firebase/
+*-debug.log
+.emuladores/
+
+# Scripts de Python (detección de fichas)
+__pycache__/

@@ -1,0 +1,342 @@
+rules_version = '2';
+
+// Reglas de seguridad. El esquema está descripto en docs/PLAN_AUTENTICACION.md.
+//
+// Publicarlas es el primer paso del corte de la fase 4: desde ese momento las versiones
+// anteriores de la app, que usan users/ y doubles/, dejan de poder leer y escribir.
+//
+// Lo que no figura acá queda bloqueado para todos: credencialesViejas/, que solo consultan estas
+// reglas, y el esquema anterior (users/, doubles/, users_v2/), que se conserva como respaldo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function conSesion() {
+      return request.auth != null;
+    }
+
+    // Sin mail verificado una cuenta no puede hacer nada, salvo ver si ya tiene perfil.
+    function verificado() {
+      return conSesion() && request.auth.token.email_verified == true;
+    }
+
+    function camposExactos(campos) {
+      return request.resource.data.keys().toSet() == campos.toSet();
+    }
+
+    // Los documentos tal como quedan después de la escritura: permite exigir que el perfil, su
+    // nombre, su cuenta y su mail se creen juntos y sean coherentes entre sí.
+    function perfilDespues(idPerfil) {
+      return getAfter(/databases/$(database)/documents/perfiles/$(idPerfil)).data;
+    }
+
+    function esMiPerfilDespues(idPerfil) {
+      return perfilDespues(idPerfil).uid == request.auth.uid;
+    }
+
+    function perfilAntes(idPerfil) {
+      return get(/databases/$(database)/documents/perfiles/$(idPerfil)).data;
+    }
+
+    // Quien responde por un perfil: su dueño o, mientras no tenga cuenta, quien lo creó.
+    function administra(datosDelPerfil) {
+      return datosDelPerfil.get('uid', null) == request.auth.uid
+        || (!('uid' in datosDelPerfil) && datosDelPerfil.get('creadoPor', null) == request.auth.uid);
+    }
+
+    // Perfil de la cuenta que hace el pedido.
+    function miPerfil() {
+      return get(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil;
+    }
+
+    function amistadDespues(idPerfil, idAmigo) {
+      return existsAfter(/databases/$(database)/documents/perfiles/$(idPerfil)/amigos/$(idAmigo));
+    }
+
+    // Las mismas reglas que ValidadorCredenciales: de 3 a 8 letras o números.
+    function nombreValido(nombre) {
+      return nombre is string && nombre.matches('[a-zA-Z0-9]{3,8}');
+    }
+
+    match /perfiles/{idPerfil} {
+      allow get: if verificado();
+
+      // Cada uno puede listar los perfiles que creó para otros, para cargarles o corregirles el mail.
+      allow list: if verificado() && resource.data.creadoPor == request.auth.uid;
+
+      allow create: if verificado()
+        && nombreValido(request.resource.data.nombre)
+        && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombre.lower())).data.perfil == idPerfil
+        && (esAltaPropia(idPerfil) || esAltaParaOtro(idPerfil));
+
+      // Una cuenta crea su propio perfil, y solo uno: cuentas/{uid} no se puede cambiar una
+      // vez creado, así que un segundo perfil nunca cumple la condición.
+      function esAltaPropia(idPerfil) {
+        return camposExactos(['nombre', 'uid'])
+          && request.resource.data.uid == request.auth.uid
+          && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
+          && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil;
+      }
+
+      // Perfil sin login para alguien que no usa la app. Nace como amigo de quien lo crea: así
+      // nunca queda uno suelto que nadie tenga en su lista.
+      function esAltaParaOtro(idPerfil) {
+        return camposExactos(['nombre', 'creadoPor'])
+          && request.resource.data.creadoPor == request.auth.uid
+          && amistadDespues(idPerfil, miPerfil());
+      }
+
+      // Un perfil cambia de dos maneras, y nunca las dos a la vez: pasa a tener dueño o cambia
+      // de nombre.
+      allow update: if verificado() && (seVincula(idPerfil) || seRenombra(idPerfil));
+
+      // Una cuenta sin perfil se queda con uno que no tiene dueño. Lo único que cambia es que
+      // pasa a tenerlo, y la cuenta y el mail tienen que quedar apuntando a él. Hay dos formas de
+      // demostrar que le corresponde: la contraseña que tenía, si es anterior al corte, o que
+      // quien lo creó lo haya dejado reservado para su mail.
+      function seVincula(idPerfil) {
+        return !('uid' in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
+          && request.resource.data.uid == request.auth.uid
+          && getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.perfil == idPerfil
+          && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.perfil == idPerfil
+          && getAfter(/databases/$(database)/documents/mails/$(request.auth.token.email)).data.uid == request.auth.uid
+          && (loReclamaSuMail(idPerfil) || sabeLaClaveVieja(idPerfil));
+      }
+
+      // Lo renombra quien responde por él. El nombre nuevo tiene que quedar reservado y el
+      // anterior libre, en la misma operación; si solo cambian mayúsculas, la reserva es la misma.
+      function seRenombra(idPerfil) {
+        return administra(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+          && nombreValido(request.resource.data.nombre)
+          && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombre.lower())).data.perfil == idPerfil
+          && (request.resource.data.nombre.lower() == resource.data.nombre.lower()
+            || !existsAfter(/databases/$(database)/documents/nombres/$(resource.data.nombre.lower())));
+      }
+
+      // Lo borra quien responde por él: quien lo creó mientras no tenga dueño, y después solo su
+      // dueño. Su nombre queda libre y, si tenía dueño, también su cuenta y su mail.
+      allow delete: if verificado()
+        && administra(resource.data)
+        && !existsAfter(/databases/$(database)/documents/nombres/$(resource.data.nombre.lower()))
+        && (!('uid' in resource.data)
+          || (!existsAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid))
+            && !existsAfter(/databases/$(database)/documents/mails/$(request.auth.token.email))));
+
+      // Antes de esta escritura, el mail verificado de la cuenta tiene un reclamo de este perfil.
+      function loReclamaSuMail(idPerfil) {
+        let reclamo = /databases/$(database)/documents/mails/$(request.auth.token.email);
+        return exists(reclamo)
+          && get(reclamo).data.perfil == idPerfil
+          && !('uid' in get(reclamo).data);
+      }
+
+      // La persona demuestra que el perfil era suyo con la contraseña que usaba. La app no la
+      // envía tal cual: guarda en la cuenta un hash de lo que la persona escribió, y el hash de
+      // ese hash tiene que ser el que dejó la migración. Un perfil sin credencial vieja (creado
+      // después del corte) no se puede vincular así.
+      function sabeLaClaveVieja(idPerfil) {
+        // toHexString() devuelve mayúsculas y el hash guardado está en minúsculas.
+        return hashing.sha256(
+            getAfter(/databases/$(database)/documents/cuentas/$(request.auth.uid)).data.pruebaClaveVieja
+          ).toHexString().lower()
+          == get(/databases/$(database)/documents/credencialesViejas/$(idPerfil)).data.hash;
+      }
+
+      // Las amistades son siempre de a dos: cada una figura en la lista de los dos perfiles.
+      match /amigos/{idAmigo} {
+        // La lista de amigos es privada.
+        allow read: if verificado() && administra(perfilAntes(idPerfil));
+
+        // Cualquiera de los dos lados puede crear la amistad, sin que el otro la acepte. En la
+        // lista de otro, entonces, cada uno solo puede agregarse a sí mismo.
+        allow create: if verificado()
+          && idPerfil != idAmigo
+          && (administra(perfilDespues(idPerfil)) || administra(perfilDespues(idAmigo)))
+          && camposExactos(['nombre', 'desde'])
+          && request.resource.data.nombre == perfilDespues(idAmigo).nombre
+          && request.resource.data.desde == request.time
+          && amistadDespues(idAmigo, idPerfil);
+
+        allow delete: if verificado()
+          && (administra(perfilAntes(idPerfil)) || administra(perfilAntes(idAmigo)))
+          && !amistadDespues(idAmigo, idPerfil);
+
+        // Cada lista guarda el nombre del amigo. Cuando un perfil cambia de nombre, quien
+        // responde por él lo corrige en la lista de cada uno de sus amigos.
+        allow update: if verificado()
+          && administra(perfilDespues(idAmigo))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+          && request.resource.data.nombre == perfilDespues(idAmigo).nombre;
+      }
+    }
+
+    // Reserva de nombres de usuario. El id es el nombre en minúsculas.
+    match /nombres/{nombre} {
+      allow get: if verificado();
+
+      allow create: if verificado()
+        && camposExactos(['perfil'])
+        && administra(perfilDespues(request.resource.data.perfil))
+        && perfilDespues(request.resource.data.perfil).nombre.lower() == nombre;
+
+      // Se libera cuando el perfil deja de llamarse así o se borra, en la misma operación.
+      allow delete: if verificado()
+        && administra(perfilAntes(resource.data.perfil))
+        && (!existsAfter(/databases/$(database)/documents/perfiles/$(resource.data.perfil))
+          || perfilDespues(resource.data.perfil).nombre.lower() != nombre);
+    }
+
+    // Perfil vinculado a cada cuenta de acceso.
+    match /cuentas/{uid} {
+      allow get: if conSesion() && request.auth.uid == uid;
+
+      allow create: if verificado()
+        && request.auth.uid == uid
+        // pruebaClaveVieja solo está cuando el perfil se vinculó con la contraseña anterior.
+        && (camposExactos(['perfil']) || camposExactos(['perfil', 'pruebaClaveVieja']))
+        && esMiPerfilDespues(request.resource.data.perfil);
+
+      // Se borra junto con el perfil, cuando su dueño elimina su cuenta.
+      allow delete: if verificado()
+        && request.auth.uid == uid
+        && !existsAfter(/databases/$(database)/documents/perfiles/$(resource.data.perfil));
+    }
+
+    // Un documento por mail: impide que un mail quede asociado a dos perfiles. Es el registro de
+    // la cuenta que tiene ese mail (con uid) o un reclamo: alguien creó un perfil para esa
+    // persona y lo dejó reservado para cuando se registre con ese mail.
+    match /mails/{mail} {
+      // Lo lee el dueño del mail y, si es un reclamo, quien lo creó. Que no exista lo ve
+      // cualquiera: así quien crea un usuario para otro sabe si ese mail está libre.
+      allow get: if verificado()
+        && (request.auth.token.email == mail || resource == null || esReclamoDe(resource.data));
+
+      // Cada uno puede listar los reclamos que creó.
+      allow list: if verificado() && resource.data.creadoPor == request.auth.uid;
+
+      allow create: if verificado() && (esElRegistroDeMiCuenta() || esUnReclamoNuevo());
+
+      function esElRegistroDeMiCuenta() {
+        return request.auth.token.email == mail
+          && camposExactos(['perfil', 'uid'])
+          && request.resource.data.uid == request.auth.uid
+          && esMiPerfilDespues(request.resource.data.perfil);
+      }
+
+      // Solo para un perfil sin dueño que haya creado quien hace el pedido, y con su nombre real
+      // como creador: es lo que va a leer la persona cuando se le ofrezca el perfil. El mail va
+      // en minúsculas, que es como lo deja el servicio de cuentas.
+      function esUnReclamoNuevo() {
+        return camposExactos(['perfil', 'creadoPor', 'nombreCreador'])
+          && request.resource.data.creadoPor == request.auth.uid
+          && mail == mail.lower()
+          && !('uid' in perfilDespues(request.resource.data.perfil))
+          && perfilDespues(request.resource.data.perfil).creadoPor == request.auth.uid
+          && request.resource.data.nombreCreador == perfilAntes(miPerfil()).nombre;
+      }
+
+      function esReclamoDe(datos) {
+        return !('uid' in datos) && datos.get('creadoPor', null) == request.auth.uid;
+      }
+
+      // El dueño del mail acepta el perfil: el reclamo pasa a ser el registro de su cuenta.
+      allow update: if verificado()
+        && request.auth.token.email == mail
+        && !('uid' in resource.data)
+        && camposExactos(['perfil', 'uid'])
+        && request.resource.data.perfil == resource.data.perfil
+        && request.resource.data.uid == request.auth.uid
+        && esMiPerfilDespues(request.resource.data.perfil);
+
+      // Un reclamo lo borra quien lo creó (para corregir el mail crea otro) o el dueño del
+      // mail, si dice que el perfil no es suyo. El registro de una cuenta solo se borra junto
+      // con su perfil, cuando su dueño la elimina.
+      allow delete: if verificado()
+        && ('uid' in resource.data
+          ? resource.data.uid == request.auth.uid
+            && !existsAfter(/databases/$(database)/documents/perfiles/$(resource.data.perfil))
+          : resource.data.creadoPor == request.auth.uid || request.auth.token.email == mail);
+    }
+
+    // Alguien sin perfil dice ser el dueño de uno que otra persona creó, pero no se registró
+    // con el mail para el que estaba reservado. Quien lo creó decide: si le cree, reserva el
+    // perfil para el mail del pedido (un reclamo, más arriba). Cada cuenta tiene a lo sumo un
+    // pedido, que lleva su uid como id.
+    match /pedidosReclamo/{uid} {
+      allow get: if verificado()
+        && (request.auth.uid == uid || (resource != null && resource.data.creador == request.auth.uid));
+
+      // Quien creó perfiles para otros lista los pedidos que le hicieron.
+      allow list: if verificado() && resource.data.creador == request.auth.uid;
+
+      // Lo crea una cuenta que todavía no tiene perfil, con su propio mail verificado, y para un
+      // perfil sin dueño. El nombre y el creador del perfil se copian para mostrar el pedido sin
+      // más lecturas.
+      allow create: if verificado()
+        && request.auth.uid == uid
+        && camposExactos(['perfil', 'nombre', 'mail', 'creador', 'fecha'])
+        && request.resource.data.mail == request.auth.token.email
+        && request.resource.data.fecha == request.time
+        && !exists(/databases/$(database)/documents/cuentas/$(uid))
+        && !('uid' in perfilAntes(request.resource.data.perfil))
+        && perfilAntes(request.resource.data.perfil).creadoPor == request.resource.data.creador
+        && perfilAntes(request.resource.data.perfil).nombre == request.resource.data.nombre;
+
+      // Lo borra quien lo hizo, si desiste, o quien creó el perfil, al aceptarlo o rechazarlo.
+      allow delete: if verificado()
+        && (request.auth.uid == uid || resource.data.creador == request.auth.uid);
+    }
+
+    // Una partida terminada, compartida por todos sus jugadores. La crea quien la anotó, que
+    // puede no haber jugado, y después nadie la modifica ni la borra. Las estadísticas se
+    // calculan contándolas: por eso se exige que los campos por los que se consulta (jugadores,
+    // equipos, enfrentamiento) coincidan con los equipos que dice tener.
+    match /partidas/{idPartida} {
+      allow read: if verificado();
+
+      allow create: if verificado()
+        && camposExactos(['equipoUno', 'equipoDos', 'jugadores', 'nombres', 'equipos', 'enfrentamiento',
+                          'equipoGanador', 'empieza', 'rondas', 'fecha', 'creadaPor'])
+        && request.resource.data.creadaPor == request.auth.uid
+        && request.resource.data.fecha == request.time
+        && equiposValidos(request.resource.data)
+        && request.resource.data.equipoGanador in request.resource.data.equipos
+        && request.resource.data.empieza in request.resource.data.jugadores
+        && request.resource.data.nombres.keys().toSet() == request.resource.data.jugadores.toSet()
+        && request.resource.data.rondas is list
+        && request.resource.data.rondas.size() <= 300;
+
+      // Se juega de a 2 o de a 4, sin repetir jugadores.
+      function equiposValidos(partida) {
+        return partida.equipoUno is list
+          && partida.equipoDos is list
+          && partida.equipoUno.size() in [1, 2]
+          && partida.equipoDos.size() == partida.equipoUno.size()
+          && partida.jugadores == partida.equipoUno.concat(partida.equipoDos)
+          && partida.jugadores.toSet().size() == partida.jugadores.size()
+          && partida.equipos == [claveDeEquipo(partida.equipoUno), claveDeEquipo(partida.equipoDos)]
+          && partida.enfrentamiento == ordenados(partida.equipos[0], partida.equipos[1], '~');
+      }
+
+      // La misma clave que usa la app: el id del jugador, o los dos ids ordenados y unidos con "|".
+      function claveDeEquipo(ids) {
+        return ids.size() == 1 ? ids[0] : ordenados(ids[0], ids[1], '|');
+      }
+
+      function ordenados(uno, otro, separador) {
+        return uno < otro ? uno + separador + otro : otro + separador + uno;
+      }
+    }
+
+    // Resultados anteriores a que existiera el detalle por partida. Los carga la migración y
+    // quedan congelados.
+    match /estadisticasPrevias/{equipo} {
+      allow get: if verificado();
+
+      match /rivales/{rival} {
+        allow get: if verificado();
+      }
+    }
+  }
+}

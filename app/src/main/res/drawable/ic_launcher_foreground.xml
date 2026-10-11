@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dos fichas de Buraco: una celeste detrás y un 7 adelante. Los PNG de mipmap salen del mismo diseño. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="46"
+        android:pivotY="55"
+        android:rotation="-14">
+        <path
+            android:fillColor="#8DB6FF"
+            android:pathData="M37,34h18a6,6 0,0 1,6,6v30a6,6 0,0 1,-6,6h-18a6,6 0,0 1,-6,-6v-30a6,6 0,0 1,6,-6z" />
+    </group>
+    <group
+        android:pivotX="62.4"
+        android:pivotY="56"
+        android:rotation="10">
+        <path
+            android:fillColor="#000000"
+            android:fillAlpha="0.28"
+            android:pathData="M53.4,35h18a6,6 0,0 1,6,6v30a6,6 0,0 1,-6,6h-18a6,6 0,0 1,-6,-6v-30a6,6 0,0 1,6,-6z" />
+    </group>
+    <group
+        android:pivotX="61"
+        android:pivotY="54"
+        android:rotation="10">
+        <path
+            android:fillColor="#FBFCFE"
+            android:pathData="M52,33h18a6,6 0,0 1,6,6v30a6,6 0,0 1,-6,6h-18a6,6 0,0 1,-6,-6v-30a6,6 0,0 1,6,-6z" />
+        <path
+            android:fillColor="#2858D6"
+            android:pathData="M51.5,39L70.5,39L70.5,43.6L57.6,60.5L51.8,60.5L64,43.8L51.5,43.8Z" />
+        <path
+            android:strokeColor="#2858D6"
+            android:strokeWidth="1.6"
+            android:pathData="M58.8,69.8a2.2,2.2 0,1 1,4.4,0a2.2,2.2 0,1 1,-4.4,0" />
+    </group>
+</vector>
